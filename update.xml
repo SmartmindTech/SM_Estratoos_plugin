@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011204</version>
+        <version>2025011205</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.2</release>
+        <release>1.2.3</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,18 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.2/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.3/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.2</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.3</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.2</h3>
+            <h3>Version 1.2.3</h3>
             <ul>
-                <li>Added automatic update notifications for site administrators</li>
-                <li>New scheduled task checks for updates daily and sends popup/email notifications</li>
-                <li>Fixed AMD module loading issue</li>
+                <li>Fixed AMD module user selection loading</li>
+                <li>Improved JavaScript compatibility with Moodle RequireJS</li>
             </ul>
             ]]>
         </releasenotes>
