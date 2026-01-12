@@ -48,6 +48,7 @@ class update_checker {
         // Get current installed version.
         $plugin = \core_plugin_manager::instance()->get_plugin_info('local_sm_estratoos_plugin');
         if (!$plugin) {
+            debugging('SmartMind update check: Plugin info not found', DEBUG_DEVELOPER);
             return null;
         }
         $currentversion = $plugin->versiondisk;
@@ -62,23 +63,31 @@ class update_checker {
         $lastcheck = get_config('local_sm_estratoos_plugin', self::CONFIG_LAST_CHECK);
         $needsfetch = $force || ($lastcheck === false) || (time() - $lastcheck >= $interval);
 
+        // Always try to get cached info first.
+        $cached = get_config('local_sm_estratoos_plugin', self::CONFIG_UPDATE_INFO);
+        $updateinfo = $cached ? json_decode($cached, true) : null;
+
         if ($needsfetch) {
             // Fetch from GitHub.
-            $updateinfo = self::fetch_update_info();
-            if ($updateinfo) {
+            $fetchedinfo = self::fetch_update_info();
+            if ($fetchedinfo) {
                 // Cache the result.
-                set_config(self::CONFIG_UPDATE_INFO, json_encode($updateinfo), 'local_sm_estratoos_plugin');
+                set_config(self::CONFIG_UPDATE_INFO, json_encode($fetchedinfo), 'local_sm_estratoos_plugin');
+                $updateinfo = $fetchedinfo;
+                debugging('SmartMind update check: Fetched version ' . $fetchedinfo['version'] . ' from GitHub', DEBUG_DEVELOPER);
+            } else {
+                // Fetch failed, keep using cached data if available.
+                debugging('SmartMind update check: Fetch failed, using cached data', DEBUG_DEVELOPER);
             }
             set_config(self::CONFIG_LAST_CHECK, time(), 'local_sm_estratoos_plugin');
-        } else {
-            // Use cached info.
-            $cached = get_config('local_sm_estratoos_plugin', self::CONFIG_UPDATE_INFO);
-            $updateinfo = $cached ? json_decode($cached, true) : null;
         }
 
         if (!$updateinfo) {
+            debugging('SmartMind update check: No update info available', DEBUG_DEVELOPER);
             return null;
         }
+
+        debugging('SmartMind update check: Current=' . $currentversion . ', Remote=' . $updateinfo['version'], DEBUG_DEVELOPER);
 
         // Compare versions.
         if ($updateinfo['version'] > $currentversion) {

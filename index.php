@@ -58,6 +58,22 @@ $PAGE->navbar->add(get_string('pluginname', 'local_sm_estratoos_plugin'));
 
 echo $OUTPUT->header();
 
+// Debug info for troubleshooting (visible to admins).
+$showdebug = optional_param('debug', 0, PARAM_BOOL);
+if ($showdebug) {
+    $plugin = core_plugin_manager::instance()->get_plugin_info('local_sm_estratoos_plugin');
+    $cachedinfo = get_config('local_sm_estratoos_plugin', 'cached_update_info');
+    $lastcheck = get_config('local_sm_estratoos_plugin', 'last_update_check');
+
+    echo html_writer::start_div('alert alert-secondary');
+    echo html_writer::tag('h5', 'Debug Info');
+    echo html_writer::tag('p', '<strong>Installed version:</strong> ' . $plugin->versiondisk . ' (' . ($plugin->release ?? 'N/A') . ')');
+    echo html_writer::tag('p', '<strong>Last check:</strong> ' . ($lastcheck ? userdate($lastcheck) : 'Never'));
+    echo html_writer::tag('p', '<strong>Cached info:</strong> ' . ($cachedinfo ? htmlspecialchars($cachedinfo) : 'None'));
+    echo html_writer::tag('p', '<strong>Update available object:</strong> ' . ($updateavailable ? json_encode($updateavailable) : 'null'));
+    echo html_writer::end_div();
+}
+
 // Show success message if update check was performed.
 if ($updatechecked) {
     if ($updateavailable) {
