@@ -32,6 +32,22 @@ if (!is_siteadmin()) {
     throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
 }
 
+// Trigger Moodle's update check for this plugin.
+$updateavailable = null;
+if (class_exists('\core\update\checker')) {
+    $checker = \core\update\checker::instance();
+    // Fetch updates if not checked recently (within last hour).
+    $lastfetch = $checker->get_last_timefetched();
+    if (time() - $lastfetch > 3600) {
+        $checker->fetch();
+    }
+    // Check if update is available for this plugin.
+    $updateinfo = $checker->get_update_info('local_sm_estratoos_plugin');
+    if (!empty($updateinfo) && is_array($updateinfo)) {
+        $updateavailable = reset($updateinfo);
+    }
+}
+
 $PAGE->set_url(new moodle_url('/local/sm_estratoos_plugin/index.php'));
 $PAGE->set_context(context_system::instance());
 $PAGE->set_title(get_string('dashboard', 'local_sm_estratoos_plugin'));
@@ -42,6 +58,28 @@ $PAGE->set_pagelayout('admin');
 $PAGE->navbar->add(get_string('pluginname', 'local_sm_estratoos_plugin'));
 
 echo $OUTPUT->header();
+
+// Show update notification if available.
+if ($updateavailable) {
+    $plugin = core_plugin_manager::instance()->get_plugin_info('local_sm_estratoos_plugin');
+    $currentversion = $plugin->release ?? $plugin->versiondisk;
+    $newversion = $updateavailable->version;
+    $newrelease = $updateavailable->release ?? $newversion;
+
+    echo html_writer::start_div('alert alert-warning d-flex align-items-center justify-content-between');
+    echo html_writer::start_div();
+    echo $OUTPUT->pix_icon('i/warning', '', 'moodle', ['class' => 'mr-2']);
+    echo html_writer::tag('strong', get_string('updateavailable', 'local_sm_estratoos_plugin') . ': ');
+    echo get_string('currentversion', 'local_sm_estratoos_plugin') . ': ' . $currentversion . ' → ';
+    echo get_string('newversion', 'local_sm_estratoos_plugin') . ': ' . $newrelease;
+    echo html_writer::end_div();
+    echo html_writer::link(
+        new moodle_url('/local/sm_estratoos_plugin/update.php'),
+        get_string('updateplugin', 'local_sm_estratoos_plugin'),
+        ['class' => 'btn btn-warning']
+    );
+    echo html_writer::end_div();
+}
 
 echo $OUTPUT->heading(get_string('dashboard', 'local_sm_estratoos_plugin'));
 echo html_writer::tag('p', get_string('dashboarddesc', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
