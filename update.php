@@ -167,7 +167,6 @@ function perform_plugin_update(array $updateinfo): bool {
     $tempdir = make_temp_directory('local_sm_estratoos_plugin_update');
     $zipfile = $tempdir . '/plugin_update.zip';
 
-    mtrace(get_string('downloadingupdate', 'local_sm_estratoos_plugin'));
     echo html_writer::tag('p', get_string('downloadingupdate', 'local_sm_estratoos_plugin'));
 
     $curl = new curl(['cache' => false]);
@@ -179,18 +178,15 @@ function perform_plugin_update(array $updateinfo): bool {
     $result = $curl->download_one($downloadurl, null, ['filepath' => $zipfile]);
 
     if (!file_exists($zipfile) || filesize($zipfile) < 1000) {
-        mtrace('Download failed');
         echo html_writer::tag('p', get_string('downloadfailed', 'local_sm_estratoos_plugin'), ['class' => 'text-danger']);
         return false;
     }
 
-    mtrace(get_string('extractingupdate', 'local_sm_estratoos_plugin'));
     echo html_writer::tag('p', get_string('extractingupdate', 'local_sm_estratoos_plugin'));
 
     // Extract ZIP.
     $zip = new ZipArchive();
     if ($zip->open($zipfile) !== true) {
-        mtrace('Failed to open ZIP');
         echo html_writer::tag('p', get_string('extractfailed', 'local_sm_estratoos_plugin'), ['class' => 'text-danger']);
         return false;
     }
@@ -203,7 +199,7 @@ function perform_plugin_update(array $updateinfo): bool {
     // Find the extracted folder (GitHub adds branch name to folder).
     $folders = glob($extractdir . '/*', GLOB_ONLYDIR);
     if (empty($folders)) {
-        mtrace('No folder found in ZIP');
+        echo html_writer::tag('p', get_string('extractfailed', 'local_sm_estratoos_plugin'), ['class' => 'text-danger']);
         return false;
     }
     $sourcedir = $folders[0];
@@ -211,7 +207,6 @@ function perform_plugin_update(array $updateinfo): bool {
     // Target directory.
     $targetdir = $CFG->dirroot . '/local/sm_estratoos_plugin';
 
-    mtrace(get_string('installingupdate', 'local_sm_estratoos_plugin'));
     echo html_writer::tag('p', get_string('installingupdate', 'local_sm_estratoos_plugin'));
 
     // Backup current version (optional).
@@ -228,7 +223,6 @@ function perform_plugin_update(array $updateinfo): bool {
             if (is_dir($backupdir)) {
                 rename($backupdir, $targetdir);
             }
-            mtrace('Failed to install update');
             echo html_writer::tag('p', get_string('installfailed', 'local_sm_estratoos_plugin'), ['class' => 'text-danger']);
             return false;
         }
