@@ -550,6 +550,9 @@ class company_token_manager {
     /**
      * Validate user belongs to company.
      *
+     * Checks if the user is enrolled in any course within the company's category,
+     * or if the user is directly associated with the company in company_users table.
+     *
      * @param int $userid User ID.
      * @param int $companyid Company ID.
      * @throws \moodle_exception If user doesn't belong to company.
@@ -557,10 +560,60 @@ class company_token_manager {
     private static function validate_user_company_membership(int $userid, int $companyid): void {
         global $DB;
 
-        if (!$DB->record_exists('company_users', ['userid' => $userid, 'companyid' => $companyid])) {
+        // First check: user is in company_users table.
+        if ($DB->record_exists('company_users', ['userid' => $userid, 'companyid' => $companyid])) {
+            return;
+        }
+
+        // Second check: user is enrolled in any course within the company's category.
+        $company = $DB->get_record('company', ['id' => $companyid], 'id, category');
+        if (!$company || empty($company->category)) {
             throw new \moodle_exception('usernotincompany', 'local_sm_estratoos_plugin', '',
                 ['userid' => $userid, 'companyid' => $companyid]);
         }
+
+        // Get all courses in the company's category (including subcategories).
+        $categoryids = self::get_category_and_children($company->category);
+
+        if (!empty($categoryids)) {
+            list($insql, $params) = $DB->get_in_or_equal($categoryids, SQL_PARAMS_NAMED, 'cat');
+            $params['userid'] = $userid;
+
+            $sql = "SELECT DISTINCT ue.id
+                    FROM {user_enrolments} ue
+                    JOIN {enrol} e ON e.id = ue.enrolid
+                    JOIN {course} c ON c.id = e.courseid
+                    WHERE c.category {$insql}
+                      AND ue.userid = :userid
+                      AND ue.status = 0";
+
+            if ($DB->record_exists_sql($sql, $params)) {
+                return;
+            }
+        }
+
+        throw new \moodle_exception('usernotincompany', 'local_sm_estratoos_plugin', '',
+            ['userid' => $userid, 'companyid' => $companyid]);
+    }
+
+    /**
+     * Get category ID and all its child categories.
+     *
+     * @param int $categoryid Parent category ID.
+     * @return array Array of category IDs.
+     */
+    private static function get_category_and_children(int $categoryid): array {
+        global $DB;
+
+        $categories = [$categoryid];
+
+        // Get all child categories recursively.
+        $children = $DB->get_records('course_categories', ['parent' => $categoryid], '', 'id');
+        foreach ($children as $child) {
+            $categories = array_merge($categories, self::get_category_and_children($child->id));
+        }
+
+        return $categories;
     }
 
     /**

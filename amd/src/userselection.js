@@ -33,9 +33,9 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'], function($, Aja
     var loadStrings = function() {
         return Str.get_strings([
             {key: 'selectedusers', component: 'local_sm_estratoos_plugin'},
-            {key: 'student', component: 'core'},
-            {key: 'teacher', component: 'core'},
-            {key: 'manager', component: 'core_role'}
+            {key: 'role_student', component: 'local_sm_estratoos_plugin'},
+            {key: 'role_teacher', component: 'local_sm_estratoos_plugin'},
+            {key: 'role_manager', component: 'local_sm_estratoos_plugin'}
         ]).then(function(strs) {
             strings.selectedusers = strs[0];
             strings.student = strs[1];
@@ -323,8 +323,8 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'], function($, Aja
                 selectByRole('manager');
             });
 
-            // User search.
-            $('#user-search').on('keyup', function() {
+            // User search - use document delegation for dynamically added elements.
+            $(document).on('keyup', '#user-search', function() {
                 var filter = $(this).val();
                 renderUserList(filter);
             });

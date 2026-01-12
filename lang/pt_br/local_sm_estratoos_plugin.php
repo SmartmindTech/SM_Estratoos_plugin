@@ -197,6 +197,11 @@ $string['loadingusers'] = 'Carregando usuários...';
 $string['nousersselected'] = 'Por favor selecione pelo menos um usuário';
 $string['companymanager'] = 'Gestor de Empresa';
 
+// Role name badges.
+$string['role_student'] = 'Estudante';
+$string['role_teacher'] = 'Professor';
+$string['role_manager'] = 'Gestor';
+
 // Detecção do IOMAD.
 $string['iomaddetected'] = 'Modo multi-tenant IOMAD detectado';
 $string['standardmoodle'] = 'Modo Moodle padrão (sem empresas)';
