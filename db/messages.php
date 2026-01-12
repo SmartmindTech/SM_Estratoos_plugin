@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data.
+ * Message provider definitions for local_sm_estratoos_plugin.
  *
  * @package    local_sm_estratoos_plugin
  * @copyright  2025 SmartMind Technologies
@@ -24,15 +24,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011204;  // YYYYMMDDXX format.
-$plugin->requires = 2022112800; // Moodle 4.1+
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.2.2';
-
-// GitHub update server - allows automatic update notifications.
-// Point to the raw update.xml file in the GitHub repository.
-$plugin->updateserver = 'https://raw.githubusercontent.com/SmartmindTech/SM_Estratoos_plugin/main/update.xml';
-
-// No dependencies - plugin works with both IOMAD and standard Moodle.
-// IOMAD features are automatically detected and enabled when available.
+$messageproviders = [
+    // Notification when a new plugin update is available.
+    'updatenotification' => [
+        'capability' => 'moodle/site:config',
+        'defaults' => [
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+        ],
+    ],
+];

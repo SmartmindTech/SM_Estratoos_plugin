@@ -35,4 +35,14 @@ $tasks = [
         'dayofweek' => '*',
         'disabled' => 0,
     ],
+    [
+        'classname' => 'local_sm_estratoos_plugin\task\check_for_updates',
+        'blocking' => 0,
+        'minute' => '0',
+        'hour' => '8',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+        'disabled' => 0,
+    ],
 ];

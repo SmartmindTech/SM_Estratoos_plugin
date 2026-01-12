@@ -209,3 +209,27 @@ $string['selectusers'] = 'Selecionar Usuários';
 $string['allusers'] = 'Todos os usuários';
 $string['searchandselect'] = 'Pesquisar e selecionar usuários';
 $string['nousersavailable'] = 'Nenhum usuário disponível';
+
+// Notificações de atualização.
+$string['task:checkforupdates'] = 'Verificar atualizações do plugin';
+$string['messageprovider:updatenotification'] = 'Notificações de atualização do plugin';
+$string['updateavailable_subject'] = 'Atualização disponível do SmartMind Plugin: v{$a}';
+$string['updateavailable_message'] = 'Uma nova versão do SmartMind - Estratoos Plugin está disponível.
+
+Versão atual: {$a->currentversion}
+Nova versão: {$a->newversion}
+
+Você pode baixar a atualização em:
+{$a->downloadurl}
+
+Para mais informações:
+{$a->infourl}
+
+Para instalar a atualização, acesse:
+{$a->pluginurl}';
+$string['updateavailable_message_html'] = '<p>Uma nova versão do <strong>SmartMind - Estratoos Plugin</strong> está disponível.</p>
+<table>
+<tr><td><strong>Versão atual:</strong></td><td>{$a->currentversion}</td></tr>
+<tr><td><strong>Nova versão:</strong></td><td>{$a->newversion}</td></tr>
+</table>
+<p><a href="{$a->downloadurl}">Baixar atualização</a> | <a href="{$a->infourl}">Notas da versão</a> | <a href="{$a->pluginurl}">Gerenciar plugins</a></p>';
