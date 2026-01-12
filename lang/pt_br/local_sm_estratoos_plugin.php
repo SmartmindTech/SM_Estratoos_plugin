@@ -220,10 +220,29 @@ Versão atual: {$a->currentversion}
 Nova versão: {$a->newversion}
 
 Para instalar a atualização, acesse:
-{$a->pluginurl}';
+{$a->updateurl}';
 $string['updateavailable_message_html'] = '<p>Uma nova versão do <strong>SmartMind - Estratoos Plugin</strong> está disponível.</p>
 <table>
 <tr><td><strong>Versão atual:</strong></td><td>{$a->currentversion}</td></tr>
 <tr><td><strong>Nova versão:</strong></td><td>{$a->newversion}</td></tr>
 </table>
-<p><a href="{$a->pluginurl}">Gerenciar plugins</a></p>';
+<p><a href="{$a->updateurl}" class="btn btn-primary">Instalar atualização</a></p>';
+
+// Strings da página de atualização.
+$string['updateplugin'] = 'Atualizar SmartMind Plugin';
+$string['updateavailable'] = 'Atualização disponível';
+$string['currentversion'] = 'Versão atual';
+$string['newversion'] = 'Nova versão';
+$string['updateconfirm'] = 'Tem certeza de que deseja atualizar o SmartMind - Estratoos Plugin? Os arquivos do plugin serão substituídos pela versão mais recente.';
+$string['updatingplugin'] = 'Atualizando plugin...';
+$string['downloadingupdate'] = 'Baixando atualização...';
+$string['extractingupdate'] = 'Extraindo arquivos...';
+$string['installingupdate'] = 'Instalando atualização...';
+$string['updatesuccessful'] = 'Atualização bem-sucedida!';
+$string['updatesuccessful_desc'] = 'O plugin foi atualizado. Clique em continuar para concluir a atualização do banco de dados.';
+$string['updatefailed'] = 'Atualização falhou';
+$string['updatefetcherror'] = 'Não foi possível obter informações de atualização do servidor.';
+$string['alreadyuptodate'] = 'O plugin já está atualizado.';
+$string['downloadfailed'] = 'Falha ao baixar o pacote de atualização.';
+$string['extractfailed'] = 'Falha ao extrair o pacote de atualização.';
+$string['installfailed'] = 'Falha ao instalar a atualização.';

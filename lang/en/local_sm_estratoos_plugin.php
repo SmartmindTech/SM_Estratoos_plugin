@@ -220,10 +220,29 @@ Current version: {$a->currentversion}
 New version: {$a->newversion}
 
 To install the update, go to:
-{$a->pluginurl}';
+{$a->updateurl}';
 $string['updateavailable_message_html'] = '<p>A new version of <strong>SmartMind - Estratoos Plugin</strong> is available.</p>
 <table>
 <tr><td><strong>Current version:</strong></td><td>{$a->currentversion}</td></tr>
 <tr><td><strong>New version:</strong></td><td>{$a->newversion}</td></tr>
 </table>
-<p><a href="{$a->pluginurl}">Manage plugins</a></p>';
+<p><a href="{$a->updateurl}" class="btn btn-primary">Install update</a></p>';
+
+// Update page strings.
+$string['updateplugin'] = 'Update SmartMind Plugin';
+$string['updateavailable'] = 'Update available';
+$string['currentversion'] = 'Current version';
+$string['newversion'] = 'New version';
+$string['updateconfirm'] = 'Are you sure you want to update the SmartMind - Estratoos Plugin? The plugin files will be replaced with the latest version.';
+$string['updatingplugin'] = 'Updating plugin...';
+$string['downloadingupdate'] = 'Downloading update...';
+$string['extractingupdate'] = 'Extracting files...';
+$string['installingupdate'] = 'Installing update...';
+$string['updatesuccessful'] = 'Update successful!';
+$string['updatesuccessful_desc'] = 'The plugin has been updated. Click continue to complete the database upgrade.';
+$string['updatefailed'] = 'Update failed';
+$string['updatefetcherror'] = 'Could not fetch update information from the server.';
+$string['alreadyuptodate'] = 'The plugin is already up to date.';
+$string['downloadfailed'] = 'Failed to download the update package.';
+$string['extractfailed'] = 'Failed to extract the update package.';
+$string['installfailed'] = 'Failed to install the update.';
