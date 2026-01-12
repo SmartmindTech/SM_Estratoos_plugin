@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011202</version>
+        <version>2025011203</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.0</release>
+        <release>1.2.1</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,20 +29,18 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.0/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.1/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.0</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.1</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.0</h3>
+            <h3>Version 1.2.1</h3>
             <ul>
-                <li>Added support for standard Moodle (non-IOMAD) installations</li>
-                <li>Automatic IOMAD detection - plugin adapts UI accordingly</li>
-                <li>Added GitHub-based automatic updates</li>
-                <li>Forum management API functions included</li>
+                <li>Fixed AMD module loading issue - user selection now displays correctly</li>
+                <li>Added compiled JavaScript build files</li>
             </ul>
             ]]>
         </releasenotes>
