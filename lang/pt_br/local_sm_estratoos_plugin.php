@@ -239,6 +239,7 @@ $string['updateavailable_message_html'] = '<p>Uma nova versão do <strong>SmartM
 <p><a href="{$a->updateurl}" class="btn btn-primary">Instalar atualização</a></p>';
 
 // Strings da página de atualização.
+$string['checkforupdates'] = 'Verificar atualizações';
 $string['updateplugin'] = 'Atualizar SmartMind Plugin';
 $string['updateavailable'] = 'Atualização disponível';
 $string['currentversion'] = 'Versão atual';

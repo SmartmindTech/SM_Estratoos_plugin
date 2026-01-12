@@ -239,6 +239,7 @@ $string['updateavailable_message_html'] = '<p>Una nueva versión de <strong>Smar
 <p><a href="{$a->updateurl}" class="btn btn-primary">Instalar actualización</a></p>';
 
 // Cadenas de la página de actualización.
+$string['checkforupdates'] = 'Buscar actualizaciones';
 $string['updateplugin'] = 'Actualizar SmartMind Plugin';
 $string['updateavailable'] = 'Actualización disponible';
 $string['currentversion'] = 'Versión actual';

@@ -115,3 +115,47 @@ function local_sm_estratoos_plugin_extend_navigation(navigation_node $navigation
 function local_sm_estratoos_plugin_extend_settings_navigation(settings_navigation $settingsnav, context $context) {
     // Settings navigation extension if needed.
 }
+
+/**
+ * Hook that runs before the footer on every page.
+ * Used to trigger update checks for site administrators.
+ */
+function local_sm_estratoos_plugin_before_footer() {
+    global $CFG;
+
+    // Only check for site administrators.
+    if (!is_siteadmin()) {
+        return;
+    }
+
+    // Get the update check interval (default: 60 seconds = 1 minute).
+    $checkinterval = get_config('local_sm_estratoos_plugin', 'update_check_interval');
+    if ($checkinterval === false) {
+        $checkinterval = 60; // Default 1 minute.
+    }
+
+    // Get last check time.
+    $lastcheck = get_config('local_sm_estratoos_plugin', 'last_update_check');
+    if ($lastcheck === false) {
+        $lastcheck = 0;
+    }
+
+    // Check if enough time has passed.
+    if (time() - $lastcheck < $checkinterval) {
+        return;
+    }
+
+    // Update the last check time.
+    set_config('last_update_check', time(), 'local_sm_estratoos_plugin');
+
+    // Trigger Moodle's update checker.
+    if (class_exists('\core\update\checker')) {
+        try {
+            $checker = \core\update\checker::instance();
+            $checker->fetch();
+        } catch (\Exception $e) {
+            // Silently fail - don't break the page.
+            debugging('SmartMind update check failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+    }
+}

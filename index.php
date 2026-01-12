@@ -32,15 +32,24 @@ if (!is_siteadmin()) {
     throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
 }
 
-// Trigger Moodle's update check for this plugin.
+// Handle manual update check.
+$checkupdates = optional_param('checkupdates', 0, PARAM_BOOL);
+$updatechecked = false;
+
+if ($checkupdates && confirm_sesskey()) {
+    // Force fetch updates.
+    if (class_exists('\core\update\checker')) {
+        $checker = \core\update\checker::instance();
+        $checker->fetch();
+        set_config('last_update_check', time(), 'local_sm_estratoos_plugin');
+        $updatechecked = true;
+    }
+}
+
+// Check for available updates.
 $updateavailable = null;
 if (class_exists('\core\update\checker')) {
     $checker = \core\update\checker::instance();
-    // Fetch updates if not checked recently (within last hour).
-    $lastfetch = $checker->get_last_timefetched();
-    if (time() - $lastfetch > 3600) {
-        $checker->fetch();
-    }
     // Check if update is available for this plugin.
     $updateinfo = $checker->get_update_info('local_sm_estratoos_plugin');
     if (!empty($updateinfo) && is_array($updateinfo)) {
@@ -58,6 +67,15 @@ $PAGE->set_pagelayout('admin');
 $PAGE->navbar->add(get_string('pluginname', 'local_sm_estratoos_plugin'));
 
 echo $OUTPUT->header();
+
+// Show success message if update check was performed.
+if ($updatechecked) {
+    if ($updateavailable) {
+        echo $OUTPUT->notification(get_string('updateavailable', 'local_sm_estratoos_plugin'), 'info');
+    } else {
+        echo $OUTPUT->notification(get_string('alreadyuptodate', 'local_sm_estratoos_plugin'), 'success');
+    }
+}
 
 // Show update notification if available.
 if ($updateavailable) {
@@ -91,10 +109,15 @@ $iomadstatus = \local_sm_estratoos_plugin\util::get_iomad_status();
 // Show mode indicator.
 $modeclass = $isiomad ? 'alert-info' : 'alert-warning';
 $modeicon = $isiomad ? 'i/siteevent' : 'i/moodle_host';
-echo html_writer::start_div('alert ' . $modeclass . ' d-flex align-items-center');
+echo html_writer::start_div('alert ' . $modeclass . ' d-flex align-items-center justify-content-between');
+echo html_writer::start_div('d-flex align-items-center');
 echo $OUTPUT->pix_icon($modeicon, '', 'moodle', ['class' => 'mr-2']);
 echo html_writer::tag('span', get_string('moodlemode', 'local_sm_estratoos_plugin') . ': ', ['class' => 'font-weight-bold mr-1']);
 echo html_writer::tag('span', $iomadstatus['message']);
+echo html_writer::end_div();
+// Check for updates button.
+$checkurl = new moodle_url('/local/sm_estratoos_plugin/index.php', ['checkupdates' => 1, 'sesskey' => sesskey()]);
+echo html_writer::link($checkurl, get_string('checkforupdates', 'local_sm_estratoos_plugin'), ['class' => 'btn btn-outline-secondary btn-sm']);
 echo html_writer::end_div();
 
 // Dashboard cards.
