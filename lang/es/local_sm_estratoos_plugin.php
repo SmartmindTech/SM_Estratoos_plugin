@@ -219,12 +219,6 @@ $string['updateavailable_message'] = 'Una nueva versión de SmartMind - Estratoo
 Versión actual: {$a->currentversion}
 Nueva versión: {$a->newversion}
 
-Puede descargar la actualización desde:
-{$a->downloadurl}
-
-Para más información:
-{$a->infourl}
-
 Para instalar la actualización, vaya a:
 {$a->pluginurl}';
 $string['updateavailable_message_html'] = '<p>Una nueva versión de <strong>SmartMind - Estratoos Plugin</strong> está disponible.</p>
@@ -232,4 +226,4 @@ $string['updateavailable_message_html'] = '<p>Una nueva versión de <strong>Smar
 <tr><td><strong>Versión actual:</strong></td><td>{$a->currentversion}</td></tr>
 <tr><td><strong>Nueva versión:</strong></td><td>{$a->newversion}</td></tr>
 </table>
-<p><a href="{$a->downloadurl}">Descargar actualización</a> | <a href="{$a->infourl}">Notas de la versión</a> | <a href="{$a->pluginurl}">Administrar plugins</a></p>';
+<p><a href="{$a->pluginurl}">Administrar plugins</a></p>';
