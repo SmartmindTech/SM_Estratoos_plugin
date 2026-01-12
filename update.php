@@ -128,11 +128,14 @@ function fetch_update_info(string $url): ?array {
         'CURLOPT_TIMEOUT' => 30,
         'CURLOPT_CONNECTTIMEOUT' => 10,
         'CURLOPT_FOLLOWLOCATION' => true,
+        'CURLOPT_SSL_VERIFYPEER' => false,
+        'CURLOPT_SSL_VERIFYHOST' => 0,
     ]);
 
     $content = $curl->get($url);
 
     if ($curl->get_errno() || empty($content)) {
+        debugging('Curl error: ' . $curl->error, DEBUG_DEVELOPER);
         return null;
     }
 
