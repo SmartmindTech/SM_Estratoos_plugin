@@ -1,0 +1,23 @@
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (if using grunt for AMD compilation)
+node_modules/
+
+# Build artifacts
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+
+# Package files (built distributions)
+*.zip
