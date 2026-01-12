@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011208</version>
+        <version>2025011209</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.6</release>
+        <release>1.2.7</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,20 +29,17 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.6/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.7/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.6</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.7</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.6</h3>
+            <h3>Version 1.2.7</h3>
             <ul>
-                <li>Added automatic update check on every page load for admins</li>
-                <li>Added "Check for updates" button on plugin dashboard</li>
-                <li>Update check runs every 60 seconds (configurable)</li>
-                <li>Excluded site administrators from company token user selection</li>
+                <li>Test release for update notification system</li>
             </ul>
             ]]>
         </releasenotes>
