@@ -32,29 +32,19 @@ if (!is_siteadmin()) {
     throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
 }
 
+require_once(__DIR__ . '/classes/update_checker.php');
+
 // Handle manual update check.
 $checkupdates = optional_param('checkupdates', 0, PARAM_BOOL);
 $updatechecked = false;
 
 if ($checkupdates && confirm_sesskey()) {
     // Force fetch updates.
-    if (class_exists('\core\update\checker')) {
-        $checker = \core\update\checker::instance();
-        $checker->fetch();
-        set_config('last_update_check', time(), 'local_sm_estratoos_plugin');
-        $updatechecked = true;
-    }
-}
-
-// Check for available updates.
-$updateavailable = null;
-if (class_exists('\core\update\checker')) {
-    $checker = \core\update\checker::instance();
-    // Check if update is available for this plugin.
-    $updateinfo = $checker->get_update_info('local_sm_estratoos_plugin');
-    if (!empty($updateinfo) && is_array($updateinfo)) {
-        $updateavailable = reset($updateinfo);
-    }
+    $updateavailable = \local_sm_estratoos_plugin\update_checker::check(true);
+    $updatechecked = true;
+} else {
+    // Check for available updates (uses cache if recent).
+    $updateavailable = \local_sm_estratoos_plugin\update_checker::check();
 }
 
 $PAGE->set_url(new moodle_url('/local/sm_estratoos_plugin/index.php'));
