@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/sm_estratoos_plugin/db" VERSION="20250112" COMMENT="IOMAD company-scoped tokens database tables">
+  <TABLES>
+    <TABLE NAME="local_sm_estratoos_plugin" COMMENT="Company-scoped token metadata linking external_tokens to companies">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="tokenid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Reference to external_tokens.id"/>
+        <FIELD NAME="companyid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Reference to company.id - the company scope"/>
+        <FIELD NAME="batchid" TYPE="char" LENGTH="40" NOTNULL="false" COMMENT="UUID to group tokens created in same batch"/>
+        <FIELD NAME="restricttocompany" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="1=filter results by company, 0=system-wide access"/>
+        <FIELD NAME="restricttoenrolment" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="1=also filter by enrollment, 0=all company courses"/>
+        <FIELD NAME="iprestriction" TYPE="char" LENGTH="255" NOTNULL="false" COMMENT="IP restriction for this token (overrides service default)"/>
+        <FIELD NAME="validuntil" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Token expiration timestamp (overrides service default)"/>
+        <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="User who created this token"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="notes" TYPE="text" NOTNULL="false" COMMENT="Admin notes about this token"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="tokenid_fk" TYPE="foreign-unique" FIELDS="tokenid" REFTABLE="external_tokens" REFFIELDS="id"/>
+        <KEY NAME="companyid_fk" TYPE="foreign" FIELDS="companyid" REFTABLE="company" REFFIELDS="id"/>
+        <KEY NAME="createdby_fk" TYPE="foreign" FIELDS="createdby" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="companyid_idx" UNIQUE="false" FIELDS="companyid"/>
+        <INDEX NAME="batchid_idx" UNIQUE="false" FIELDS="batchid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_sm_estratoos_plugin_batch" COMMENT="Batch token creation history and tracking">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="batchid" TYPE="char" LENGTH="40" NOTNULL="true" COMMENT="UUID for this batch"/>
+        <FIELD NAME="companyid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Reference to company.id"/>
+        <FIELD NAME="serviceid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Reference to external_services.id"/>
+        <FIELD NAME="totalusers" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Total users in batch"/>
+        <FIELD NAME="successcount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Successfully created tokens"/>
+        <FIELD NAME="failcount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Failed token creations"/>
+        <FIELD NAME="source" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="company" COMMENT="Selection source: company or csv"/>
+        <FIELD NAME="iprestriction" TYPE="char" LENGTH="255" NOTNULL="false" COMMENT="Batch-wide IP restriction"/>
+        <FIELD NAME="validuntil" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Batch-wide expiration timestamp"/>
+        <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="User who created this batch"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" COMMENT="Status: pending, processing, completed, failed"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="companyid_fk" TYPE="foreign" FIELDS="companyid" REFTABLE="company" REFFIELDS="id"/>
+        <KEY NAME="serviceid_fk" TYPE="foreign" FIELDS="serviceid" REFTABLE="external_services" REFFIELDS="id"/>
+        <KEY NAME="createdby_fk" TYPE="foreign" FIELDS="createdby" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="batchid_unique" UNIQUE="true" FIELDS="batchid"/>
+        <INDEX NAME="companyid_timecreated_idx" UNIQUE="false" FIELDS="companyid, timecreated"/>
+        <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

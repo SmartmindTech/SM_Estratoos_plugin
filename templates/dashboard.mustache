@@ -1,0 +1,116 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_sm_estratoos_plugin/dashboard
+
+    Dashboard template for SmartMind tokens plugin.
+
+    Context variables required for this template:
+    * cards - Array of dashboard cards with title, description, url, icon, class
+    * totalcompanytokens - Total number of company tokens
+    * totalbatches - Total number of batch operations
+    * recentbatches - Array of recent batch operations
+
+    Example context (json):
+    {
+        "cards": [
+            {
+                "title": "Create Admin Token",
+                "description": "Create a system-wide token...",
+                "url": "/local/sm_estratoos_plugin/admin_token.php",
+                "icon": "key",
+                "class": "bg-primary text-white"
+            }
+        ],
+        "totalcompanytokens": 150,
+        "totalbatches": 12,
+        "recentbatches": []
+    }
+}}
+<div class="local-iomad-tokens-dashboard">
+    {{! Dashboard Cards }}
+    <div class="row mt-4">
+        {{#cards}}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 {{class}}">
+                <div class="card-body text-center">
+                    <div class="mb-3" style="font-size: 3rem;">
+                        {{#pix}}{{icon}}, core{{/pix}}
+                    </div>
+                    <h4 class="card-title">{{title}}</h4>
+                    <p class="card-text">{{description}}</p>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-center">
+                    <a href="{{url}}" class="btn btn-light btn-lg">
+                        {{#str}}go{{/str}}
+                    </a>
+                </div>
+            </div>
+        </div>
+        {{/cards}}
+    </div>
+
+    {{! Statistics Section }}
+    <h3 class="mt-5">{{#str}}statistics{{/str}}</h3>
+    <div class="row mt-3">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h2 class="display-4">{{totalcompanytokens}}</h2>
+                    <p class="text-muted">{{#str}}companyonly, local_sm_estratoos_plugin{{/str}}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h2 class="display-4">{{totalbatches}}</h2>
+                    <p class="text-muted">{{#str}}batchtokens, local_sm_estratoos_plugin{{/str}}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{! Recent Batches }}
+    {{#hasrecentbatches}}
+    <h4 class="mt-4">{{#str}}recentbatches, local_sm_estratoos_plugin{{/str}}</h4>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>{{#str}}date{{/str}}</th>
+                <th>{{#str}}company, local_sm_estratoos_plugin{{/str}}</th>
+                <th>{{#str}}service, local_sm_estratoos_plugin{{/str}}</th>
+                <th>{{#str}}success{{/str}}</th>
+                <th>{{#str}}failed{{/str}}</th>
+                <th>{{#str}}createdby, local_sm_estratoos_plugin{{/str}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#recentbatches}}
+            <tr>
+                <td>{{timecreated_formatted}}</td>
+                <td>{{companyname}}</td>
+                <td>{{servicename}}</td>
+                <td><span class="badge badge-success">{{successcount}}</span></td>
+                <td><span class="badge badge-danger">{{failcount}}</span></td>
+                <td>{{createdbyname}}</td>
+            </tr>
+            {{/recentbatches}}
+        </tbody>
+    </table>
+    {{/hasrecentbatches}}
+</div>

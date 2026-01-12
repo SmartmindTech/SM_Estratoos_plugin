@@ -1,0 +1,211 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Language strings for local_sm_estratoos_plugin.
+ *
+ * @package    local_sm_estratoos_plugin
+ * @copyright  2025 SmartMind Technologies
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+// General.
+$string['pluginname'] = 'SmartMind - Estratoos Plugin';
+$string['plugindescription'] = 'Create and manage company-scoped API tokens for SmartMind - Estratoos multi-tenant installations.';
+
+// Capabilities.
+$string['sm_estratoos_plugin:managetokens'] = 'Manage all SmartMind tokens';
+$string['sm_estratoos_plugin:managecompanytokens'] = 'Manage tokens for a company';
+$string['sm_estratoos_plugin:createbatch'] = 'Create tokens in batch';
+$string['sm_estratoos_plugin:viewreports'] = 'View token reports';
+$string['sm_estratoos_plugin:export'] = 'Export tokens';
+$string['sm_estratoos_plugin:createtokensapi'] = 'Create tokens via API';
+
+// Dashboard.
+$string['dashboard'] = 'Token Management Dashboard';
+$string['dashboarddesc'] = 'Create and manage API tokens for your SmartMind - Estratoos installation.';
+$string['createadmintoken'] = 'Create Admin Token';
+$string['createadmintokendesc'] = 'Create a system-wide token for the Moodle administrator with full access.';
+$string['createcompanytokens'] = 'Create Company Tokens';
+$string['createcompanytokensdesc'] = 'Create company-scoped tokens for users in batch. These tokens will only return data for the selected company.';
+$string['managetokens'] = 'Manage Tokens';
+$string['managetokensdesc'] = 'View, edit, and revoke existing tokens.';
+
+// Admin token page.
+$string['admintoken'] = 'Admin Token';
+$string['admintokendesc'] = 'Create a system-wide token for the site administrator. This token will have full access to all data.';
+$string['createadmintokenbutton'] = 'Create Admin Token';
+$string['admintokencreated'] = 'Admin token created successfully';
+$string['admintokenwarning'] = 'Warning: This token provides full system access. Keep it secure!';
+
+// Batch token page.
+$string['batchtokens'] = 'Batch Token Creation';
+$string['batchtokensdesc'] = 'Create tokens for multiple users at once with company-scoped access.';
+$string['createbatchtokens'] = 'Create Batch Tokens';
+
+// User selection.
+$string['userselection'] = 'User Selection';
+$string['selectionmethod'] = 'Selection method';
+$string['bycompany'] = 'By company';
+$string['bycsv'] = 'CSV upload';
+$string['company'] = 'Company';
+$string['selectcompany'] = 'Select company';
+$string['department'] = 'Department';
+$string['alldepartments'] = 'All departments';
+$string['csvfile'] = 'CSV file';
+$string['csvfield'] = 'CSV field for user identification';
+$string['userid'] = 'User ID';
+$string['csvhelp'] = 'Upload a CSV file with one user identifier per line. The first row can be a header.';
+$string['csvhelp_help'] = 'The CSV file should contain one user identifier per line. You can use user IDs, usernames, or email addresses. If the first row is a header, it will be automatically skipped.';
+
+// Service selection.
+$string['serviceselection'] = 'Web Service';
+$string['service'] = 'Service';
+$string['selectservice'] = 'Select web service';
+$string['noservicesenabled'] = 'No web services are enabled. Please enable at least one web service.';
+
+// Token restrictions.
+$string['tokenrestrictions'] = 'Token Restrictions';
+$string['restricttocompany'] = 'Restrict to company';
+$string['restricttocompany_desc'] = 'When enabled, API calls will only return data for the selected company.';
+$string['restricttoenrolment'] = 'Restrict to enrollment';
+$string['restricttoenrolment_desc'] = 'When enabled, users will only see courses they are enrolled in (in addition to company filtering).';
+
+// Batch settings.
+$string['batchsettings'] = 'Batch Settings';
+$string['iprestriction'] = 'IP restriction';
+$string['iprestriction_help'] = 'Enter allowed IP addresses or ranges (comma-separated). Leave empty for no restriction. Examples: 192.168.1.1, 10.0.0.0/8';
+$string['validuntil'] = 'Valid until';
+$string['validuntil_help'] = 'Set an expiration date for the tokens. Leave empty for tokens that never expire.';
+$string['neverexpires'] = 'Never expires';
+
+// Individual settings.
+$string['individualoverrides'] = 'Individual Overrides';
+$string['allowindividualoverrides'] = 'Allow individual token settings';
+$string['allowindividualoverrides_desc'] = 'When enabled, you can modify IP restrictions and validity for individual tokens after creation.';
+
+// Notes.
+$string['notes'] = 'Notes';
+$string['notes_help'] = 'Optional notes about this batch or token for administrative purposes.';
+
+// Actions.
+$string['createtokens'] = 'Create Tokens';
+$string['cancel'] = 'Cancel';
+$string['back'] = 'Back';
+$string['revoke'] = 'Revoke';
+$string['revokeselected'] = 'Revoke Selected';
+$string['export'] = 'Export';
+$string['exportselected'] = 'Export Selected';
+$string['exportcsv'] = 'Export as CSV';
+$string['edit'] = 'Edit';
+$string['delete'] = 'Delete';
+$string['apply'] = 'Apply';
+$string['filter'] = 'Filter';
+
+// Results.
+$string['batchcomplete'] = 'Batch token creation complete';
+$string['tokenscreated'] = '{$a} tokens created successfully';
+$string['tokensfailed'] = '{$a} tokens failed to create';
+$string['errors'] = 'Errors';
+$string['createdtokens'] = 'Created Tokens';
+$string['tokensshownonce'] = 'Token strings are shown only once. Make sure to save them before leaving this page.';
+$string['batchid'] = 'Batch ID';
+$string['createnewbatch'] = 'Create New Batch';
+$string['recentbatches'] = 'Recent Batches';
+$string['createdby'] = 'Created by';
+
+// Token list.
+$string['tokenlist'] = 'Token List';
+$string['notokens'] = 'No tokens found';
+$string['token'] = 'Token';
+$string['tokens'] = 'tokens';
+$string['user'] = 'User';
+$string['restrictions'] = 'Restrictions';
+$string['companyonly'] = 'Company only';
+$string['enrolledonly'] = 'Enrolled only';
+$string['lastaccess'] = 'Last access';
+$string['actions'] = 'Actions';
+$string['bulkactions'] = 'Bulk actions...';
+$string['selectall'] = 'Select all';
+
+// Confirmation messages.
+$string['confirmrevoke'] = 'Are you sure you want to revoke this token? This action cannot be undone.';
+$string['confirmrevokeselected'] = 'Are you sure you want to revoke the selected tokens? This action cannot be undone.';
+$string['tokenrevoked'] = 'Token revoked successfully';
+$string['tokensrevoked'] = '{$a} tokens revoked successfully';
+
+// Error messages.
+$string['accessdenied'] = 'Access denied. Only site administrators can access this page.';
+$string['invalidcompany'] = 'Invalid company selected';
+$string['invalidservice'] = 'Invalid service selected';
+$string['usernotincompany'] = 'User {$a->userid} is not a member of company {$a->companyid}';
+$string['coursenotincompany'] = 'This course does not belong to your company';
+$string['usernotenrolled'] = 'You are not enrolled in this course';
+$string['invalidtoken'] = 'Invalid token';
+$string['tokennotfound'] = 'Token not found';
+$string['invalidiprestriction'] = 'Invalid IP restriction format';
+$string['csverror'] = 'Error processing CSV file: {$a}';
+$string['nousersfound'] = 'No users found matching the criteria';
+$string['emptycsv'] = 'The CSV file is empty or contains no valid users';
+
+// Settings.
+$string['settings'] = 'SmartMind Tokens Settings';
+$string['defaultvaliditydays'] = 'Default validity (days)';
+$string['defaultvaliditydays_desc'] = 'Default number of days before tokens expire. Set to 0 for tokens that never expire.';
+$string['cleanupexpiredtokens'] = 'Clean up expired tokens';
+$string['cleanupexpiredtokens_desc'] = 'Automatically remove expired company token records during cron.';
+$string['defaultrestricttocompany'] = 'Default: Restrict to company';
+$string['defaultrestricttocompany_desc'] = 'Default value for company restriction when creating new tokens.';
+$string['defaultrestricttoenrolment'] = 'Default: Restrict to enrollment';
+$string['defaultrestricttoenrolment_desc'] = 'Default value for enrollment restriction when creating new tokens.';
+
+// Privacy.
+$string['privacy:metadata:local_sm_estratoos_plugin'] = 'Information about company-scoped tokens';
+$string['privacy:metadata:local_sm_estratoos_plugin:tokenid'] = 'The ID of the external token';
+$string['privacy:metadata:local_sm_estratoos_plugin:companyid'] = 'The company this token is scoped to';
+$string['privacy:metadata:local_sm_estratoos_plugin:createdby'] = 'The user who created this token';
+$string['privacy:metadata:local_sm_estratoos_plugin:timecreated'] = 'When the token was created';
+
+// Tasks.
+$string['task:cleanupexpiredtokens'] = 'Clean up expired company tokens';
+
+// User selection.
+$string['quickselect'] = 'Quick select';
+$string['selectallusers'] = 'All Users';
+$string['selectnone'] = 'None';
+$string['selectstudents'] = 'Students';
+$string['selectteachers'] = 'Teachers';
+$string['selectmanagers'] = 'Managers';
+$string['selectedusers'] = 'users selected';
+$string['searchusers'] = 'Search users...';
+$string['loadingusers'] = 'Loading users...';
+$string['nousersselected'] = 'Please select at least one user';
+$string['companymanager'] = 'Company Manager';
+
+// IOMAD detection.
+$string['iomaddetected'] = 'IOMAD multi-tenant mode detected';
+$string['standardmoodle'] = 'Standard Moodle mode (no companies)';
+$string['moodlemode'] = 'Moodle Mode';
+
+// Non-IOMAD mode.
+$string['createusertokens'] = 'Create User Tokens';
+$string['createusertokensdesc'] = 'Create API tokens for users in batch.';
+$string['selectusers'] = 'Select Users';
+$string['allusers'] = 'All users';
+$string['searchandselect'] = 'Search and select users';
+$string['nousersavailable'] = 'No users available';

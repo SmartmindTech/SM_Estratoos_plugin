@@ -1,0 +1,154 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_sm_estratoos_plugin/token_list
+
+    Token list template for token management page.
+
+    Context variables required for this template:
+    * tokens - Array of token objects
+    * hastokens - Boolean indicating if there are tokens
+    * companies - Array of company options for filter
+    * services - Array of service options for filter
+    * selectedcompanyid - Currently selected company ID
+    * selectedserviceid - Currently selected service ID
+
+    Example context (json):
+    {
+        "hastokens": true,
+        "tokens": [
+            {
+                "id": 1,
+                "userfullname": "John Doe",
+                "useremail": "john@example.com",
+                "companyname": "Test Company",
+                "servicename": "Moodle mobile",
+                "restricttocompany": true,
+                "restricttoenrolment": false,
+                "validuntil_formatted": "Never",
+                "lastaccess_formatted": "Never"
+            }
+        ]
+    }
+}}
+<div class="local-iomad-tokens-list">
+    {{! Filters }}
+    <form method="get" class="form-inline mb-4">
+        <div class="form-group mr-2">
+            <label for="filtercompany" class="mr-2">{{#str}}company, local_sm_estratoos_plugin{{/str}}:</label>
+            <select name="companyid" id="filtercompany" class="form-control">
+                <option value="">{{#str}}all{{/str}}</option>
+                {{#companies}}
+                <option value="{{id}}" {{#selected}}selected{{/selected}}>{{name}}</option>
+                {{/companies}}
+            </select>
+        </div>
+        <div class="form-group mr-2">
+            <label for="filterservice" class="mr-2">{{#str}}service, local_sm_estratoos_plugin{{/str}}:</label>
+            <select name="serviceid" id="filterservice" class="form-control">
+                <option value="">{{#str}}all{{/str}}</option>
+                {{#services}}
+                <option value="{{id}}" {{#selected}}selected{{/selected}}>{{name}}</option>
+                {{/services}}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary">{{#str}}filter, local_sm_estratoos_plugin{{/str}}</button>
+    </form>
+
+    {{#hastokens}}
+    {{! Token Table }}
+    <form method="post" id="tokensform">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="bulkrevoke">
+
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectall"></th>
+                    <th>{{#str}}user{{/str}}</th>
+                    <th>{{#str}}company, local_sm_estratoos_plugin{{/str}}</th>
+                    <th>{{#str}}service, local_sm_estratoos_plugin{{/str}}</th>
+                    <th>{{#str}}restrictions, local_sm_estratoos_plugin{{/str}}</th>
+                    <th>{{#str}}validuntil, local_sm_estratoos_plugin{{/str}}</th>
+                    <th>{{#str}}lastaccess{{/str}}</th>
+                    <th>{{#str}}actions{{/str}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#tokens}}
+                <tr>
+                    <td><input type="checkbox" name="tokenids[]" value="{{id}}" class="tokencheck"></td>
+                    <td>
+                        <strong>{{userfullname}}</strong>
+                        <br><small class="text-muted">{{useremail}}</small>
+                    </td>
+                    <td>{{companyname}}</td>
+                    <td>{{servicename}}</td>
+                    <td>
+                        {{#restricttocompany}}
+                        <span class="badge badge-info">{{#str}}companyonly, local_sm_estratoos_plugin{{/str}}</span>
+                        {{/restricttocompany}}
+                        {{#restricttoenrolment}}
+                        <span class="badge badge-warning">{{#str}}enrolledonly, local_sm_estratoos_plugin{{/str}}</span>
+                        {{/restricttoenrolment}}
+                        {{#hasiprestriction}}
+                        <span class="badge badge-secondary">{{iprestriction}}</span>
+                        {{/hasiprestriction}}
+                    </td>
+                    <td>{{validuntil_formatted}}</td>
+                    <td>{{lastaccess_formatted}}</td>
+                    <td>
+                        <a href="{{revokeurl}}" class="btn btn-sm btn-outline-danger"
+                           title="{{#str}}revoke, local_sm_estratoos_plugin{{/str}}">
+                            {{#pix}}t/delete, core{{/pix}}
+                        </a>
+                    </td>
+                </tr>
+                {{/tokens}}
+            </tbody>
+        </table>
+
+        {{! Bulk Actions }}
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <button type="submit" class="btn btn-danger"
+                        onclick="return confirm('{{#str}}confirmrevokeselected, local_sm_estratoos_plugin{{/str}}');">
+                    {{#str}}revokeselected, local_sm_estratoos_plugin{{/str}}
+                </button>
+                <a href="{{exporturl}}" class="btn btn-secondary ml-2">
+                    {{#str}}exportcsv, local_sm_estratoos_plugin{{/str}}
+                </a>
+            </div>
+            <span class="text-muted">{{tokencount}} {{#str}}tokens, local_sm_estratoos_plugin{{/str}}</span>
+        </div>
+    </form>
+    {{/hastokens}}
+
+    {{^hastokens}}
+    <div class="alert alert-info">
+        {{#str}}notokens, local_sm_estratoos_plugin{{/str}}
+    </div>
+    {{/hastokens}}
+</div>
+
+{{#js}}
+require(['jquery'], function($) {
+    $('#selectall').on('change', function() {
+        $('.tokencheck').prop('checked', this.checked);
+    });
+});
+{{/js}}

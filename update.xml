@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Moodle plugin update server configuration file.
+
+    This file is checked by Moodle to determine if updates are available.
+    When you release a new version:
+    1. Update the version number in version.php
+    2. Update this file with the new version details
+    3. Create a GitHub release with the ZIP file
+    4. Commit and push both files
+
+    GitHub Repository: https://github.com/SmartmindTech/SM_Estratoos_plugin
+-->
+<updates>
+    <update>
+        <!-- Plugin identifier (must match $plugin->component in version.php) -->
+        <component>local_sm_estratoos_plugin</component>
+
+        <!-- Version number (must match $plugin->version in version.php) -->
+        <version>2025011202</version>
+
+        <!-- Human-readable release version -->
+        <release>1.2.0</release>
+
+        <!-- Minimum required Moodle version -->
+        <requires>2022112800</requires>
+
+        <!-- Maturity level: MATURITY_ALPHA=50, MATURITY_BETA=100, MATURITY_RC=150, MATURITY_STABLE=200 -->
+        <maturity>200</maturity>
+
+        <!-- URL to download the plugin ZIP file (use GitHub releases) -->
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.0/sm_estratoos_plugin.zip</download>
+
+        <!-- Optional: URL for more information about this update -->
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.0</url>
+
+        <!-- Release notes (keep it brief) -->
+        <releasenotes>
+            <![CDATA[
+            <h3>Version 1.2.0</h3>
+            <ul>
+                <li>Added support for standard Moodle (non-IOMAD) installations</li>
+                <li>Automatic IOMAD detection - plugin adapts UI accordingly</li>
+                <li>Added GitHub-based automatic updates</li>
+                <li>Forum management API functions included</li>
+            </ul>
+            ]]>
+        </releasenotes>
+    </update>
+</updates>

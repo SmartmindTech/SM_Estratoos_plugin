@@ -1,0 +1,119 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_sm_estratoos_plugin/batch_results
+
+    Batch token creation results template.
+
+    Context variables required for this template:
+    * batchid - Batch UUID
+    * successcount - Number of successful creations
+    * failcount - Number of failed creations
+    * haserrors - Boolean indicating if there are errors
+    * errors - Array of error objects with userid, username, error
+    * tokens - Array of created token objects
+    * hastokens - Boolean indicating if there are tokens
+    * exporturl - URL to export tokens
+    * returnurl - URL to return to dashboard
+    * newbatchurl - URL to create new batch
+
+    Example context (json):
+    {
+        "batchid": "abc-123-def",
+        "successcount": 5,
+        "failcount": 1,
+        "haserrors": true,
+        "errors": [{"fullname": "John Doe", "email": "john@example.com", "error": "User not in company"}],
+        "hastokens": true,
+        "tokens": [{"userfullname": "Jane Doe", "useremail": "jane@example.com", "token": "abc123"}]
+    }
+}}
+<div class="local-iomad-tokens-batch-results">
+    {{! Summary }}
+    <div class="alert {{#haserrors}}alert-warning{{/haserrors}}{{^haserrors}}alert-success{{/haserrors}}">
+        <h4>{{#str}}batchcomplete, local_sm_estratoos_plugin{{/str}}</h4>
+        <p>
+            <strong>{{#str}}tokenscreated, local_sm_estratoos_plugin, {{successcount}}{{/str}}</strong>
+            {{#haserrors}}
+            <br>{{#str}}tokensfailed, local_sm_estratoos_plugin, {{failcount}}{{/str}}
+            {{/haserrors}}
+        </p>
+        <small class="text-muted">{{#str}}batchid, local_sm_estratoos_plugin{{/str}}: {{batchid}}</small>
+    </div>
+
+    {{! Errors }}
+    {{#haserrors}}
+    <div class="card mb-4">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0">{{#str}}errors, local_sm_estratoos_plugin{{/str}}</h5>
+        </div>
+        <div class="card-body">
+            <ul class="mb-0">
+                {{#errors}}
+                <li>
+                    <strong>{{fullname}}</strong> ({{email}}): {{error}}
+                </li>
+                {{/errors}}
+            </ul>
+        </div>
+    </div>
+    {{/haserrors}}
+
+    {{! Created Tokens }}
+    {{#hastokens}}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">{{#str}}createdtokens, local_sm_estratoos_plugin{{/str}}</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fa fa-info-circle"></i>
+                {{#str}}tokensshownonce, local_sm_estratoos_plugin{{/str}}
+            </div>
+
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>{{#str}}user{{/str}}</th>
+                        <th>{{#str}}email{{/str}}</th>
+                        <th>{{#str}}token, local_sm_estratoos_plugin{{/str}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#tokens}}
+                    <tr>
+                        <td>{{userfullname}}</td>
+                        <td>{{useremail}}</td>
+                        <td><code class="user-select-all">{{token}}</code></td>
+                    </tr>
+                    {{/tokens}}
+                </tbody>
+            </table>
+
+            <a href="{{exporturl}}" class="btn btn-primary">
+                <i class="fa fa-download"></i> {{#str}}exportcsv, local_sm_estratoos_plugin{{/str}}
+            </a>
+        </div>
+    </div>
+    {{/hastokens}}
+
+    {{! Action Buttons }}
+    <div class="mt-4">
+        <a href="{{returnurl}}" class="btn btn-secondary">{{#str}}back{{/str}}</a>
+        <a href="{{newbatchurl}}" class="btn btn-primary">{{#str}}createnewbatch, local_sm_estratoos_plugin{{/str}}</a>
+    </div>
+</div>
