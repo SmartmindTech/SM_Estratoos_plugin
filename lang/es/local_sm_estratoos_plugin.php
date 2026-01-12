@@ -138,6 +138,11 @@ $string['user'] = 'Usuario';
 $string['restrictions'] = 'Restricciones';
 $string['companyonly'] = 'Solo empresa';
 $string['enrolledonly'] = 'Solo matriculados';
+
+// Estadísticas.
+$string['companytokens_stat'] = 'Tokens creados para usuarios asociados a empresas';
+$string['stat_success'] = 'Éxito';
+$string['stat_failed'] = 'Fallidos';
 $string['lastaccess'] = 'Último acceso';
 $string['actions'] = 'Acciones';
 $string['bulkactions'] = 'Acciones masivas...';

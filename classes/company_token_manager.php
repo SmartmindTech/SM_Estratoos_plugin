@@ -50,6 +50,12 @@ class company_token_manager {
         // Get company to find its category.
         $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
 
+        // Get user for token naming.
+        $user = $DB->get_record('user', ['id' => $userid], 'id, firstname, lastname', MUST_EXIST);
+
+        // Generate token name: FIRSTNAME_LASTNAME_COMPANY (all caps, spaces replaced with underscores).
+        $tokenname = self::generate_token_name($user->firstname, $user->lastname, $company->shortname);
+
         // Get the company's category context.
         $context = \context_coursecat::instance($company->category);
 
@@ -94,11 +100,14 @@ class company_token_manager {
         $iomadtoken->createdby = $USER->id;
         $iomadtoken->timecreated = time();
         $iomadtoken->timemodified = time();
-        $iomadtoken->notes = $options['notes'] ?? null;
+        // Store token name as notes (prepend to any existing notes).
+        $usernotes = $options['notes'] ?? '';
+        $iomadtoken->notes = $usernotes ? $tokenname . "\n" . $usernotes : $tokenname;
 
         $iomadtoken->id = $DB->insert_record('local_sm_estratoos_plugin', $iomadtoken);
         $iomadtoken->token = $token;
         $iomadtoken->userid = $userid;
+        $iomadtoken->tokenname = $tokenname;
 
         return $iomadtoken;
     }
@@ -629,5 +638,25 @@ class company_token_manager {
             mt_rand(0, 0x3fff) | 0x8000,
             mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
         );
+    }
+
+    /**
+     * Generate a formatted token name.
+     *
+     * Format: FIRSTNAME_LASTNAME_COMPANY (all caps, spaces replaced with underscores).
+     * For admin tokens, use FIRSTNAME_LASTNAME_ADMIN_TOKEN.
+     *
+     * @param string $firstname User's first name.
+     * @param string $lastname User's last name.
+     * @param string $suffix Company shortname or 'ADMIN_TOKEN' for admin tokens.
+     * @return string Formatted token name in uppercase.
+     */
+    public static function generate_token_name(string $firstname, string $lastname, string $suffix): string {
+        // Replace spaces with underscores and convert to uppercase.
+        $firstname = strtoupper(str_replace(' ', '_', trim($firstname)));
+        $lastname = strtoupper(str_replace(' ', '_', trim($lastname)));
+        $suffix = strtoupper(str_replace(' ', '_', trim($suffix)));
+
+        return $firstname . '_' . $lastname . '_' . $suffix;
     }
 }

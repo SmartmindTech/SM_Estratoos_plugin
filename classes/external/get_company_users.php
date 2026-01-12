@@ -104,9 +104,14 @@ class get_company_users extends external_api {
             $categorycontext = null;
         }
 
-        // Format results.
+        // Format results (excluding site admins - they should use admin token instead).
         $result = [];
         foreach ($users as $user) {
+            // Skip site administrators - they should use the admin token feature.
+            if (is_siteadmin($user->id)) {
+                continue;
+            }
+
             $userdata = [
                 'id' => $user->id,
                 'username' => $user->username,

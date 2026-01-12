@@ -191,7 +191,7 @@ echo html_writer::start_div('col-md-3');
 echo html_writer::start_div('card text-center');
 echo html_writer::start_div('card-body');
 echo html_writer::tag('h2', $totalcompanytokens, ['class' => 'display-4']);
-$tokenlabel = $isiomad ? get_string('companyonly', 'local_sm_estratoos_plugin') . ' ' . get_string('tokens', 'local_sm_estratoos_plugin')
+$tokenlabel = $isiomad ? get_string('companytokens_stat', 'local_sm_estratoos_plugin')
                        : get_string('tokens', 'local_sm_estratoos_plugin');
 echo html_writer::tag('p', $tokenlabel, ['class' => 'text-muted']);
 echo html_writer::end_div();
@@ -221,16 +221,16 @@ if (!empty($recentbatches)) {
             get_string('date'),
             get_string('company', 'local_sm_estratoos_plugin'),
             get_string('service', 'local_sm_estratoos_plugin'),
-            get_string('success'),
-            get_string('failed'),
+            get_string('stat_success', 'local_sm_estratoos_plugin'),
+            get_string('stat_failed', 'local_sm_estratoos_plugin'),
             get_string('createdby', 'local_sm_estratoos_plugin')
         ];
     } else {
         $table->head = [
             get_string('date'),
             get_string('service', 'local_sm_estratoos_plugin'),
-            get_string('success'),
-            get_string('failed'),
+            get_string('stat_success', 'local_sm_estratoos_plugin'),
+            get_string('stat_failed', 'local_sm_estratoos_plugin'),
             get_string('createdby', 'local_sm_estratoos_plugin')
         ];
     }

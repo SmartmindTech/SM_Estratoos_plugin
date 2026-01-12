@@ -74,6 +74,13 @@ if ($mform->is_cancelled()) {
             $options
         );
 
+        // Generate token name: FIRSTNAME_LASTNAME_ADMIN_TOKEN.
+        $tokenname = \local_sm_estratoos_plugin\company_token_manager::generate_token_name(
+            $USER->firstname,
+            $USER->lastname,
+            'ADMIN_TOKEN'
+        );
+
         // Show success page with token.
         echo $OUTPUT->header();
         echo $OUTPUT->heading(get_string('admintokencreated', 'local_sm_estratoos_plugin'));
@@ -89,10 +96,10 @@ if ($mform->is_cancelled()) {
             'warning'
         );
 
-        // Display the token.
+        // Display the token name and token.
         echo html_writer::start_div('card mt-4');
         echo html_writer::start_div('card-body');
-        echo html_writer::tag('h5', 'Your Admin Token:', ['class' => 'card-title']);
+        echo html_writer::tag('h5', get_string('token', 'local_sm_estratoos_plugin') . ': ' . $tokenname, ['class' => 'card-title']);
         echo html_writer::tag('code', $token, [
             'class' => 'user-select-all d-block p-3 bg-light',
             'style' => 'font-size: 1.2rem; word-break: break-all;'

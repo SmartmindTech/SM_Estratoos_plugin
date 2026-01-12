@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011206</version>
+        <version>2025011207</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.4</release>
+        <release>1.2.5</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,21 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.4/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.5/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.4</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.5</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.4</h3>
+            <h3>Version 1.2.5</h3>
             <ul>
-                <li>Fixed token creation validation to check course enrollment in company category</li>
-                <li>Fixed role badge display (Student, Teacher, Manager labels)</li>
-                <li>Fixed search bar functionality in user selection</li>
+                <li>Fixed translation for Success/Failed columns in dashboard</li>
+                <li>Updated statistics label to be more descriptive</li>
+                <li>Added token naming convention: FIRSTNAME_LASTNAME_COMPANY (all caps)</li>
+                <li>Admin tokens now named: FIRSTNAME_LASTNAME_ADMIN_TOKEN</li>
+                <li>Added update notification banner on plugin dashboard</li>
             </ul>
             ]]>
         </releasenotes>
