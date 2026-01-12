@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011209</version>
+        <version>2025011210</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.7</release>
+        <release>1.2.8</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,17 +29,18 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.7/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.8/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.7</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.8</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.7</h3>
+            <h3>Version 1.2.8</h3>
             <ul>
-                <li>Test release for update notification system</li>
+                <li>Custom update checker that fetches directly from GitHub</li>
+                <li>Fixes update notification not detecting available updates</li>
             </ul>
             ]]>
         </releasenotes>
