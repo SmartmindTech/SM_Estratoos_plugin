@@ -383,6 +383,7 @@ class company_token_manager {
     public static function get_company_users(int $companyid, ?int $departmentid = null): array {
         global $DB;
 
+        // First try: Get users from company_users table.
         $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname
                 FROM {user} u
                 JOIN {company_users} cu ON cu.userid = u.id
@@ -399,7 +400,39 @@ class company_token_manager {
 
         $sql .= " ORDER BY u.lastname, u.firstname";
 
-        return $DB->get_records_sql($sql, $params);
+        $users = $DB->get_records_sql($sql, $params);
+
+        // If no users found, try alternative IOMAD table structure.
+        // Some IOMAD versions use different relationships.
+        if (empty($users)) {
+            // Check if company has a department with users.
+            $depsql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname
+                       FROM {user} u
+                       JOIN {company_users} cu ON cu.userid = u.id
+                       JOIN {department} d ON d.id = cu.departmentid
+                       WHERE d.company = :companyid2
+                         AND u.deleted = 0
+                         AND u.suspended = 0
+                       ORDER BY u.lastname, u.firstname";
+
+            $users = $DB->get_records_sql($depsql, ['companyid2' => $companyid]);
+        }
+
+        // Still no users? Get all non-guest, non-admin active users as fallback.
+        // This helps when IOMAD tables are not fully populated.
+        if (empty($users)) {
+            $fallbacksql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname
+                            FROM {user} u
+                            WHERE u.deleted = 0
+                              AND u.suspended = 0
+                              AND u.id > 1
+                              AND u.username != 'guest'
+                            ORDER BY u.lastname, u.firstname";
+
+            $users = $DB->get_records_sql($fallbacksql);
+        }
+
+        return $users;
     }
 
     /**

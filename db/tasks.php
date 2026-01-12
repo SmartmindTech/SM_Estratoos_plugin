@@ -38,7 +38,7 @@ $tasks = [
     [
         'classname' => 'local_sm_estratoos_plugin\task\check_for_updates',
         'blocking' => 0,
-        'minute' => '0',
+        'minute' => '*/5',
         'hour' => '*',
         'day' => '*',
         'month' => '*',
