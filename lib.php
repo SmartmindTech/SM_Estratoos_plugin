@@ -283,43 +283,15 @@ function local_sm_estratoos_plugin_before_footer() {
  * Add token manager icon to the navbar (next to notification bell).
  *
  * This hook is called by Boost-based themes to render additional navbar output.
+ * We return empty here and use JavaScript injection instead for precise positioning.
  *
  * @param renderer_base $renderer The renderer.
- * @return string HTML to add to the navbar.
+ * @return string Empty - using JS injection instead.
  */
 function local_sm_estratoos_plugin_render_navbar_output(\renderer_base $renderer) {
-    global $CFG;
-
-    // Check if user has access (site admin or company manager).
-    if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
-        return '';
-    }
-
-    $url = new moodle_url('/local/sm_estratoos_plugin/index.php');
-    $title = get_string('pluginname', 'local_sm_estratoos_plugin');
-
-    // Create a navbar icon matching the bell icon style.
-    $html = html_writer::start_tag('div', [
-        'class' => 'popover-region',
-        'id' => 'sm-tokens-navbar-icon',
-        'style' => 'display: flex; align-items: center;'
-    ]);
-
-    $html .= html_writer::link($url,
-        html_writer::tag('i', '', [
-            'class' => 'icon fa fa-key fa-fw',
-            'aria-hidden' => 'true'
-        ]),
-        [
-            'class' => 'nav-link position-relative icon-no-margin',
-            'title' => $title,
-            'aria-label' => $title
-        ]
-    );
-
-    $html .= html_writer::end_tag('div');
-
-    return $html;
+    // Return empty - we use before_standard_top_of_body_html() JS injection instead
+    // to ensure the icon is positioned exactly to the LEFT of the notification bell.
+    return '';
 }
 
 /**

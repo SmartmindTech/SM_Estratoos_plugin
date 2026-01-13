@@ -223,7 +223,11 @@ if (empty($tokens)) {
         // Last access.
         $lastaccess = $token->lastaccess ? userdate($token->lastaccess) : get_string('never');
 
-        // Actions.
+        // Actions - use FA trash icon with proper centering.
+        $trashicon = html_writer::tag('i', '', [
+            'class' => 'fa fa-trash',
+            'aria-hidden' => 'true'
+        ]);
         $actions = html_writer::link(
             new moodle_url('/local/sm_estratoos_plugin/manage.php', [
                 'action' => 'revoke',
@@ -231,8 +235,13 @@ if (empty($tokens)) {
                 'companyid' => $companyid,
                 'serviceid' => $serviceid,
             ]),
-            $OUTPUT->pix_icon('t/delete', get_string('revoke', 'local_sm_estratoos_plugin')),
-            ['class' => 'btn btn-sm btn-outline-danger', 'title' => get_string('revoke', 'local_sm_estratoos_plugin')]
+            $trashicon,
+            [
+                'class' => 'btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center',
+                'title' => get_string('revoke', 'local_sm_estratoos_plugin'),
+                'aria-label' => get_string('revoke', 'local_sm_estratoos_plugin'),
+                'style' => 'width: 32px; height: 32px;'
+            ]
         );
 
         $table->data[] = [

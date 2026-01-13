@@ -363,12 +363,14 @@ if (!empty($deletions)) {
     $deltable->attributes['class'] = 'table table-sm table-striped';
 
     foreach ($deletions as $deletion) {
+        // Build deleter name from deleterfirstname/deleterlastname.
+        $deletername = trim($deletion->deleterfirstname . ' ' . $deletion->deleterlastname);
         $deltable->data[] = [
             html_writer::tag('small', userdate($deletion->timedeleted, get_string('strftimedatetimeshort', 'langconfig'))),
             $deletion->userfullname,
             html_writer::tag('code', $deletion->tokenname),
             $deletion->companyname ?: '-',
-            fullname($deletion)
+            $deletername
         ];
     }
 

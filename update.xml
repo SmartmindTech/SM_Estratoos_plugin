@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011226</version>
+        <version>2025011227</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.22</release>
+        <release>1.2.23</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,19 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.22/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.23/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.22</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.23</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.22</h3>
+            <h3>Version 1.2.23</h3>
             <ul>
-                <li>Navbar key icon now matches other icons (smaller, same color)</li>
-                <li>Added deletion history log with collapsible view</li>
-                <li>Deleted tokens are now tracked and displayed on dashboard</li>
+                <li>Fixed key icon position - now appears LEFT of notification bell</li>
+                <li>Fixed "Deleted by" column showing user name correctly</li>
+                <li>Fixed trash icon alignment in delete button</li>
             </ul>
             ]]>
         </releasenotes>
