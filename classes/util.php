@@ -410,4 +410,76 @@ class util {
 
         return $csv;
     }
+
+    /**
+     * Export tokens to Excel format.
+     *
+     * @param array $tokens Array of token records.
+     * @param bool $includetoken Whether to include actual token strings.
+     */
+    public static function export_tokens_excel(array $tokens, bool $includetoken = true): void {
+        global $CFG;
+        require_once($CFG->libdir . '/excellib.class.php');
+
+        $filename = 'sm_tokens_' . date('Y-m-d_His') . '.xlsx';
+
+        // Create workbook.
+        $workbook = new \MoodleExcelWorkbook($filename);
+        $worksheet = $workbook->add_worksheet(get_string('tokenlist', 'local_sm_estratoos_plugin'));
+
+        // Formats.
+        $formatheader = $workbook->add_format(['bold' => 1, 'bg_color' => '#4472C4', 'color' => 'white']);
+        $formatdate = $workbook->add_format(['num_format' => 'DD/MM/YYYY HH:MM']);
+
+        // Header row.
+        $headers = ['User ID', 'Username', 'Email', 'Full Name', 'Company', 'Service',
+            'Restrict to Company', 'Restrict to Enrollment', 'IP Restriction',
+            'Valid Until', 'Created', 'Last Access'];
+
+        if ($includetoken) {
+            array_unshift($headers, 'Token');
+        }
+
+        $col = 0;
+        foreach ($headers as $header) {
+            $worksheet->write_string(0, $col, $header, $formatheader);
+            $col++;
+        }
+
+        // Data rows.
+        $row = 1;
+        foreach ($tokens as $token) {
+            $col = 0;
+
+            if ($includetoken) {
+                $worksheet->write_string($row, $col++, $token->token);
+            }
+
+            $worksheet->write_number($row, $col++, $token->userid);
+            $worksheet->write_string($row, $col++, $token->username);
+            $worksheet->write_string($row, $col++, $token->email);
+            $worksheet->write_string($row, $col++, fullname($token));
+            $worksheet->write_string($row, $col++, $token->companyname ?? '');
+            $worksheet->write_string($row, $col++, $token->servicename);
+            $worksheet->write_string($row, $col++, $token->restricttocompany ? 'Yes' : 'No');
+            $worksheet->write_string($row, $col++, $token->restricttoenrolment ? 'Yes' : 'No');
+            $worksheet->write_string($row, $col++, $token->iprestriction ?? '');
+            $worksheet->write_string($row, $col++, $token->validuntil ? userdate($token->validuntil) : 'Never');
+            $worksheet->write_string($row, $col++, userdate($token->timecreated));
+            $worksheet->write_string($row, $col++, $token->lastaccess ? userdate($token->lastaccess) : 'Never');
+
+            $row++;
+        }
+
+        // Set column widths.
+        $colwidths = $includetoken
+            ? [40, 10, 15, 25, 25, 15, 20, 15, 15, 20, 18, 18, 18]
+            : [10, 15, 25, 25, 15, 20, 15, 15, 20, 18, 18, 18];
+
+        foreach ($colwidths as $idx => $width) {
+            $worksheet->set_column($idx, $idx, $width);
+        }
+
+        $workbook->close();
+    }
 }

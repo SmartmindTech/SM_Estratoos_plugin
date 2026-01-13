@@ -153,13 +153,14 @@ class batch_token_form extends \moodleform {
         $mform->addElement('hidden', 'selecteduserids', '');
         $mform->setType('selecteduserids', PARAM_TEXT);
 
-        // CSV upload (shown when CSV method selected).
+        // File upload (shown when CSV method selected).
         $mform->addElement('filepicker', 'csvfile',
-            get_string('csvfile', 'local_sm_estratoos_plugin'), null, [
-                'accepted_types' => ['.csv', '.txt'],
+            get_string('uploadfile', 'local_sm_estratoos_plugin'), null, [
+                'accepted_types' => ['.csv', '.txt', '.xlsx', '.xls'],
                 'maxfiles' => 1
             ]);
         $mform->hideIf('csvfile', 'selectionmethod', 'eq', 'company');
+        $mform->hideIf('csvfile', 'selectionmethod', 'eq', 'users');
         $mform->addHelpButton('csvfile', 'csvhelp', 'local_sm_estratoos_plugin');
 
         // CSV field mapping.
@@ -170,6 +171,18 @@ class batch_token_form extends \moodleform {
                 'email' => get_string('email'),
             ]);
         $mform->hideIf('csvfield', 'selectionmethod', 'eq', 'company');
+        $mform->hideIf('csvfield', 'selectionmethod', 'eq', 'users');
+
+        // Template download links.
+        $csvtemplateurl = new \moodle_url('/local/sm_estratoos_plugin/csvtemplate.php', ['format' => 'csv']);
+        $exceltemplateurl = new \moodle_url('/local/sm_estratoos_plugin/csvtemplate.php', ['format' => 'xlsx']);
+        $templatehtml = \html_writer::link($csvtemplateurl, get_string('downloadcsvtemplate', 'local_sm_estratoos_plugin'),
+            ['class' => 'btn btn-sm btn-outline-info mr-2', 'target' => '_blank']);
+        $templatehtml .= \html_writer::link($exceltemplateurl, get_string('downloadexceltemplate', 'local_sm_estratoos_plugin'),
+            ['class' => 'btn btn-sm btn-outline-success', 'target' => '_blank']);
+        $mform->addElement('static', 'csvtemplate', '', $templatehtml);
+        $mform->hideIf('csvtemplate', 'selectionmethod', 'eq', 'company');
+        $mform->hideIf('csvtemplate', 'selectionmethod', 'eq', 'users');
 
         // Section: Web Service Selection.
         $mform->addElement('header', 'serviceheader',
@@ -188,29 +201,31 @@ class batch_token_form extends \moodleform {
             $mform->addRule('serviceid', get_string('required'), 'required', null, 'client');
         }
 
-        // Section: Token Restrictions.
-        $mform->addElement('header', 'restrictionsheader',
-            get_string('tokenrestrictions', 'local_sm_estratoos_plugin'));
-
         if ($isiomad) {
+            // Section: Token Restrictions (IOMAD only).
+            $mform->addElement('header', 'restrictionsheader',
+                get_string('tokenrestrictions', 'local_sm_estratoos_plugin'));
+
             // IOMAD MODE: Show company restriction option.
             $mform->addElement('advcheckbox', 'restricttocompany',
                 get_string('restricttocompany', 'local_sm_estratoos_plugin'),
                 get_string('restricttocompany_desc', 'local_sm_estratoos_plugin'));
             $mform->setDefault('restricttocompany',
                 get_config('local_sm_estratoos_plugin', 'default_restricttocompany'));
+
+            // Restrict to enrollment.
+            $mform->addElement('advcheckbox', 'restricttoenrolment',
+                get_string('restricttoenrolment', 'local_sm_estratoos_plugin'),
+                get_string('restricttoenrolment_desc', 'local_sm_estratoos_plugin'));
+            $mform->setDefault('restricttoenrolment',
+                get_config('local_sm_estratoos_plugin', 'default_restricttoenrolment'));
         } else {
-            // STANDARD MOODLE: No company restriction (hidden field set to 0).
+            // STANDARD MOODLE: No restrictions needed (backend handles filtering).
             $mform->addElement('hidden', 'restricttocompany', 0);
             $mform->setType('restricttocompany', PARAM_INT);
+            $mform->addElement('hidden', 'restricttoenrolment', 0);
+            $mform->setType('restricttoenrolment', PARAM_INT);
         }
-
-        // Restrict to enrollment (available in both modes).
-        $mform->addElement('advcheckbox', 'restricttoenrolment',
-            get_string('restricttoenrolment', 'local_sm_estratoos_plugin'),
-            get_string('restricttoenrolment_desc', 'local_sm_estratoos_plugin'));
-        $mform->setDefault('restricttoenrolment',
-            get_config('local_sm_estratoos_plugin', 'default_restricttoenrolment'));
 
         // Section: Batch Settings.
         $mform->addElement('header', 'batchsettingsheader',

@@ -259,7 +259,10 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'], function($, Aja
      */
     var init = function() {
         loadStrings().then(function() {
-            // Company selection change handler.
+            // Check if we're in IOMAD mode.
+            var isIomad = $('input[name="isiomad"]').val() === '1';
+
+            // Company selection change handler (IOMAD mode only).
             $('#id_companyid').on('change', function() {
                 var companyId = parseInt($(this).val());
                 var departmentId = parseInt($('#id_departmentid').val()) || 0;
@@ -287,10 +290,15 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'], function($, Aja
             // Selection method change handler.
             $('#id_selectionmethod').on('change', function() {
                 var method = $(this).val();
-                if (method === 'company') {
-                    var companyId = parseInt($('#id_companyid').val());
-                    if (companyId > 0) {
-                        $('#user-selection-container').show();
+                if (method === 'company' || method === 'users') {
+                    if (isIomad) {
+                        var companyId = parseInt($('#id_companyid').val());
+                        if (companyId > 0) {
+                            $('#user-selection-container').show();
+                        }
+                    } else {
+                        // Non-IOMAD mode: load all users.
+                        loadUsers(0, 0);
                     }
                 } else {
                     $('#user-selection-container').hide();
@@ -329,10 +337,19 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'], function($, Aja
                 renderUserList(filter);
             });
 
-            // Initial load if company already selected.
-            var initialCompany = parseInt($('#id_companyid').val());
-            if (initialCompany > 0 && $('#id_selectionmethod').val() === 'company') {
-                loadUsers(initialCompany, 0);
+            // Initial load based on mode.
+            var selectionMethod = $('#id_selectionmethod').val();
+            if (isIomad) {
+                // IOMAD mode: load if company is selected.
+                var initialCompany = parseInt($('#id_companyid').val());
+                if (initialCompany > 0 && selectionMethod === 'company') {
+                    loadUsers(initialCompany, 0);
+                }
+            } else {
+                // Non-IOMAD mode: load all users if "users" method is selected.
+                if (selectionMethod === 'users') {
+                    loadUsers(0, 0);
+                }
             }
 
             return true;

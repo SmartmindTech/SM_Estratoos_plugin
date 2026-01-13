@@ -582,17 +582,149 @@ class company_token_manager {
                 continue;
             }
 
-            // Check user belongs to company.
-            if (!$DB->record_exists('company_users', ['userid' => $user->id, 'companyid' => $companyid])) {
-                $result['errors'][] = [
-                    'line' => $linenum + 1,
-                    'value' => $value,
-                    'error' => 'User is not a member of the selected company',
-                ];
-                continue;
+            // Check user belongs to company (only for IOMAD mode with valid company).
+            $isiomad = util::is_iomad_installed();
+            if ($isiomad && $companyid > 0) {
+                if (!$DB->record_exists('company_users', ['userid' => $user->id, 'companyid' => $companyid])) {
+                    $result['errors'][] = [
+                        'line' => $linenum + 1,
+                        'value' => $value,
+                        'error' => 'User is not a member of the selected company',
+                    ];
+                    continue;
+                }
             }
 
             $result['users'][] = $user->id;
+        }
+
+        // Remove duplicates.
+        $result['users'] = array_unique($result['users']);
+
+        return $result;
+    }
+
+    /**
+     * Parse an Excel file and extract user identifiers.
+     *
+     * @param string $filedata Binary file content.
+     * @param string $field Field to match (id, username, email).
+     * @param int $companyid Company ID to validate against (0 for standard Moodle).
+     * @return array Array with 'users' and 'errors'.
+     */
+    public static function get_users_from_excel(string $filedata, string $field, int $companyid): array {
+        global $CFG, $DB;
+        require_once($CFG->libdir . '/phpspreadsheet/vendor/autoload.php');
+
+        $result = [
+            'users' => [],
+            'errors' => [],
+        ];
+
+        // Save content to temp file.
+        $tempfile = tempnam($CFG->tempdir, 'excel_');
+        file_put_contents($tempfile, $filedata);
+
+        try {
+            // Load spreadsheet.
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($tempfile);
+            $worksheet = $spreadsheet->getActiveSheet();
+
+            // Get highest row number.
+            $highestrow = $worksheet->getHighestRow();
+
+            // Determine which column to use based on field.
+            $colindex = ['id' => 0, 'username' => 1, 'email' => 2];
+            $col = $colindex[$field] ?? 0;
+
+            // Check for IOMAD.
+            $isiomad = util::is_iomad_installed();
+
+            // Read rows (skip header row if present).
+            $startrow = 1;
+            $firstcell = strtolower(trim($worksheet->getCellByColumnAndRow(1, 1)->getValue() ?? ''));
+            if (in_array($firstcell, ['id', 'userid', 'username', 'email', 'user id', 'user_id', '#'])) {
+                $startrow = 2;
+            }
+            // Skip instruction rows (those starting with #).
+            while ($startrow <= $highestrow) {
+                $cellval = trim($worksheet->getCellByColumnAndRow(1, $startrow)->getValue() ?? '');
+                if (empty($cellval) || substr($cellval, 0, 1) !== '#') {
+                    break;
+                }
+                $startrow++;
+            }
+
+            for ($row = $startrow; $row <= $highestrow; $row++) {
+                // Try to get value from the selected field column.
+                $value = trim($worksheet->getCellByColumnAndRow($col + 1, $row)->getValue() ?? '');
+
+                // If empty, try other columns.
+                if (empty($value)) {
+                    for ($c = 1; $c <= 3; $c++) {
+                        $val = trim($worksheet->getCellByColumnAndRow($c, $row)->getValue() ?? '');
+                        if (!empty($val)) {
+                            $value = $val;
+                            // Update field based on which column had data.
+                            $field = array_search($c - 1, $colindex);
+                            break;
+                        }
+                    }
+                }
+
+                if (empty($value)) {
+                    continue;
+                }
+
+                // Find user.
+                $user = null;
+                switch ($field) {
+                    case 'id':
+                        $user = $DB->get_record('user', ['id' => $value, 'deleted' => 0]);
+                        break;
+                    case 'username':
+                        $user = $DB->get_record('user', ['username' => $value, 'deleted' => 0]);
+                        break;
+                    case 'email':
+                        $user = $DB->get_record('user', ['email' => $value, 'deleted' => 0]);
+                        break;
+                }
+
+                if (!$user) {
+                    $result['errors'][] = [
+                        'line' => $row,
+                        'value' => $value,
+                        'error' => 'User not found',
+                    ];
+                    continue;
+                }
+
+                // Check user belongs to company (only for IOMAD mode with valid company).
+                if ($isiomad && $companyid > 0) {
+                    if (!$DB->record_exists('company_users', ['userid' => $user->id, 'companyid' => $companyid])) {
+                        $result['errors'][] = [
+                            'line' => $row,
+                            'value' => $value,
+                            'error' => 'User is not a member of the selected company',
+                        ];
+                        continue;
+                    }
+                }
+
+                $result['users'][] = $user->id;
+            }
+
+        } catch (\Exception $e) {
+            $result['errors'][] = [
+                'line' => 0,
+                'value' => '',
+                'error' => 'Error reading Excel file: ' . $e->getMessage(),
+            ];
+        } finally {
+            // Clean up temp file.
+            if (file_exists($tempfile)) {
+                unlink($tempfile);
+            }
         }
 
         // Remove duplicates.

@@ -275,3 +275,20 @@ $string['manualupdate_step2'] = 'Go to Moodle\'s plugin installer:';
 $string['manualupdate_installer'] = 'Open Plugin Installer';
 $string['manualupdate_step3'] = 'Upload the ZIP file and follow the installation prompts.';
 $string['manualupdate_cli_title'] = 'Alternative: Command Line (if you have server access):';
+
+// Non-IOMAD batch description.
+$string['batchtokensdesc_standard'] = 'Create API tokens for multiple users at once.';
+
+// CSV template.
+$string['downloadcsvtemplate'] = 'Download CSV Template';
+$string['downloadexceltemplate'] = 'Download Excel Template';
+$string['csvtemplate_instructions'] = 'Fill in one of the columns per row. You only need one identifier per user.';
+$string['csvtemplate_id_only'] = 'To identify by ID: fill only the id column';
+$string['csvtemplate_username_only'] = 'To identify by username: fill only the username column';
+$string['csvtemplate_email_only'] = 'To identify by email: fill only the email column';
+
+// File upload.
+$string['uploadfile'] = 'Upload file (CSV or Excel)';
+$string['exportexcel'] = 'Export as Excel';
+$string['fileprocessingerrors'] = 'File processing errors';
+$string['line'] = 'Line';

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011229</version>
+        <version>2025011230</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.25</release>
+        <release>1.2.26</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,22 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.25/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.26/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.25</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.26</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.25</h3>
+            <h3>Version 1.2.26</h3>
             <ul>
-                <li>Fixed database errors on standard Moodle (without IOMAD)</li>
-                <li>Added IOMAD checks to all company table queries</li>
-                <li>Plugin now works correctly in both standard Moodle and IOMAD modes</li>
+                <li>Improved standard Moodle (non-IOMAD) batch token creation</li>
+                <li>User selection now loads automatically in non-IOMAD mode</li>
+                <li>Added Excel (.xlsx) file upload support for user import</li>
+                <li>Added Excel export option for tokens (manage page)</li>
+                <li>Added CSV and Excel template downloads for user import</li>
+                <li>Hidden Token Restrictions for non-IOMAD mode</li>
             </ul>
             ]]>
         </releasenotes>

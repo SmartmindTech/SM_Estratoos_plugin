@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Export tokens to CSV.
+ * Export tokens to CSV or Excel.
  *
  * @package    local_sm_estratoos_plugin
  * @copyright  2025 SmartMind Technologies
@@ -35,6 +35,7 @@ $companyid = optional_param('companyid', 0, PARAM_INT);
 $serviceid = optional_param('serviceid', 0, PARAM_INT);
 $batchid = optional_param('batchid', '', PARAM_ALPHANUMEXT);
 $includetoken = optional_param('includetoken', 0, PARAM_INT);
+$format = optional_param('format', 'csv', PARAM_ALPHA);
 
 // Check if site admin (for access control).
 $issiteadmin = is_siteadmin();
@@ -78,18 +79,24 @@ if (empty($tokens)) {
     );
 }
 
-// Generate CSV.
-$csv = \local_sm_estratoos_plugin\util::export_tokens_csv($tokens, (bool)$includetoken);
+if ($format === 'xlsx') {
+    // Generate Excel file.
+    \local_sm_estratoos_plugin\util::export_tokens_excel($tokens, (bool)$includetoken);
+    exit;
+} else {
+    // Generate CSV.
+    $csv = \local_sm_estratoos_plugin\util::export_tokens_csv($tokens, (bool)$includetoken);
 
-// Output CSV.
-$filename = 'sm_estratoos_plugin_' . date('Y-m-d_His') . '.csv';
+    // Output CSV.
+    $filename = 'sm_tokens_' . date('Y-m-d_His') . '.csv';
 
-header('Content-Type: text/csv; charset=utf-8');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
-header('Content-Length: ' . strlen($csv));
-header('Cache-Control: no-cache, no-store, must-revalidate');
-header('Pragma: no-cache');
-header('Expires: 0');
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Length: ' . strlen($csv));
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
 
-echo $csv;
-exit;
+    echo $csv;
+    exit;
+}

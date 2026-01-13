@@ -273,9 +273,19 @@ if (empty($tokens)) {
         new moodle_url('/local/sm_estratoos_plugin/export.php', [
             'companyid' => $companyid,
             'serviceid' => $serviceid,
+            'format' => 'csv',
         ]),
         get_string('exportcsv', 'local_sm_estratoos_plugin'),
-        ['class' => 'btn btn-secondary ml-2']
+        ['class' => 'btn btn-outline-secondary ml-2']
+    );
+    echo html_writer::link(
+        new moodle_url('/local/sm_estratoos_plugin/export.php', [
+            'companyid' => $companyid,
+            'serviceid' => $serviceid,
+            'format' => 'xlsx',
+        ]),
+        get_string('exportexcel', 'local_sm_estratoos_plugin'),
+        ['class' => 'btn btn-outline-success ml-2']
     );
     echo html_writer::end_div();
     echo html_writer::tag('span', count($tokens) . ' tokens', ['class' => 'text-muted']);

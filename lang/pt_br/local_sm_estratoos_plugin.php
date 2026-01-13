@@ -275,3 +275,20 @@ $string['manualupdate_step2'] = 'Acesse o instalador de plugins do Moodle:';
 $string['manualupdate_installer'] = 'Abrir Instalador de Plugins';
 $string['manualupdate_step3'] = 'Envie o arquivo ZIP e siga as instruções de instalação.';
 $string['manualupdate_cli_title'] = 'Alternativa: Linha de Comando (se você tiver acesso ao servidor):';
+
+// Descrição de lote para modo padrão.
+$string['batchtokensdesc_standard'] = 'Criar tokens de API para múltiplos usuários de uma vez.';
+
+// Modelo CSV.
+$string['downloadcsvtemplate'] = 'Baixar Modelo CSV';
+$string['downloadexceltemplate'] = 'Baixar Modelo Excel';
+$string['csvtemplate_instructions'] = 'Preencha uma das colunas por linha. Você só precisa de um identificador por usuário.';
+$string['csvtemplate_id_only'] = 'Para identificar por ID: preencha apenas a coluna id';
+$string['csvtemplate_username_only'] = 'Para identificar por nome de usuário: preencha apenas a coluna username';
+$string['csvtemplate_email_only'] = 'Para identificar por email: preencha apenas a coluna email';
+
+// Upload de arquivos.
+$string['uploadfile'] = 'Enviar arquivo (CSV ou Excel)';
+$string['exportexcel'] = 'Exportar como Excel';
+$string['fileprocessingerrors'] = 'Erros de processamento de arquivo';
+$string['line'] = 'Linha';

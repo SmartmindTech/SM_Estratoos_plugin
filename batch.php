@@ -81,31 +81,46 @@ if ($mform->is_cancelled()) {
 
             $source = 'company';
         } else {
-            // Get users from CSV.
-            $csvfile = $mform->get_file_content('csvfile');
-            if (empty($csvfile)) {
+            // Get users from uploaded file (CSV or Excel).
+            $filename = $mform->get_new_filename('csvfile');
+            $filecontent = $mform->get_file_content('csvfile');
+
+            if (empty($filecontent)) {
                 throw new moodle_exception('emptycsv', 'local_sm_estratoos_plugin');
             }
 
-            $csvresult = \local_sm_estratoos_plugin\company_token_manager::get_users_from_csv(
-                $csvfile,
-                $data->csvfield,
-                $data->companyid
-            );
+            // Check if it's an Excel file.
+            $isexcel = preg_match('/\.(xlsx|xls)$/i', $filename);
 
-            if (empty($csvresult['users'])) {
-                if (!empty($csvresult['errors'])) {
-                    $errormsg = "CSV processing errors:\n";
-                    foreach ($csvresult['errors'] as $error) {
-                        $errormsg .= "Line {$error['line']}: {$error['value']} - {$error['error']}\n";
+            if ($isexcel) {
+                // Process Excel file.
+                $fileresult = \local_sm_estratoos_plugin\company_token_manager::get_users_from_excel(
+                    $filecontent,
+                    $data->csvfield,
+                    $data->companyid
+                );
+            } else {
+                // Process CSV file.
+                $fileresult = \local_sm_estratoos_plugin\company_token_manager::get_users_from_csv(
+                    $filecontent,
+                    $data->csvfield,
+                    $data->companyid
+                );
+            }
+
+            if (empty($fileresult['users'])) {
+                if (!empty($fileresult['errors'])) {
+                    $errormsg = get_string('fileprocessingerrors', 'local_sm_estratoos_plugin') . ":\n";
+                    foreach ($fileresult['errors'] as $error) {
+                        $errormsg .= get_string('line', 'local_sm_estratoos_plugin') . " {$error['line']}: {$error['value']} - {$error['error']}\n";
                     }
                     throw new moodle_exception('csverror', 'local_sm_estratoos_plugin', '', $errormsg);
                 }
                 throw new moodle_exception('nousersfound', 'local_sm_estratoos_plugin');
             }
 
-            $userids = $csvresult['users'];
-            $source = 'csv';
+            $userids = $fileresult['users'];
+            $source = $isexcel ? 'excel' : 'csv';
         }
 
         if (empty($userids)) {
@@ -245,7 +260,14 @@ if ($mform->is_cancelled()) {
 echo $OUTPUT->header();
 
 echo $OUTPUT->heading(get_string('batchtokens', 'local_sm_estratoos_plugin'));
-echo html_writer::tag('p', get_string('batchtokensdesc', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
+
+// Show appropriate description based on IOMAD status.
+$isiomad = \local_sm_estratoos_plugin\util::is_iomad_installed();
+if ($isiomad) {
+    echo html_writer::tag('p', get_string('batchtokensdesc', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
+} else {
+    echo html_writer::tag('p', get_string('batchtokensdesc_standard', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
+}
 
 $mform->display();
 
