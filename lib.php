@@ -278,3 +278,128 @@ function local_sm_estratoos_plugin_before_footer() {
         debugging('SmartMind update check failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
     }
 }
+
+/**
+ * Add token manager icon to the navbar (next to notification bell).
+ *
+ * This hook is called by Boost-based themes to render additional navbar output.
+ *
+ * @param renderer_base $renderer The renderer.
+ * @return string HTML to add to the navbar.
+ */
+function local_sm_estratoos_plugin_render_navbar_output(\renderer_base $renderer) {
+    global $CFG;
+
+    // Check if user has access (site admin or company manager).
+    if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
+        return '';
+    }
+
+    $url = new moodle_url('/local/sm_estratoos_plugin/index.php');
+    $title = get_string('pluginname', 'local_sm_estratoos_plugin');
+
+    // Create a navbar icon similar to the notification bell.
+    $html = html_writer::start_tag('div', [
+        'class' => 'popover-region collapsed popover-region-sm-tokens',
+        'id' => 'sm-tokens-navbar-icon',
+        'style' => 'margin-right: 5px;'
+    ]);
+
+    $html .= html_writer::link($url,
+        html_writer::tag('i', '', [
+            'class' => 'icon fa fa-key fa-fw',
+            'title' => $title,
+            'aria-label' => $title
+        ]),
+        [
+            'class' => 'nav-link',
+            'title' => $title,
+            'aria-label' => $title,
+            'style' => 'padding: 0.5rem; color: inherit;'
+        ]
+    );
+
+    $html .= html_writer::end_tag('div');
+
+    return $html;
+}
+
+/**
+ * Inject JavaScript to add token icon to navbar if render_navbar_output didn't work.
+ *
+ * This is a fallback for themes that don't support render_navbar_output.
+ *
+ * @return string HTML/JS to inject.
+ */
+function local_sm_estratoos_plugin_before_standard_top_of_body_html() {
+    global $CFG, $PAGE;
+
+    // Check if user has access (site admin or company manager).
+    if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
+        return '';
+    }
+
+    // Don't add on AJAX requests or web service calls.
+    if (defined('AJAX_SCRIPT') || defined('WS_SERVER')) {
+        return '';
+    }
+
+    $url = (new moodle_url('/local/sm_estratoos_plugin/index.php'))->out(false);
+    $title = get_string('pluginname', 'local_sm_estratoos_plugin');
+
+    // JavaScript to inject the icon next to the notification bell if not already present.
+    $js = <<<JS
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if icon already exists (from render_navbar_output).
+    if (document.getElementById('sm-tokens-navbar-icon')) {
+        return;
+    }
+
+    // Find the notification bell or user menu area.
+    var targetSelectors = [
+        '.popover-region-notifications',  // Next to notification bell
+        '.usermenu',                       // Before user menu
+        '#usernavigation',                 // User navigation area
+        '.navbar-nav.ml-auto',             // Right side of navbar
+        '.nav.navbar-nav.ml-auto'          // Alternative right nav
+    ];
+
+    var target = null;
+    for (var i = 0; i < targetSelectors.length; i++) {
+        target = document.querySelector(targetSelectors[i]);
+        if (target) break;
+    }
+
+    if (!target) {
+        return;
+    }
+
+    // Create the token icon element.
+    var iconDiv = document.createElement('div');
+    iconDiv.id = 'sm-tokens-navbar-icon';
+    iconDiv.className = 'popover-region collapsed popover-region-sm-tokens';
+    iconDiv.style.cssText = 'margin-right: 5px; display: inline-flex; align-items: center;';
+
+    var link = document.createElement('a');
+    link.href = '{$url}';
+    link.className = 'nav-link';
+    link.title = '{$title}';
+    link.setAttribute('aria-label', '{$title}');
+    link.style.cssText = 'padding: 0.5rem; color: inherit;';
+
+    var icon = document.createElement('i');
+    icon.className = 'icon fa fa-key fa-fw';
+    icon.title = '{$title}';
+
+    link.appendChild(icon);
+    iconDiv.appendChild(link);
+
+    // Insert before the target element.
+    target.parentNode.insertBefore(iconDiv, target);
+});
+</script>
+JS;
+
+    return $js;
+}
