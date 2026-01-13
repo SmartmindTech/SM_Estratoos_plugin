@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011232</version>
+        <version>2025011233</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.28</release>
+        <release>1.2.29</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,22 +29,19 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.28/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.29/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.28</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.29</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.28</h3>
+            <h3>Version 1.2.29</h3>
             <ul>
-                <li>Fixed manager detection: now checks if role name contains "manager" or "admin" AND user is not a superadmin</li>
-                <li>Fixed "Select Users" method in non-IOMAD mode (was incorrectly expecting CSV file)</li>
-                <li>Manager detection now works consistently in both IOMAD and non-IOMAD modes</li>
-                <li>Added "Other" role badge for custom roles (e.g., chatbot) that are not manager/teacher/student</li>
-                <li>Added "Select Others" quick select button</li>
-                <li>Added scrollbar to user selection list for large user lists</li>
+                <li>Fixed batch token creation in non-IOMAD mode (was trying to query company_users table)</li>
+                <li>Token creation now uses system context for standard Moodle installations</li>
+                <li>No company validation required for non-IOMAD mode</li>
             </ul>
             ]]>
         </releasenotes>

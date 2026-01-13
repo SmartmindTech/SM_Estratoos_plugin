@@ -44,20 +44,35 @@ class company_token_manager {
     public static function create_token(int $userid, int $companyid, int $serviceid, array $options = []): object {
         global $DB, $USER;
 
-        // Validate user belongs to company.
-        self::validate_user_company_membership($userid, $companyid);
+        // Check if IOMAD mode (companyid > 0) or standard Moodle mode (companyid = 0).
+        $isiomad = util::is_iomad_installed() && $companyid > 0;
 
-        // Get company to find its category.
-        $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
+        if ($isiomad) {
+            // IOMAD MODE: Validate user belongs to company.
+            self::validate_user_company_membership($userid, $companyid);
 
-        // Get user for token naming.
-        $user = $DB->get_record('user', ['id' => $userid], 'id, firstname, lastname', MUST_EXIST);
+            // Get company to find its category.
+            $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
 
-        // Generate token name: FIRSTNAME_LASTNAME_COMPANY (all caps, spaces replaced with underscores).
-        $tokenname = self::generate_token_name($user->firstname, $user->lastname, $company->shortname);
+            // Get user for token naming.
+            $user = $DB->get_record('user', ['id' => $userid], 'id, firstname, lastname', MUST_EXIST);
 
-        // Get the company's category context.
-        $context = \context_coursecat::instance($company->category);
+            // Generate token name: FIRSTNAME_LASTNAME_COMPANY (all caps, spaces replaced with underscores).
+            $tokenname = self::generate_token_name($user->firstname, $user->lastname, $company->shortname);
+
+            // Get the company's category context.
+            $context = \context_coursecat::instance($company->category);
+        } else {
+            // STANDARD MOODLE MODE: No company validation needed.
+            // Get user for token naming.
+            $user = $DB->get_record('user', ['id' => $userid], 'id, firstname, lastname', MUST_EXIST);
+
+            // Generate token name: FIRSTNAME_LASTNAME_USER (all caps, spaces replaced with underscores).
+            $tokenname = self::generate_token_name($user->firstname, $user->lastname, 'USER');
+
+            // Use system context for standard Moodle.
+            $context = \context_system::instance();
+        }
 
         // Determine validity period.
         $validuntil = 0;
