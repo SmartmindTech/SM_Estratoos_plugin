@@ -66,8 +66,8 @@ if ($mform->is_cancelled()) {
         $userids = [];
         $source = 'company';
 
-        if ($data->selectionmethod === 'company') {
-            // Get users from selected user IDs.
+        if ($data->selectionmethod === 'company' || $data->selectionmethod === 'users') {
+            // Get users from selected user IDs (both IOMAD company mode and standard user selection).
             if (!empty($data->selecteduserids)) {
                 $userids = array_map('intval', explode(',', $data->selecteduserids));
                 $userids = array_filter($userids, function($id) {
@@ -79,8 +79,8 @@ if ($mform->is_cancelled()) {
                 throw new moodle_exception('nousersselected', 'local_sm_estratoos_plugin');
             }
 
-            $source = 'company';
-        } else {
+            $source = $data->selectionmethod === 'company' ? 'company' : 'users';
+        } else if ($data->selectionmethod === 'csv') {
             // Get users from uploaded file (CSV or Excel).
             $filename = $mform->get_new_filename('csvfile');
             $filecontent = $mform->get_file_content('csvfile');
@@ -121,6 +121,9 @@ if ($mform->is_cancelled()) {
 
             $userids = $fileresult['users'];
             $source = $isexcel ? 'excel' : 'csv';
+        } else {
+            // Unknown selection method.
+            throw new moodle_exception('nousersselected', 'local_sm_estratoos_plugin');
         }
 
         if (empty($userids)) {

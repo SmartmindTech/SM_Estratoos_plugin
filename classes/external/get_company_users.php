@@ -138,7 +138,7 @@ class get_company_users extends external_api {
     }
 
     /**
-     * Get user roles in company context.
+     * Get user roles in company context (IOMAD mode).
      *
      * @param int $userid User ID.
      * @param \context|null $categorycontext Company category context.
@@ -148,11 +148,13 @@ class get_company_users extends external_api {
         global $DB;
 
         $roles = [];
+        $allroles = [];
 
         // Check system-level roles.
         $systemcontext = \context_system::instance();
         $systemroles = get_user_roles($systemcontext, $userid, false);
         foreach ($systemroles as $role) {
+            $allroles[] = $role->shortname;
             $roles[] = [
                 'id' => $role->roleid,
                 'shortname' => $role->shortname,
@@ -173,6 +175,7 @@ class get_company_users extends external_api {
                     }
                 }
                 if (!$exists) {
+                    $allroles[] = $role->shortname;
                     $roles[] = [
                         'id' => $role->roleid,
                         'shortname' => $role->shortname,
@@ -182,25 +185,41 @@ class get_company_users extends external_api {
             }
         }
 
-        // Also check company_users table for SmartMind - Estratoos-specific roles.
+        // Also check company_users table for IOMAD-specific manager roles.
         $companyuser = $DB->get_record('company_users', ['userid' => $userid]);
-        if ($companyuser) {
-            // Check for manager role in IOMAD.
-            if (!empty($companyuser->managertype) && $companyuser->managertype > 0) {
-                $hasManager = false;
-                foreach ($roles as $r) {
-                    if (stripos($r['shortname'], 'manager') !== false) {
-                        $hasManager = true;
-                        break;
-                    }
+        if ($companyuser && !empty($companyuser->managertype) && $companyuser->managertype > 0) {
+            $allroles[] = 'companymanager';
+        }
+
+        // Check if user has a manager/admin role AND is NOT a site admin.
+        // A manager is someone with role containing "manager" or "admin" but without superadmin powers.
+        $ismanager = false;
+        if (!is_siteadmin($userid)) {
+            foreach ($allroles as $rolename) {
+                $lowername = strtolower($rolename);
+                if (strpos($lowername, 'manager') !== false || strpos($lowername, 'admin') !== false) {
+                    $ismanager = true;
+                    break;
                 }
-                if (!$hasManager) {
-                    $roles[] = [
-                        'id' => 0,
-                        'shortname' => 'companymanager',
-                        'name' => get_string('companymanager', 'block_iomad_company_admin'),
-                    ];
+            }
+        }
+
+        // Add manager role if detected and not already present.
+        if ($ismanager) {
+            $hasmanagerbadge = false;
+            foreach ($roles as $r) {
+                $ln = strtolower($r['shortname']);
+                if (strpos($ln, 'manager') !== false || strpos($ln, 'admin') !== false) {
+                    $hasmanagerbadge = true;
+                    break;
                 }
+            }
+            if (!$hasmanagerbadge) {
+                $roles[] = [
+                    'id' => 0,
+                    'shortname' => 'manager',
+                    'name' => get_string('manager', 'role'),
+                ];
             }
         }
 
@@ -226,96 +245,92 @@ class get_company_users extends external_api {
         global $DB;
 
         $roles = [];
-        $hasmanager = false;
+        $allrolenames = [];
         $hasteacher = false;
 
         // Check system-level roles.
         $systemcontext = \context_system::instance();
         $systemroles = get_user_roles($systemcontext, $userid, false);
         foreach ($systemroles as $role) {
-            $shortname = strtolower($role->shortname);
+            $allrolenames[] = $role->shortname;
             $roles[] = [
                 'id' => $role->roleid,
                 'shortname' => $role->shortname,
                 'name' => $role->name ?: role_get_name($DB->get_record('role', ['id' => $role->roleid])),
             ];
+        }
 
-            // Track if manager or teacher role already found.
-            if (strpos($shortname, 'manager') !== false || $shortname === 'coursecreator') {
-                $hasmanager = true;
-            }
-            if (strpos($shortname, 'teacher') !== false) {
-                $hasteacher = true;
+        // Also get ALL role assignments for this user (any context) to check for manager/admin roles.
+        $allroleassignments = $DB->get_records_sql(
+            "SELECT DISTINCT r.shortname
+             FROM {role_assignments} ra
+             JOIN {role} r ON r.id = ra.roleid
+             WHERE ra.userid = ?",
+            [$userid]
+        );
+        foreach ($allroleassignments as $ra) {
+            if (!in_array($ra->shortname, $allrolenames)) {
+                $allrolenames[] = $ra->shortname;
             }
         }
 
-        // Check for manager role assignment at system level (by role shortname).
-        if (!$hasmanager) {
-            $managerroleid = $DB->get_field('role', 'id', ['shortname' => 'manager']);
-            if ($managerroleid) {
-                $hasmanagerrole = $DB->record_exists('role_assignments', [
-                    'userid' => $userid,
-                    'roleid' => $managerroleid,
-                    'contextid' => $systemcontext->id,
-                ]);
-                if ($hasmanagerrole) {
-                    $hasmanager = true;
-                    $roles[] = [
-                        'id' => $managerroleid,
-                        'shortname' => 'manager',
-                        'name' => get_string('manager', 'role'),
-                    ];
-                }
-            }
-        }
-
-        // Check for manager capabilities at system level (users with manager-like permissions).
-        if (!$hasmanager) {
-            // Check common manager capabilities.
-            $managercaps = [
-                'moodle/course:create',
-                'moodle/user:update',
-                'moodle/cohort:manage',
-                'moodle/category:manage',
-            ];
-
-            foreach ($managercaps as $cap) {
-                if (has_capability($cap, $systemcontext, $userid, false)) {
-                    $hasmanager = true;
-                    $managerroleid = $DB->get_field('role', 'id', ['shortname' => 'manager']);
-                    $roles[] = [
-                        'id' => $managerroleid ?: 0,
-                        'shortname' => 'manager',
-                        'name' => get_string('manager', 'role'),
-                    ];
+        // Check if user has a manager/admin role AND is NOT a site admin.
+        // A manager is someone with role containing "manager" or "admin" but without superadmin powers.
+        $ismanager = false;
+        if (!is_siteadmin($userid)) {
+            foreach ($allrolenames as $rolename) {
+                $lowername = strtolower($rolename);
+                if (strpos($lowername, 'manager') !== false || strpos($lowername, 'admin') !== false) {
+                    $ismanager = true;
                     break;
                 }
             }
         }
 
-        // Check if user has teacher role in any course context.
-        if (!$hasteacher) {
-            $teacherroleid = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
-            $noneditingteacherroleid = $DB->get_field('role', 'id', ['shortname' => 'teacher']);
-
-            $roleids = array_filter([$teacherroleid, $noneditingteacherroleid]);
-            if (!empty($roleids)) {
-                list($insql, $params) = $DB->get_in_or_equal($roleids);
-                $params[] = $userid;
-                $hasteacherrole = $DB->record_exists_select(
-                    'role_assignments',
-                    "roleid $insql AND userid = ?",
-                    $params
-                );
-
-                if ($hasteacherrole) {
-                    $hasteacher = true;
-                    $roles[] = [
-                        'id' => $teacherroleid ?: $noneditingteacherroleid,
-                        'shortname' => 'teacher',
-                        'name' => get_string('teacher'),
-                    ];
+        // Add manager role if detected and not already present in returned roles.
+        if ($ismanager) {
+            $hasmanagerbadge = false;
+            foreach ($roles as $r) {
+                $ln = strtolower($r['shortname']);
+                if (strpos($ln, 'manager') !== false || strpos($ln, 'admin') !== false) {
+                    $hasmanagerbadge = true;
+                    break;
                 }
+            }
+            if (!$hasmanagerbadge) {
+                $roles[] = [
+                    'id' => 0,
+                    'shortname' => 'manager',
+                    'name' => get_string('manager', 'role'),
+                ];
+            }
+        }
+
+        // Check if user has teacher role in any context.
+        foreach ($allrolenames as $rolename) {
+            $ln = strtolower($rolename);
+            if (strpos($ln, 'teacher') !== false) {
+                $hasteacher = true;
+                break;
+            }
+        }
+
+        // Add teacher role if found and not already present.
+        if ($hasteacher) {
+            $hasteacherbadge = false;
+            foreach ($roles as $r) {
+                if (strpos(strtolower($r['shortname']), 'teacher') !== false) {
+                    $hasteacherbadge = true;
+                    break;
+                }
+            }
+            if (!$hasteacherbadge) {
+                $teacherroleid = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
+                $roles[] = [
+                    'id' => $teacherroleid ?: 0,
+                    'shortname' => 'teacher',
+                    'name' => get_string('teacher'),
+                ];
             }
         }
 

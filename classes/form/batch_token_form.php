@@ -125,6 +125,9 @@ class batch_token_form extends \moodleform {
                     <button type="button" class="btn btn-sm btn-outline-warning" id="select-managers">
                         ' . get_string('selectmanagers', 'local_sm_estratoos_plugin') . '
                     </button>
+                    <button type="button" class="btn btn-sm btn-outline-info" id="select-others">
+                        ' . get_string('selectothers', 'local_sm_estratoos_plugin') . '
+                    </button>
                 </div>
             </div>
         ');

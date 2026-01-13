@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011231</version>
+        <version>2025011232</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.27</release>
+        <release>1.2.28</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,20 +29,22 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.27/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.28/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.27</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.28</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.27</h3>
+            <h3>Version 1.2.28</h3>
             <ul>
-                <li>Fixed manager role detection in non-IOMAD mode (now properly detects managers by role and capabilities)</li>
-                <li>Added scrollbar to user selection list for better handling of large user lists</li>
-                <li>Improved role badge priority (Manager > Teacher > Student)</li>
-                <li>Enhanced user list styling with better visual feedback</li>
+                <li>Fixed manager detection: now checks if role name contains "manager" or "admin" AND user is not a superadmin</li>
+                <li>Fixed "Select Users" method in non-IOMAD mode (was incorrectly expecting CSV file)</li>
+                <li>Manager detection now works consistently in both IOMAD and non-IOMAD modes</li>
+                <li>Added "Other" role badge for custom roles (e.g., chatbot) that are not manager/teacher/student</li>
+                <li>Added "Select Others" quick select button</li>
+                <li>Added scrollbar to user selection list for large user lists</li>
             </ul>
             ]]>
         </releasenotes>

@@ -198,6 +198,7 @@ $string['selectnone'] = 'Nenhum';
 $string['selectstudents'] = 'Estudantes';
 $string['selectteachers'] = 'Professores';
 $string['selectmanagers'] = 'Gestores';
+$string['selectothers'] = 'Outros';
 $string['selectedusers'] = 'usuários selecionados';
 $string['searchusers'] = 'Pesquisar usuários...';
 $string['loadingusers'] = 'Carregando usuários...';
@@ -208,6 +209,7 @@ $string['companymanager'] = 'Gestor de Empresa';
 $string['role_student'] = 'Estudante';
 $string['role_teacher'] = 'Professor';
 $string['role_manager'] = 'Gestor';
+$string['role_other'] = 'Outro';
 
 // Detecção do IOMAD.
 $string['iomaddetected'] = 'Modo multi-tenant IOMAD detectado';
