@@ -237,34 +237,7 @@ $functions = [
     ],
 ];
 
-// Define a pre-built service that includes all our functions.
-// Administrators can also add individual functions to other services.
-$services = [
-    'SmartMind - Estratoos Plugin' => [
-        'functions' => [
-            'local_sm_estratoos_plugin_create_batch',
-            'local_sm_estratoos_plugin_get_tokens',
-            'local_sm_estratoos_plugin_revoke',
-            'local_sm_estratoos_plugin_get_company_users',
-            'local_sm_estratoos_plugin_get_companies',
-            'local_sm_estratoos_plugin_get_services',
-            'local_sm_estratoos_plugin_create_admin_token',
-            'local_sm_estratoos_plugin_get_batch_history',
-            'local_sm_estratoos_plugin_forum_create',
-            'local_sm_estratoos_plugin_forum_edit',
-            'local_sm_estratoos_plugin_forum_delete',
-            'local_sm_estratoos_plugin_discussion_edit',
-            'local_sm_estratoos_plugin_discussion_delete',
-            // Category-context functions (work with company tokens).
-            'local_sm_estratoos_plugin_get_users_by_field',
-            'local_sm_estratoos_plugin_get_users',
-            'local_sm_estratoos_plugin_get_categories',
-            'local_sm_estratoos_plugin_get_conversations',
-        ],
-        'restrictedusers' => 1,
-        'enabled' => 1,
-        'shortname' => 'sm_estratoos_plugin',
-        'downloadfiles' => 0,
-        'uploadfiles' => 0,
-    ],
-];
+// NOTE: The SmartMind - Estratoos Plugin service is created and managed in install.php,
+// NOT here in services.php. This allows us to include ALL mobile functions plus our
+// plugin functions in the service. Defining the service here would cause Moodle to
+// overwrite the service with only the functions listed, removing the mobile functions.
