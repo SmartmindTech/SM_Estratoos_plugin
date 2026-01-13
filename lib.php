@@ -283,25 +283,44 @@ function local_sm_estratoos_plugin_before_footer() {
  * Add token manager icon to the navbar (next to notification bell).
  *
  * This hook is called by Boost-based themes to render additional navbar output.
- * We return empty here and use JavaScript injection instead for precise positioning.
+ * Returns the icon HTML, and JavaScript repositions it to the left of the bell.
  *
  * @param renderer_base $renderer The renderer.
- * @return string Empty - using JS injection instead.
+ * @return string HTML for the navbar icon.
  */
 function local_sm_estratoos_plugin_render_navbar_output(\renderer_base $renderer) {
-    // Return empty - we use before_standard_top_of_body_html() JS injection instead
-    // to ensure the icon is positioned exactly to the LEFT of the notification bell.
-    return '';
+    global $CFG;
+
+    // Check if user has access (site admin or company manager).
+    if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
+        return '';
+    }
+
+    $url = new moodle_url('/local/sm_estratoos_plugin/index.php');
+    $title = get_string('pluginname', 'local_sm_estratoos_plugin');
+
+    // Create the icon container matching the notification bell structure.
+    $html = \html_writer::start_div('popover-region', ['id' => 'sm-tokens-navbar-icon', 'style' => 'display: flex; align-items: center;']);
+    $html .= \html_writer::link(
+        $url,
+        \html_writer::tag('i', '', ['class' => 'icon fa fa-key fa-fw', 'aria-hidden' => 'true']),
+        [
+            'class' => 'nav-link position-relative icon-no-margin',
+            'title' => $title,
+            'aria-label' => $title,
+        ]
+    );
+    $html .= \html_writer::end_div();
+
+    return $html;
 }
 
 /**
- * Inject JavaScript to add token icon to navbar next to the notification bell.
+ * Inject JavaScript to reposition the token icon to the left of the notification bell.
  *
  * @return string HTML/JS to inject.
  */
 function local_sm_estratoos_plugin_before_standard_top_of_body_html() {
-    global $CFG, $PAGE;
-
     // Check if user has access (site admin or company manager).
     if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
         return '';
@@ -312,47 +331,24 @@ function local_sm_estratoos_plugin_before_standard_top_of_body_html() {
         return '';
     }
 
-    $url = (new moodle_url('/local/sm_estratoos_plugin/index.php'))->out(false);
-    $title = get_string('pluginname', 'local_sm_estratoos_plugin');
-
-    // JavaScript to inject the icon to the LEFT of the notification bell.
+    // JavaScript to move the icon to the LEFT of the notification bell.
     $js = <<<JS
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if icon already exists.
-    if (document.getElementById('sm-tokens-navbar-icon')) {
+    // Find our icon (rendered by render_navbar_output).
+    var tokenIcon = document.getElementById('sm-tokens-navbar-icon');
+    if (!tokenIcon) {
         return;
     }
 
     // Find the notification bell container.
     var notificationBell = document.querySelector('.popover-region-notifications');
-
     if (!notificationBell) {
         return;
     }
 
-    // Create the token icon element - matching the bell icon style exactly.
-    var iconDiv = document.createElement('div');
-    iconDiv.id = 'sm-tokens-navbar-icon';
-    iconDiv.className = 'popover-region';
-    iconDiv.style.cssText = 'display: flex; align-items: center;';
-
-    var link = document.createElement('a');
-    link.href = '{$url}';
-    link.className = 'nav-link position-relative icon-no-margin';
-    link.title = '{$title}';
-    link.setAttribute('aria-label', '{$title}');
-
-    var icon = document.createElement('i');
-    icon.className = 'icon fa fa-key fa-fw';
-    icon.setAttribute('aria-hidden', 'true');
-    // No custom styles - inherit from parent to match other icons.
-
-    link.appendChild(icon);
-    iconDiv.appendChild(link);
-
-    // Insert to the LEFT of the notification bell.
-    notificationBell.parentNode.insertBefore(iconDiv, notificationBell);
+    // Move the token icon to be immediately before the notification bell.
+    notificationBell.parentNode.insertBefore(tokenIcon, notificationBell);
 });
 </script>
 JS;
