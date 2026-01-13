@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011400;  // YYYYMMDDXX format.
+$plugin->version = 2025011401;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.4.0';  // Added get_categories, get_conversations + mobile service integration.
+$plugin->release = '1.4.1';  // Dedicated SmartMind service instead of modifying Moodle mobile service.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

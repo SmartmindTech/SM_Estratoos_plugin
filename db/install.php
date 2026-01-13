@@ -133,20 +133,41 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
 }
 
 /**
- * Add plugin functions to Moodle mobile web service.
- * This allows the functions to be used by the Moodle mobile app.
+ * Create dedicated SmartMind - Estratoos Plugin web service.
+ * This creates a separate service with all plugin functions instead of modifying the Moodle mobile service.
  */
 function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
     global $DB;
 
-    // Get mobile service.
-    $mobileservice = $DB->get_record('external_services', ['shortname' => 'moodle_mobile_app']);
-    if (!$mobileservice) {
-        // Mobile service doesn't exist, skip.
-        return;
+    $serviceshortname = 'sm_estratoos_plugin';
+    $servicename = 'SmartMind - Estratoos Plugin';
+
+    // Check if service already exists.
+    $service = $DB->get_record('external_services', ['shortname' => $serviceshortname]);
+
+    if (!$service) {
+        // Create the service.
+        $serviceid = $DB->insert_record('external_services', [
+            'name' => $servicename,
+            'shortname' => $serviceshortname,
+            'enabled' => 1,
+            'requiredcapability' => '',
+            'restrictedusers' => 0,
+            'component' => 'local_sm_estratoos_plugin',
+            'timecreated' => time(),
+            'timemodified' => time(),
+            'downloadfiles' => 0,
+            'uploadfiles' => 0,
+        ]);
+    } else {
+        $serviceid = $service->id;
+        // Ensure service is enabled.
+        if (!$service->enabled) {
+            $DB->set_field('external_services', 'enabled', 1, ['id' => $serviceid]);
+        }
     }
 
-    // List of all plugin functions to add to mobile service.
+    // List of all plugin functions to add to the service.
     $functions = [
         // Token management functions.
         'local_sm_estratoos_plugin_create_batch',
@@ -178,18 +199,60 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
             continue;
         }
 
-        // Check if function is already in mobile service.
+        // Check if function is already in the service.
         $existing = $DB->get_record('external_services_functions', [
-            'externalserviceid' => $mobileservice->id,
+            'externalserviceid' => $serviceid,
             'functionname' => $functionname,
         ]);
 
         if (!$existing) {
-            // Add function to mobile service.
+            // Add function to the service.
             $DB->insert_record('external_services_functions', [
-                'externalserviceid' => $mobileservice->id,
+                'externalserviceid' => $serviceid,
                 'functionname' => $functionname,
             ]);
         }
+    }
+}
+
+/**
+ * Remove plugin functions from Moodle mobile web service.
+ * Called during upgrade to clean up functions added in previous versions.
+ */
+function xmldb_local_sm_estratoos_plugin_remove_from_mobile_service() {
+    global $DB;
+
+    // Get mobile service.
+    $mobileservice = $DB->get_record('external_services', ['shortname' => 'moodle_mobile_app']);
+    if (!$mobileservice) {
+        return;
+    }
+
+    // List of plugin functions to remove from mobile service.
+    $functions = [
+        'local_sm_estratoos_plugin_create_batch',
+        'local_sm_estratoos_plugin_get_tokens',
+        'local_sm_estratoos_plugin_revoke',
+        'local_sm_estratoos_plugin_get_company_users',
+        'local_sm_estratoos_plugin_get_companies',
+        'local_sm_estratoos_plugin_get_services',
+        'local_sm_estratoos_plugin_create_admin_token',
+        'local_sm_estratoos_plugin_get_batch_history',
+        'local_sm_estratoos_plugin_forum_create',
+        'local_sm_estratoos_plugin_forum_edit',
+        'local_sm_estratoos_plugin_forum_delete',
+        'local_sm_estratoos_plugin_discussion_edit',
+        'local_sm_estratoos_plugin_discussion_delete',
+        'local_sm_estratoos_plugin_get_users_by_field',
+        'local_sm_estratoos_plugin_get_users',
+        'local_sm_estratoos_plugin_get_categories',
+        'local_sm_estratoos_plugin_get_conversations',
+    ];
+
+    foreach ($functions as $functionname) {
+        $DB->delete_records('external_services_functions', [
+            'externalserviceid' => $mobileservice->id,
+            'functionname' => $functionname,
+        ]);
     }
 }

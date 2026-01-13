@@ -127,5 +127,19 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011400, 'local', 'sm_estratoos_plugin');
     }
 
+    // Create dedicated SmartMind service and clean up mobile service (v1.4.1).
+    if ($oldversion < 2025011401) {
+        // Include install.php to use the service functions.
+        require_once(__DIR__ . '/install.php');
+
+        // Remove plugin functions from Moodle mobile web service (cleanup from v1.4.0).
+        xmldb_local_sm_estratoos_plugin_remove_from_mobile_service();
+
+        // Create/update the dedicated SmartMind - Estratoos Plugin service.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011401, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
