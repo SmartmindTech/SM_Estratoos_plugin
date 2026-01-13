@@ -79,7 +79,7 @@ class service_functions_form extends \moodleform {
 
             // Help text.
             $mform->addElement('static', 'help', '',
-                html_writer::tag('small',
+                \html_writer::tag('small',
                     get_string('functionselecthelp', 'local_sm_estratoos_plugin'),
                     ['class' => 'text-muted']
                 )

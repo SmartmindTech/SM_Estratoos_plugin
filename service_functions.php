@@ -148,7 +148,7 @@ echo html_writer::start_div('alert alert-info');
 echo html_writer::tag('strong', get_string('shortname') . ': ') . $service->shortname;
 if ($service->component) {
     echo html_writer::tag('br', '');
-    echo html_writer::tag('strong', get_string('component', 'webservice') . ': ') . $service->component;
+    echo html_writer::tag('strong', get_string('component', 'local_sm_estratoos_plugin') . ': ') . $service->component;
 }
 echo html_writer::end_div();
 

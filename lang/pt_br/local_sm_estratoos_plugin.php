@@ -306,6 +306,7 @@ $string['manageservices'] = 'Gerenciar Serviços Web';
 $string['manageservicesdesc'] = 'Adicionar ou remover funções de qualquer serviço web, incluindo serviços integrados como Moodle mobile.';
 $string['servicefunctions'] = 'Funções do Serviço';
 $string['managefunctions'] = 'Gerenciar Funções';
+$string['component'] = 'Componente';
 $string['builtin'] = 'Integrado';
 $string['noservices'] = 'Nenhum serviço web encontrado.';
 $string['functionsadded'] = 'Funções adicionadas com sucesso.';
