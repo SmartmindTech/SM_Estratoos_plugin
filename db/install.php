@@ -134,7 +134,7 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
 
 /**
  * Create dedicated SmartMind - Estratoos Plugin web service.
- * This creates a separate service with all plugin functions instead of modifying the Moodle mobile service.
+ * This creates a copy of Moodle mobile web service plus all plugin functions.
  */
 function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
     global $DB;
@@ -156,8 +156,8 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
             'component' => 'local_sm_estratoos_plugin',
             'timecreated' => time(),
             'timemodified' => time(),
-            'downloadfiles' => 0,
-            'uploadfiles' => 0,
+            'downloadfiles' => 1,
+            'uploadfiles' => 1,
         ]);
     } else {
         $serviceid = $service->id;
@@ -167,8 +167,33 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         }
     }
 
-    // List of all plugin functions to add to the service.
-    $functions = [
+    // Step 1: Copy ALL functions from Moodle mobile web service.
+    $mobileservice = $DB->get_record('external_services', ['shortname' => 'moodle_mobile_app']);
+    if ($mobileservice) {
+        // Get all functions from mobile service.
+        $mobilefunctions = $DB->get_records('external_services_functions', [
+            'externalserviceid' => $mobileservice->id
+        ]);
+
+        foreach ($mobilefunctions as $mobilefunction) {
+            // Check if function is already in our service.
+            $existing = $DB->get_record('external_services_functions', [
+                'externalserviceid' => $serviceid,
+                'functionname' => $mobilefunction->functionname,
+            ]);
+
+            if (!$existing) {
+                // Copy function to our service.
+                $DB->insert_record('external_services_functions', [
+                    'externalserviceid' => $serviceid,
+                    'functionname' => $mobilefunction->functionname,
+                ]);
+            }
+        }
+    }
+
+    // Step 2: Add all plugin-specific functions.
+    $pluginfunctions = [
         // Token management functions.
         'local_sm_estratoos_plugin_create_batch',
         'local_sm_estratoos_plugin_get_tokens',
@@ -191,7 +216,7 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_get_conversations',
     ];
 
-    foreach ($functions as $functionname) {
+    foreach ($pluginfunctions as $functionname) {
         // Check if function exists in external_functions.
         $function = $DB->get_record('external_functions', ['name' => $functionname]);
         if (!$function) {

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011401</version>
+        <version>2025011402</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.1</release>
+        <release>1.4.2</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,18 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.1/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.2/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.1</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.2</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.1</h3>
+            <h3>Version 1.4.2</h3>
             <ul>
-                <li>Created dedicated "SmartMind - Estratoos Plugin" web service with all 17 plugin functions</li>
-                <li>No longer modifies Moodle mobile web service - keeps it with standard functions only</li>
-                <li>Fixed "html_writer class not found" and "[[component]]" errors in service management</li>
+                <li>Fixed SmartMind service to include ALL Moodle mobile functions (437+) plus plugin functions</li>
+                <li>SmartMind - Estratoos Plugin service is now a complete copy of Moodle mobile service with 17 additional plugin functions</li>
             </ul>
             ]]>
         </releasenotes>
