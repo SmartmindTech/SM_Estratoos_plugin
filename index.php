@@ -332,10 +332,12 @@ if (!empty($deletions)) {
     // Collapsible header.
     echo html_writer::start_div('card-header', ['id' => 'deletionHistoryHeader']);
     echo html_writer::start_tag('button', [
-        'class' => 'btn btn-link text-left w-100',
+        'class' => 'btn btn-link text-left text-start w-100',
         'type' => 'button',
         'data-toggle' => 'collapse',
         'data-target' => '#deletionHistoryContent',
+        'data-bs-toggle' => 'collapse',
+        'data-bs-target' => '#deletionHistoryContent',
         'aria-expanded' => ($deletioncount <= 5 ? 'true' : 'false'),
         'aria-controls' => 'deletionHistoryContent'
     ]);

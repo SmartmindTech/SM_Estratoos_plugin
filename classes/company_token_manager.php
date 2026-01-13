@@ -67,8 +67,11 @@ class company_token_manager {
             // Get user for token naming.
             $user = $DB->get_record('user', ['id' => $userid], 'id, firstname, lastname', MUST_EXIST);
 
-            // Generate token name: FIRSTNAME_LASTNAME_USER (all caps, spaces replaced with underscores).
-            $tokenname = self::generate_token_name($user->firstname, $user->lastname, 'USER');
+            // Get user's primary role for token naming.
+            $userrole = self::get_user_primary_role($userid);
+
+            // Generate token name: FIRSTNAME_LASTNAME_ROLE (all caps, spaces replaced with underscores).
+            $tokenname = self::generate_token_name($user->firstname, $user->lastname, $userrole);
 
             // Use system context for standard Moodle.
             $context = \context_system::instance();
@@ -911,6 +914,60 @@ class company_token_manager {
         }
 
         return $categories;
+    }
+
+    /**
+     * Get user's primary role for token naming (non-IOMAD mode).
+     *
+     * Priority: MANAGER > TEACHER > OTHER > STUDENT
+     *
+     * @param int $userid User ID.
+     * @return string Role name in uppercase (MANAGER, TEACHER, OTHER, STUDENT).
+     */
+    private static function get_user_primary_role(int $userid): string {
+        global $DB;
+
+        // Get all role assignments for this user.
+        $roles = $DB->get_records_sql(
+            "SELECT DISTINCT r.shortname
+             FROM {role_assignments} ra
+             JOIN {role} r ON r.id = ra.roleid
+             WHERE ra.userid = ?",
+            [$userid]
+        );
+
+        $hasmanager = false;
+        $hasteacher = false;
+        $hasother = false;
+        $hasstudent = false;
+
+        foreach ($roles as $role) {
+            $rolename = strtolower($role->shortname);
+
+            // Check for manager: role contains "manager" or "admin" (but user is not site admin).
+            if ((strpos($rolename, 'manager') !== false || strpos($rolename, 'admin') !== false)
+                && !is_siteadmin($userid)) {
+                $hasmanager = true;
+            } else if (strpos($rolename, 'teacher') !== false) {
+                $hasteacher = true;
+            } else if ($rolename === 'student' || $rolename === 'alumno' || $rolename === 'estudante') {
+                $hasstudent = true;
+            } else if ($rolename !== 'user' && $rolename !== 'authenticated' && $rolename !== 'guest') {
+                // Other roles like "chatbot", custom roles, etc.
+                $hasother = true;
+            }
+        }
+
+        // Return based on priority.
+        if ($hasmanager) {
+            return 'MANAGER';
+        } else if ($hasteacher) {
+            return 'TEACHER';
+        } else if ($hasother) {
+            return 'OTHER';
+        } else {
+            return 'STUDENT';
+        }
     }
 
     /**
