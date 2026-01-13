@@ -28,6 +28,7 @@
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/webservice/lib.php');
+require_once($CFG->libdir . '/externallib.php');
 
 $serviceid  = required_param('id', PARAM_INT);
 $functionid = optional_param('fid', 0, PARAM_INT);
@@ -168,7 +169,7 @@ if (empty($functions)) {
     $table->attributes['class'] = 'table table-striped';
 
     foreach ($functions as $function) {
-        $functioninfo = external_api::external_function_info($function);
+        $functioninfo = \external_api::external_function_info($function);
 
         $description = html_writer::tag('div', $functioninfo->description, ['class' => 'small']);
 

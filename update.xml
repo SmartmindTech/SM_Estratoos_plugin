@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011239</version>
+        <version>2025011240</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.35</release>
+        <release>1.2.36</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,18 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.35/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.36/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.35</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.36</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.35</h3>
+            <h3>Version 1.2.36</h3>
             <ul>
-                <li>Added "Manage Web Services" page to add/remove functions from any service (including built-in services like Moodle mobile)</li>
-                <li>No need to modify Moodle core files - all functionality is self-contained in the plugin</li>
+                <li>Fixed "external_api class not found" error in Manage Web Services page</li>
+                <li>Improved dashboard layout with centered cards</li>
+                <li>Updated dashboard title to "Token and API Functions Management"</li>
+                <li>Renamed "Create Company Tokens" to "Create User Tokens" for consistency</li>
             </ul>
             ]]>
         </releasenotes>

@@ -37,12 +37,12 @@ $string['sm_estratoos_plugin:export'] = 'Exportar tokens';
 $string['sm_estratoos_plugin:createtokensapi'] = 'Criar tokens via API';
 
 // Painel de controle.
-$string['dashboard'] = 'Painel de Gerenciamento de Tokens';
+$string['dashboard'] = 'Painel de Gerenciamento de Tokens e Funções API';
 $string['dashboarddesc'] = 'Criar e gerenciar tokens de API para sua instalação do Moodle.';
 $string['createadmintoken'] = 'Criar Token de Administrador';
 $string['createadmintokendesc'] = 'Criar um token em nível de sistema para o administrador do Moodle com acesso completo.';
-$string['createcompanytokens'] = 'Criar Tokens de Empresa';
-$string['createcompanytokensdesc'] = 'Criar tokens com escopo de empresa para usuários em lote. Estes tokens retornarão apenas dados da empresa selecionada.';
+$string['createcompanytokens'] = 'Criar Tokens de Usuário';
+$string['createcompanytokensdesc'] = 'Criar tokens de API para usuários em lote. No modo IOMAD, os tokens têm escopo de empresa e retornam apenas dados da empresa selecionada.';
 $string['managetokens'] = 'Gerenciar Tokens';
 $string['managetokensdesc'] = 'Ver, editar e revogar tokens existentes.';
 
@@ -315,3 +315,11 @@ $string['allfunctionsadded'] = 'Todas as funções disponíveis já foram adicio
 $string['selectfunctionstoadd'] = 'Selecione as funções que deseja adicionar a este serviço. Mantenha pressionado Ctrl (ou Cmd no Mac) para selecionar múltiplas funções.';
 $string['searchfunctions'] = 'Buscar funções...';
 $string['functionselecthelp'] = 'Use Ctrl+Clique para selecionar múltiplas funções. Use Shift+Clique para selecionar um intervalo.';
+
+// Tag de função API (exibida na UI).
+$string['apifunctiontag'] = 'Função API SM Estratoos';
+$string['apifunctiontag_desc'] = 'Esta função é fornecida pelo plugin SmartMind Estratoos';
+
+// Erros de funções com contexto de categoria.
+$string['usernotincompany'] = 'O usuário especificado não pertence à empresa do token.';
+$string['categorynotincompany'] = 'A categoria especificada não está na árvore de categorias da empresa.';

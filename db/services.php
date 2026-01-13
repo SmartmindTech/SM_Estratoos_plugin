@@ -180,6 +180,61 @@ $functions = [
         'capabilities' => 'mod/forum:deleteanypost',
         'loginrequired' => true,
     ],
+
+    // =========================================================================
+    // CATEGORY-CONTEXT USER FUNCTIONS
+    // These functions work with category-scoped tokens (company tokens).
+    // They mirror core Moodle functions but validate against category context
+    // instead of system context.
+    // =========================================================================
+
+    // Get users by field (category context version).
+    'local_sm_estratoos_plugin_get_users_by_field' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_users_by_field',
+        'methodname' => 'execute',
+        'description' => 'Get company users by field (id, username, email, idnumber). ' .
+                        'Works with category-scoped tokens. Returns only users in the token\'s company.',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'moodle/user:viewdetails',
+        'loginrequired' => true,
+    ],
+
+    // Search users (category context version).
+    'local_sm_estratoos_plugin_get_users' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_users',
+        'methodname' => 'execute',
+        'description' => 'Search company users by criteria (firstname, lastname, email, username, idnumber). ' .
+                        'Works with category-scoped tokens. Returns only users in the token\'s company. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'moodle/user:viewdetails',
+        'loginrequired' => true,
+    ],
+
+    // Get categories (category context version).
+    'local_sm_estratoos_plugin_get_categories' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_categories',
+        'methodname' => 'execute',
+        'description' => 'Get course categories for the company. Works with category-scoped tokens. ' .
+                        'Returns only categories in the company\'s category tree. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'moodle/category:viewcourselist',
+        'loginrequired' => true,
+    ],
+
+    // Get conversations (category context version).
+    'local_sm_estratoos_plugin_get_conversations' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_conversations',
+        'methodname' => 'execute',
+        'description' => 'Get user conversations filtered to company users. Works with category-scoped tokens. ' .
+                        'Returns only conversations involving company members. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
 ];
 
 // Define a pre-built service that includes all our functions.
@@ -200,6 +255,11 @@ $services = [
             'local_sm_estratoos_plugin_forum_delete',
             'local_sm_estratoos_plugin_discussion_edit',
             'local_sm_estratoos_plugin_discussion_delete',
+            // Category-context functions (work with company tokens).
+            'local_sm_estratoos_plugin_get_users_by_field',
+            'local_sm_estratoos_plugin_get_users',
+            'local_sm_estratoos_plugin_get_categories',
+            'local_sm_estratoos_plugin_get_conversations',
         ],
         'restrictedusers' => 1,
         'enabled' => 1,

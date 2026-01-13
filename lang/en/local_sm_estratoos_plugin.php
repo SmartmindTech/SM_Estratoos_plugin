@@ -37,12 +37,12 @@ $string['sm_estratoos_plugin:export'] = 'Export tokens';
 $string['sm_estratoos_plugin:createtokensapi'] = 'Create tokens via API';
 
 // Dashboard.
-$string['dashboard'] = 'Token Management Dashboard';
+$string['dashboard'] = 'Token and API Functions Management';
 $string['dashboarddesc'] = 'Create and manage API tokens for your Moodle installation.';
 $string['createadmintoken'] = 'Create Admin Token';
 $string['createadmintokendesc'] = 'Create a system-wide token for the Moodle administrator with full access.';
-$string['createcompanytokens'] = 'Create Company Tokens';
-$string['createcompanytokensdesc'] = 'Create company-scoped tokens for users in batch. These tokens will only return data for the selected company.';
+$string['createcompanytokens'] = 'Create User Tokens';
+$string['createcompanytokensdesc'] = 'Create API tokens for users in batch. In IOMAD mode, tokens are company-scoped and only return data for the selected company.';
 $string['managetokens'] = 'Manage Tokens';
 $string['managetokensdesc'] = 'View, edit, and revoke existing tokens.';
 
@@ -315,3 +315,11 @@ $string['allfunctionsadded'] = 'All available functions have already been added 
 $string['selectfunctionstoadd'] = 'Select the functions you want to add to this service. Hold Ctrl (or Cmd on Mac) to select multiple functions.';
 $string['searchfunctions'] = 'Search functions...';
 $string['functionselecthelp'] = 'Use Ctrl+Click to select multiple functions. Use Shift+Click to select a range.';
+
+// API function tag (displayed in UI).
+$string['apifunctiontag'] = 'SM Estratoos API Function';
+$string['apifunctiontag_desc'] = 'This function is provided by the SmartMind Estratoos Plugin';
+
+// Category-context function errors.
+$string['usernotincompany'] = 'The specified user is not in the token\'s company.';
+$string['categorynotincompany'] = 'The specified category is not in the company\'s category tree.';

@@ -116,5 +116,16 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011238, 'local', 'sm_estratoos_plugin');
     }
 
+    // Add category-context functions and mobile service integration (v1.4.0).
+    if ($oldversion < 2025011400) {
+        // Include install.php to use the mobile service function.
+        require_once(__DIR__ . '/install.php');
+
+        // Add all plugin functions to Moodle mobile web service.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011400, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

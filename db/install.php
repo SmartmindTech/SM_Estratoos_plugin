@@ -42,6 +42,9 @@ function xmldb_local_sm_estratoos_plugin_install() {
     // Auto-configure web services for the plugin to work properly.
     xmldb_local_sm_estratoos_plugin_configure_webservices();
 
+    // Add plugin functions to Moodle mobile web service.
+    xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
     return true;
 }
 
@@ -127,4 +130,66 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
 
     // Purge caches to ensure changes take effect.
     purge_all_caches();
+}
+
+/**
+ * Add plugin functions to Moodle mobile web service.
+ * This allows the functions to be used by the Moodle mobile app.
+ */
+function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
+    global $DB;
+
+    // Get mobile service.
+    $mobileservice = $DB->get_record('external_services', ['shortname' => 'moodle_mobile_app']);
+    if (!$mobileservice) {
+        // Mobile service doesn't exist, skip.
+        return;
+    }
+
+    // List of all plugin functions to add to mobile service.
+    $functions = [
+        // Token management functions.
+        'local_sm_estratoos_plugin_create_batch',
+        'local_sm_estratoos_plugin_get_tokens',
+        'local_sm_estratoos_plugin_revoke',
+        'local_sm_estratoos_plugin_get_company_users',
+        'local_sm_estratoos_plugin_get_companies',
+        'local_sm_estratoos_plugin_get_services',
+        'local_sm_estratoos_plugin_create_admin_token',
+        'local_sm_estratoos_plugin_get_batch_history',
+        // Forum functions.
+        'local_sm_estratoos_plugin_forum_create',
+        'local_sm_estratoos_plugin_forum_edit',
+        'local_sm_estratoos_plugin_forum_delete',
+        'local_sm_estratoos_plugin_discussion_edit',
+        'local_sm_estratoos_plugin_discussion_delete',
+        // Category-context functions.
+        'local_sm_estratoos_plugin_get_users_by_field',
+        'local_sm_estratoos_plugin_get_users',
+        'local_sm_estratoos_plugin_get_categories',
+        'local_sm_estratoos_plugin_get_conversations',
+    ];
+
+    foreach ($functions as $functionname) {
+        // Check if function exists in external_functions.
+        $function = $DB->get_record('external_functions', ['name' => $functionname]);
+        if (!$function) {
+            // Function not registered yet, skip.
+            continue;
+        }
+
+        // Check if function is already in mobile service.
+        $existing = $DB->get_record('external_services_functions', [
+            'externalserviceid' => $mobileservice->id,
+            'functionname' => $functionname,
+        ]);
+
+        if (!$existing) {
+            // Add function to mobile service.
+            $DB->insert_record('external_services_functions', [
+                'externalserviceid' => $mobileservice->id,
+                'functionname' => $functionname,
+            ]);
+        }
+    }
 }

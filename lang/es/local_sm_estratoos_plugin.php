@@ -37,12 +37,12 @@ $string['sm_estratoos_plugin:export'] = 'Exportar tokens';
 $string['sm_estratoos_plugin:createtokensapi'] = 'Crear tokens vía API';
 
 // Panel de control.
-$string['dashboard'] = 'Panel de Gestión de Tokens';
+$string['dashboard'] = 'Panel de Gestión de Tokens y Funciones API';
 $string['dashboarddesc'] = 'Crear y gestionar tokens de API para su instalación de Moodle.';
 $string['createadmintoken'] = 'Crear Token de Administrador';
 $string['createadmintokendesc'] = 'Crear un token a nivel de sistema para el administrador de Moodle con acceso completo.';
-$string['createcompanytokens'] = 'Crear Tokens de Empresa';
-$string['createcompanytokensdesc'] = 'Crear tokens con alcance de empresa para usuarios en lote. Estos tokens solo devolverán datos de la empresa seleccionada.';
+$string['createcompanytokens'] = 'Crear Tokens de Usuario';
+$string['createcompanytokensdesc'] = 'Crear tokens de API para usuarios en lote. En modo IOMAD, los tokens tienen alcance de empresa y solo devuelven datos de la empresa seleccionada.';
 $string['managetokens'] = 'Gestionar Tokens';
 $string['managetokensdesc'] = 'Ver, editar y revocar tokens existentes.';
 
@@ -315,3 +315,11 @@ $string['allfunctionsadded'] = 'Todas las funciones disponibles ya han sido agre
 $string['selectfunctionstoadd'] = 'Seleccione las funciones que desea agregar a este servicio. Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples funciones.';
 $string['searchfunctions'] = 'Buscar funciones...';
 $string['functionselecthelp'] = 'Use Ctrl+Clic para seleccionar múltiples funciones. Use Shift+Clic para seleccionar un rango.';
+
+// Etiqueta de función API (mostrada en UI).
+$string['apifunctiontag'] = 'Función API SM Estratoos';
+$string['apifunctiontag_desc'] = 'Esta función es proporcionada por el plugin SmartMind Estratoos';
+
+// Errores de funciones con contexto de categoría.
+$string['usernotincompany'] = 'El usuario especificado no pertenece a la empresa del token.';
+$string['categorynotincompany'] = 'La categoría especificada no está en el árbol de categorías de la empresa.';

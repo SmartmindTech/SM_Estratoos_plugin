@@ -188,7 +188,7 @@ if ($issiteadmin) {
 }
 
 // Render cards.
-echo html_writer::start_div('row mt-4');
+echo html_writer::start_div('row mt-4 justify-content-center');
 foreach ($cards as $card) {
     echo html_writer::start_div('col-md-4 mb-4');
     echo html_writer::start_div('card h-100 ' . $card['class']);
