@@ -300,3 +300,18 @@ $string['uploadfile'] = 'Enviar arquivo (CSV ou Excel)';
 $string['exportexcel'] = 'Exportar como Excel';
 $string['fileprocessingerrors'] = 'Erros de processamento de arquivo';
 $string['line'] = 'Linha';
+
+// Gerenciamento de funções de serviços web.
+$string['manageservices'] = 'Gerenciar Serviços Web';
+$string['manageservicesdesc'] = 'Adicionar ou remover funções de qualquer serviço web, incluindo serviços integrados como Moodle mobile.';
+$string['servicefunctions'] = 'Funções do Serviço';
+$string['managefunctions'] = 'Gerenciar Funções';
+$string['builtin'] = 'Integrado';
+$string['noservices'] = 'Nenhum serviço web encontrado.';
+$string['functionsadded'] = 'Funções adicionadas com sucesso.';
+$string['functionremoved'] = 'Função removida com sucesso.';
+$string['removefunctionconfirm'] = 'Tem certeza de que deseja remover a função "{$a->function}" do serviço "{$a->service}"?';
+$string['allfunctionsadded'] = 'Todas as funções disponíveis já foram adicionadas a este serviço.';
+$string['selectfunctionstoadd'] = 'Selecione as funções que deseja adicionar a este serviço. Mantenha pressionado Ctrl (ou Cmd no Mac) para selecionar múltiplas funções.';
+$string['searchfunctions'] = 'Buscar funções...';
+$string['functionselecthelp'] = 'Use Ctrl+Clique para selecionar múltiplas funções. Use Shift+Clique para selecionar um intervalo.';

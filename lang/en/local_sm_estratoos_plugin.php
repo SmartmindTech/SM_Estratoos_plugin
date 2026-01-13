@@ -300,3 +300,18 @@ $string['uploadfile'] = 'Upload file (CSV or Excel)';
 $string['exportexcel'] = 'Export as Excel';
 $string['fileprocessingerrors'] = 'File processing errors';
 $string['line'] = 'Line';
+
+// Web service functions management.
+$string['manageservices'] = 'Manage Web Services';
+$string['manageservicesdesc'] = 'Add or remove functions from any web service, including built-in services like Moodle mobile.';
+$string['servicefunctions'] = 'Service Functions';
+$string['managefunctions'] = 'Manage Functions';
+$string['builtin'] = 'Built-in';
+$string['noservices'] = 'No web services found.';
+$string['functionsadded'] = 'Functions added successfully.';
+$string['functionremoved'] = 'Function removed successfully.';
+$string['removefunctionconfirm'] = 'Are you sure you want to remove the function "{$a->function}" from the service "{$a->service}"?';
+$string['allfunctionsadded'] = 'All available functions have already been added to this service.';
+$string['selectfunctionstoadd'] = 'Select the functions you want to add to this service. Hold Ctrl (or Cmd on Mac) to select multiple functions.';
+$string['searchfunctions'] = 'Search functions...';
+$string['functionselecthelp'] = 'Use Ctrl+Click to select multiple functions. Use Shift+Click to select a range.';

@@ -176,6 +176,17 @@ $cards[] = [
     'class' => 'bg-info text-white',
 ];
 
+// Card 4: Manage Web Services (only for site admins).
+if ($issiteadmin) {
+    $cards[] = [
+        'title' => get_string('manageservices', 'local_sm_estratoos_plugin'),
+        'description' => get_string('manageservicesdesc', 'local_sm_estratoos_plugin'),
+        'url' => new moodle_url('/local/sm_estratoos_plugin/services.php'),
+        'icon' => 'i/edit',
+        'class' => 'bg-secondary text-white',
+    ];
+}
+
 // Render cards.
 echo html_writer::start_div('row mt-4');
 foreach ($cards as $card) {

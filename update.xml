@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011238</version>
+        <version>2025011239</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.34</release>
+        <release>1.2.35</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,18 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.34/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.35/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.34</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.35</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.34</h3>
+            <h3>Version 1.2.35</h3>
             <ul>
-                <li>Fixed "Valid until" checkbox - properly respects unchecked state (never expires)</li>
-                <li>Added back button to Manage Tokens page</li>
-                <li>Auto-configure web services on plugin install (REST protocol, mobile service, role permissions)</li>
+                <li>Added "Manage Web Services" page to add/remove functions from any service (including built-in services like Moodle mobile)</li>
+                <li>No need to modify Moodle core files - all functionality is self-contained in the plugin</li>
             </ul>
             ]]>
         </releasenotes>
