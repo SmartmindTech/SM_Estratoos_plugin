@@ -169,35 +169,50 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
 
     // Step 1: Copy ALL functions from Moodle mobile web service.
     // First, remove any non-plugin functions from our service to start fresh.
+    $deletedcount = $DB->count_records_select('external_services_functions',
+        "externalserviceid = :serviceid AND functionname NOT LIKE 'local_sm_estratoos_plugin%'",
+        ['serviceid' => $serviceid]
+    );
     $DB->delete_records_select('external_services_functions',
         "externalserviceid = :serviceid AND functionname NOT LIKE 'local_sm_estratoos_plugin%'",
         ['serviceid' => $serviceid]
     );
 
+    // Debug: Log to PHP error log.
+    error_log("SM_ESTRATOOS_PLUGIN: Service ID = $serviceid, Deleted $deletedcount non-plugin functions");
+
     // Method A: Copy from external_services_functions table (where mobile service functions are stored).
     $mobileservice = $DB->get_record('external_services', ['shortname' => 'moodle_mobile_app']);
+    $countA = 0;
     if ($mobileservice) {
+        error_log("SM_ESTRATOOS_PLUGIN: Mobile service found with ID = " . $mobileservice->id);
         $mobilefunctions = $DB->get_records('external_services_functions',
             ['externalserviceid' => $mobileservice->id], '', 'id, functionname');
+        error_log("SM_ESTRATOOS_PLUGIN: Found " . count($mobilefunctions) . " functions in mobile service");
 
         foreach ($mobilefunctions as $func) {
             try {
                 $DB->insert_record('external_services_functions', [
                     'externalserviceid' => $serviceid,
                     'functionname' => $func->functionname,
-                ], false); // false = don't return ID, slightly faster
+                ], false);
+                $countA++;
             } catch (Exception $e) {
                 // Ignore duplicates.
             }
         }
+        error_log("SM_ESTRATOOS_PLUGIN: Method A inserted $countA functions");
+    } else {
+        error_log("SM_ESTRATOOS_PLUGIN: Mobile service NOT FOUND!");
     }
 
     // Method B: Also get functions from external_functions table where services contains moodle_mobile_app.
     $sql = "SELECT name FROM {external_functions} WHERE services LIKE '%moodle_mobile_app%'";
     $externalfunctions = $DB->get_records_sql($sql);
+    error_log("SM_ESTRATOOS_PLUGIN: Method B found " . count($externalfunctions) . " functions in external_functions table");
 
+    $countB = 0;
     foreach ($externalfunctions as $func) {
-        // Check if already exists to avoid duplicate key error.
         if (!$DB->record_exists('external_services_functions',
             ['externalserviceid' => $serviceid, 'functionname' => $func->name])) {
             try {
@@ -205,11 +220,17 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
                     'externalserviceid' => $serviceid,
                     'functionname' => $func->name,
                 ], false);
+                $countB++;
             } catch (Exception $e) {
                 // Ignore duplicates.
             }
         }
     }
+    error_log("SM_ESTRATOOS_PLUGIN: Method B inserted $countB additional functions");
+
+    // Final count.
+    $totalfunctions = $DB->count_records('external_services_functions', ['externalserviceid' => $serviceid]);
+    error_log("SM_ESTRATOOS_PLUGIN: Total functions in SmartMind service: $totalfunctions");
 
     // Step 2: Add all plugin-specific functions.
     $pluginfunctions = [
