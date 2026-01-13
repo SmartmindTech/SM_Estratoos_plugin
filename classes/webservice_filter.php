@@ -166,28 +166,6 @@ class webservice_filter {
     }
 
     /**
-     * Get course IDs allowed for this token.
-     *
-     * Combines company restriction and enrollment restriction.
-     *
-     * @return array Array of course IDs.
-     */
-    private function get_allowed_course_ids(): array {
-        $companycourseids = $this->get_company_course_ids();
-
-        if (!$this->restricttoenrolment) {
-            // Only company filter, return all company courses.
-            return $companycourseids;
-        }
-
-        // Also filter by enrollment.
-        $enrolledids = $this->get_user_enrolled_course_ids();
-
-        // Intersection of company courses and enrolled courses.
-        return array_intersect($companycourseids, $enrolledids);
-    }
-
-    /**
      * Get all course IDs for the company.
      *
      * @return array Array of course IDs.
@@ -336,5 +314,599 @@ class webservice_filter {
             throw new \moodle_exception('usernotincompany', 'local_sm_estratoos_plugin', '',
                 ['userid' => $userid, 'companyid' => $this->companyid]);
         }
+    }
+
+    // ========================================
+    // COURSE CONTENT FILTERS
+    // ========================================
+
+    /**
+     * Filter core_course_get_courses_by_field results.
+     *
+     * @param array $result Result containing 'courses' array.
+     * @return array Filtered result.
+     */
+    public function filter_courses_by_field(array $result): array {
+        if (!isset($result['courses'])) {
+            return $result;
+        }
+
+        $allowedcourseids = $this->get_allowed_course_ids();
+
+        $result['courses'] = array_values(array_filter($result['courses'], function($course) use ($allowedcourseids) {
+            $courseid = is_object($course) ? $course->id : $course['id'];
+            return in_array($courseid, $allowedcourseids);
+        }));
+
+        return $result;
+    }
+
+    /**
+     * Filter core_course_get_contents results.
+     * Validates course access before returning contents.
+     *
+     * @param array $contents Course contents.
+     * @param int $courseid Course ID being accessed.
+     * @return array Contents if access allowed, empty if not.
+     */
+    public function filter_course_contents(array $contents, int $courseid): array {
+        if (!$this->is_allowed_course($courseid)) {
+            return [];
+        }
+        return $contents;
+    }
+
+    /**
+     * Filter core_completion_get_activities_completion_status results.
+     *
+     * @param array $result Result with 'statuses' array.
+     * @param int $courseid Course ID.
+     * @param int $userid User ID.
+     * @return array Filtered result.
+     */
+    public function filter_completion_status(array $result, int $courseid, int $userid): array {
+        if (!$this->is_allowed_course($courseid) || !$this->is_company_user($userid)) {
+            return ['statuses' => []];
+        }
+        return $result;
+    }
+
+    // ========================================
+    // ASSIGNMENT FILTERS
+    // ========================================
+
+    /**
+     * Filter mod_assign_get_assignments results.
+     *
+     * @param array $result Result with 'courses' array containing assignments.
+     * @return array Filtered result.
+     */
+    public function filter_assignments(array $result): array {
+        if (!isset($result['courses'])) {
+            return $result;
+        }
+
+        $allowedcourseids = $this->get_allowed_course_ids();
+
+        $result['courses'] = array_values(array_filter($result['courses'], function($course) use ($allowedcourseids) {
+            $courseid = is_object($course) ? $course->id : $course['id'];
+            return in_array($courseid, $allowedcourseids);
+        }));
+
+        return $result;
+    }
+
+    /**
+     * Filter mod_assign_get_submissions results.
+     *
+     * @param array $result Result with 'assignments' array.
+     * @return array Filtered result.
+     */
+    public function filter_submissions(array $result): array {
+        if (!isset($result['assignments'])) {
+            return $result;
+        }
+
+        $allowedassignmentids = $this->get_allowed_assignment_ids();
+        $alloweduserids = $this->get_company_user_ids();
+
+        $result['assignments'] = array_values(array_filter($result['assignments'], function($assignment) use ($allowedassignmentids) {
+            $assignid = is_object($assignment) ? $assignment->assignmentid : $assignment['assignmentid'];
+            return in_array($assignid, $allowedassignmentids);
+        }));
+
+        // Also filter submissions within each assignment to only company users.
+        foreach ($result['assignments'] as &$assignment) {
+            $submissions = is_object($assignment) ? $assignment->submissions : $assignment['submissions'];
+            if (is_array($submissions)) {
+                $filtered = array_values(array_filter($submissions, function($sub) use ($alloweduserids) {
+                    $userid = is_object($sub) ? $sub->userid : $sub['userid'];
+                    return in_array($userid, $alloweduserids);
+                }));
+                if (is_object($assignment)) {
+                    $assignment->submissions = $filtered;
+                } else {
+                    $assignment['submissions'] = $filtered;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Filter mod_assign_get_grades results.
+     *
+     * @param array $result Result with 'assignments' array.
+     * @return array Filtered result.
+     */
+    public function filter_assignment_grades(array $result): array {
+        if (!isset($result['assignments'])) {
+            return $result;
+        }
+
+        $allowedassignmentids = $this->get_allowed_assignment_ids();
+        $alloweduserids = $this->get_company_user_ids();
+
+        $result['assignments'] = array_values(array_filter($result['assignments'], function($assignment) use ($allowedassignmentids) {
+            $assignid = is_object($assignment) ? $assignment->assignmentid : $assignment['assignmentid'];
+            return in_array($assignid, $allowedassignmentids);
+        }));
+
+        // Filter grades to only company users.
+        foreach ($result['assignments'] as &$assignment) {
+            $grades = is_object($assignment) ? $assignment->grades : $assignment['grades'];
+            if (is_array($grades)) {
+                $filtered = array_values(array_filter($grades, function($grade) use ($alloweduserids) {
+                    $userid = is_object($grade) ? $grade->userid : $grade['userid'];
+                    return in_array($userid, $alloweduserids);
+                }));
+                if (is_object($assignment)) {
+                    $assignment->grades = $filtered;
+                } else {
+                    $assignment['grades'] = $filtered;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    // ========================================
+    // QUIZ FILTERS
+    // ========================================
+
+    /**
+     * Filter mod_quiz_get_quizzes_by_courses results.
+     *
+     * @param array $result Result with 'quizzes' array.
+     * @return array Filtered result.
+     */
+    public function filter_quizzes(array $result): array {
+        if (!isset($result['quizzes'])) {
+            return $result;
+        }
+
+        $allowedcourseids = $this->get_allowed_course_ids();
+
+        $result['quizzes'] = array_values(array_filter($result['quizzes'], function($quiz) use ($allowedcourseids) {
+            $courseid = is_object($quiz) ? $quiz->course : $quiz['course'];
+            return in_array($courseid, $allowedcourseids);
+        }));
+
+        return $result;
+    }
+
+    /**
+     * Filter mod_quiz_get_user_attempts results.
+     *
+     * @param array $result Result with 'attempts' array.
+     * @param int $quizid Quiz ID.
+     * @return array Filtered result.
+     */
+    public function filter_quiz_attempts(array $result, int $quizid): array {
+        if (!$this->is_company_quiz($quizid)) {
+            return ['attempts' => []];
+        }
+
+        // Also filter by company users.
+        if (isset($result['attempts'])) {
+            $alloweduserids = $this->get_company_user_ids();
+            $result['attempts'] = array_values(array_filter($result['attempts'], function($attempt) use ($alloweduserids) {
+                $userid = is_object($attempt) ? $attempt->userid : $attempt['userid'];
+                return in_array($userid, $alloweduserids);
+            }));
+        }
+
+        return $result;
+    }
+
+    /**
+     * Filter mod_quiz_get_user_best_grade results.
+     *
+     * @param array $result Grade result.
+     * @param int $quizid Quiz ID.
+     * @return array Filtered result.
+     */
+    public function filter_quiz_grade(array $result, int $quizid): array {
+        if (!$this->is_company_quiz($quizid)) {
+            return [];
+        }
+        return $result;
+    }
+
+    // ========================================
+    // CALENDAR FILTERS
+    // ========================================
+
+    /**
+     * Filter core_calendar_get_calendar_events results.
+     *
+     * @param array $result Result with 'events' array.
+     * @return array Filtered result.
+     */
+    public function filter_calendar_events(array $result): array {
+        if (!isset($result['events'])) {
+            return $result;
+        }
+
+        $allowedcourseids = $this->get_allowed_course_ids();
+        $alloweduserids = $this->get_company_user_ids();
+
+        $result['events'] = array_values(array_filter($result['events'], function($event) use ($allowedcourseids, $alloweduserids) {
+            $courseid = is_object($event) ? ($event->courseid ?? 0) : ($event['courseid'] ?? 0);
+            $userid = is_object($event) ? ($event->userid ?? 0) : ($event['userid'] ?? 0);
+            $eventtype = is_object($event) ? ($event->eventtype ?? '') : ($event['eventtype'] ?? '');
+
+            // Site events are allowed.
+            if ($eventtype === 'site') {
+                return true;
+            }
+
+            // Course events must be in company courses.
+            if ($courseid > 0 && !in_array($courseid, $allowedcourseids)) {
+                return false;
+            }
+
+            // User events must be for company users.
+            if ($userid > 0 && !in_array($userid, $alloweduserids)) {
+                return false;
+            }
+
+            return true;
+        }));
+
+        return $result;
+    }
+
+    // ========================================
+    // MESSAGING FILTERS
+    // ========================================
+
+    /**
+     * Validate message recipient is a company user.
+     *
+     * @param int $userid Recipient user ID.
+     * @return bool True if recipient is allowed.
+     */
+    public function validate_message_recipient(int $userid): bool {
+        return $this->is_company_user($userid);
+    }
+
+    /**
+     * Filter core_message_get_conversations results.
+     *
+     * @param array $result Result with 'conversations' array.
+     * @return array Filtered result.
+     */
+    public function filter_conversations(array $result): array {
+        if (!isset($result['conversations'])) {
+            return $result;
+        }
+
+        $alloweduserids = $this->get_company_user_ids();
+
+        $result['conversations'] = array_values(array_filter($result['conversations'], function($conv) use ($alloweduserids) {
+            // Check if any member is in the company.
+            $members = is_object($conv) ? ($conv->members ?? []) : ($conv['members'] ?? []);
+            foreach ($members as $member) {
+                $memberid = is_object($member) ? $member->id : $member['id'];
+                if (in_array($memberid, $alloweduserids)) {
+                    return true;
+                }
+            }
+            return false;
+        }));
+
+        return $result;
+    }
+
+    // ========================================
+    // FORUM FILTERS
+    // ========================================
+
+    /**
+     * Filter mod_forum_get_forums_by_courses results.
+     *
+     * @param array $forums Array of forums.
+     * @return array Filtered forums.
+     */
+    public function filter_forums(array $forums): array {
+        $allowedcourseids = $this->get_allowed_course_ids();
+
+        return array_values(array_filter($forums, function($forum) use ($allowedcourseids) {
+            $courseid = is_object($forum) ? $forum->course : $forum['course'];
+            return in_array($courseid, $allowedcourseids);
+        }));
+    }
+
+    /**
+     * Filter mod_forum_get_forum_discussions results.
+     *
+     * @param array $result Result with 'discussions' array.
+     * @param int $forumid Forum ID.
+     * @return array Filtered result.
+     */
+    public function filter_discussions(array $result, int $forumid): array {
+        if (!$this->is_company_forum($forumid)) {
+            return ['discussions' => []];
+        }
+        return $result;
+    }
+
+    /**
+     * Filter mod_forum_get_discussion_posts results.
+     *
+     * @param array $result Result with 'posts' array.
+     * @param int $discussionid Discussion ID.
+     * @return array Filtered result.
+     */
+    public function filter_discussion_posts(array $result, int $discussionid): array {
+        if (!$this->is_company_discussion($discussionid)) {
+            return ['posts' => []];
+        }
+        return $result;
+    }
+
+    /**
+     * Validate forum access for creating discussions.
+     *
+     * @param int $forumid Forum ID.
+     * @throws \moodle_exception If access denied.
+     */
+    public function validate_forum_access(int $forumid): void {
+        if (!$this->is_company_forum($forumid)) {
+            throw new \moodle_exception('forumnotincompany', 'local_sm_estratoos_plugin');
+        }
+    }
+
+    /**
+     * Validate discussion access for posting replies.
+     *
+     * @param int $discussionid Discussion ID.
+     * @throws \moodle_exception If access denied.
+     */
+    public function validate_discussion_access(int $discussionid): void {
+        if (!$this->is_company_discussion($discussionid)) {
+            throw new \moodle_exception('discussionnotincompany', 'local_sm_estratoos_plugin');
+        }
+    }
+
+    // ========================================
+    // GRADE FILTERS
+    // ========================================
+
+    /**
+     * Filter gradereport_user_get_grade_items results.
+     *
+     * @param array $result Result with 'usergrades' array.
+     * @param int $courseid Course ID.
+     * @param int $userid User ID.
+     * @return array Filtered result.
+     */
+    public function filter_grade_items(array $result, int $courseid, int $userid): array {
+        if (!$this->is_allowed_course($courseid) || !$this->is_company_user($userid)) {
+            return ['usergrades' => []];
+        }
+        return $result;
+    }
+
+    /**
+     * Filter gradereport_user_get_grade_table results.
+     *
+     * @param array $result Grade table result.
+     * @param int $courseid Course ID.
+     * @param int $userid User ID.
+     * @return array Filtered result.
+     */
+    public function filter_grade_table(array $result, int $courseid, int $userid): array {
+        if (!$this->is_allowed_course($courseid) || !$this->is_company_user($userid)) {
+            return ['tables' => []];
+        }
+        return $result;
+    }
+
+    // ========================================
+    // LESSON FILTERS
+    // ========================================
+
+    /**
+     * Filter mod_lesson_get_user_grade results.
+     *
+     * @param array $result Lesson grade result.
+     * @param int $lessonid Lesson ID.
+     * @return array Filtered result.
+     */
+    public function filter_lesson_grade(array $result, int $lessonid): array {
+        if (!$this->is_company_lesson($lessonid)) {
+            return [];
+        }
+        return $result;
+    }
+
+    // ========================================
+    // HELPER METHODS
+    // ========================================
+
+    /**
+     * Check if a course is allowed (company + optional enrollment).
+     *
+     * @param int $courseid Course ID.
+     * @return bool True if allowed.
+     */
+    public function is_allowed_course(int $courseid): bool {
+        return in_array($courseid, $this->get_allowed_course_ids());
+    }
+
+    /**
+     * Get allowed course IDs (public accessor).
+     *
+     * @return array Array of course IDs.
+     */
+    public function get_allowed_course_ids(): array {
+        $companycourseids = $this->get_company_course_ids();
+
+        if (!$this->restricttoenrolment) {
+            return $companycourseids;
+        }
+
+        $enrolledids = $this->get_user_enrolled_course_ids();
+        return array_intersect($companycourseids, $enrolledids);
+    }
+
+    /**
+     * Get all assignment IDs in company courses.
+     *
+     * @return array Array of assignment IDs.
+     */
+    public function get_allowed_assignment_ids(): array {
+        global $DB;
+
+        $allowedcourseids = $this->get_allowed_course_ids();
+        if (empty($allowedcourseids)) {
+            return [];
+        }
+
+        list($insql, $params) = $DB->get_in_or_equal($allowedcourseids, SQL_PARAMS_NAMED);
+        return $DB->get_fieldset_select('assign', 'id', "course $insql", $params);
+    }
+
+    /**
+     * Get all quiz IDs in company courses.
+     *
+     * @return array Array of quiz IDs.
+     */
+    public function get_allowed_quiz_ids(): array {
+        global $DB;
+
+        $allowedcourseids = $this->get_allowed_course_ids();
+        if (empty($allowedcourseids)) {
+            return [];
+        }
+
+        list($insql, $params) = $DB->get_in_or_equal($allowedcourseids, SQL_PARAMS_NAMED);
+        return $DB->get_fieldset_select('quiz', 'id', "course $insql", $params);
+    }
+
+    /**
+     * Get all forum IDs in company courses.
+     *
+     * @return array Array of forum IDs.
+     */
+    public function get_allowed_forum_ids(): array {
+        global $DB;
+
+        $allowedcourseids = $this->get_allowed_course_ids();
+        if (empty($allowedcourseids)) {
+            return [];
+        }
+
+        list($insql, $params) = $DB->get_in_or_equal($allowedcourseids, SQL_PARAMS_NAMED);
+        return $DB->get_fieldset_select('forum', 'id', "course $insql", $params);
+    }
+
+    /**
+     * Check if an assignment belongs to a company course.
+     *
+     * @param int $assignmentid Assignment ID.
+     * @return bool True if in company course.
+     */
+    public function is_company_assignment(int $assignmentid): bool {
+        global $DB;
+
+        $assignment = $DB->get_record('assign', ['id' => $assignmentid], 'course');
+        if (!$assignment) {
+            return false;
+        }
+
+        return $this->is_allowed_course($assignment->course);
+    }
+
+    /**
+     * Check if a quiz belongs to a company course.
+     *
+     * @param int $quizid Quiz ID.
+     * @return bool True if in company course.
+     */
+    public function is_company_quiz(int $quizid): bool {
+        global $DB;
+
+        $quiz = $DB->get_record('quiz', ['id' => $quizid], 'course');
+        if (!$quiz) {
+            return false;
+        }
+
+        return $this->is_allowed_course($quiz->course);
+    }
+
+    /**
+     * Check if a forum belongs to a company course.
+     *
+     * @param int $forumid Forum ID.
+     * @return bool True if in company course.
+     */
+    public function is_company_forum(int $forumid): bool {
+        global $DB;
+
+        $forum = $DB->get_record('forum', ['id' => $forumid], 'course');
+        if (!$forum) {
+            return false;
+        }
+
+        return $this->is_allowed_course($forum->course);
+    }
+
+    /**
+     * Check if a discussion belongs to a company forum.
+     *
+     * @param int $discussionid Discussion ID.
+     * @return bool True if in company forum.
+     */
+    public function is_company_discussion(int $discussionid): bool {
+        global $DB;
+
+        $discussion = $DB->get_record('forum_discussions', ['id' => $discussionid], 'forum');
+        if (!$discussion) {
+            return false;
+        }
+
+        return $this->is_company_forum($discussion->forum);
+    }
+
+    /**
+     * Check if a lesson belongs to a company course.
+     *
+     * @param int $lessonid Lesson ID.
+     * @return bool True if in company course.
+     */
+    public function is_company_lesson(int $lessonid): bool {
+        global $DB;
+
+        $lesson = $DB->get_record('lesson', ['id' => $lessonid], 'course');
+        if (!$lesson) {
+            return false;
+        }
+
+        return $this->is_allowed_course($lesson->course);
     }
 }

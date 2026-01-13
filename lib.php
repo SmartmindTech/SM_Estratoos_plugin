@@ -26,6 +26,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/** @var array Static storage for params between pre and post processor. */
+global $local_sm_estratoos_plugin_params;
+$local_sm_estratoos_plugin_params = [];
+
 /**
  * Hook into web service execution to filter results by company.
  *
@@ -39,8 +43,9 @@ defined('MOODLE_INTERNAL') || die();
  * @return mixed Filtered result or original result.
  */
 function local_sm_estratoos_plugin_pre_processor($functionname, $params) {
-    // This callback is called before web service execution.
-    // We don't need to do anything here.
+    // Store params for use in post_processor.
+    global $local_sm_estratoos_plugin_params;
+    $local_sm_estratoos_plugin_params = $params;
     return $params;
 }
 
@@ -52,6 +57,8 @@ function local_sm_estratoos_plugin_pre_processor($functionname, $params) {
  * @return mixed Filtered result.
  */
 function local_sm_estratoos_plugin_post_processor($functionname, $result) {
+    global $local_sm_estratoos_plugin_params;
+
     // Get the current token.
     $token = \local_sm_estratoos_plugin\util::get_current_request_token();
     if (!$token) {
@@ -72,25 +79,122 @@ function local_sm_estratoos_plugin_post_processor($functionname, $result) {
 
     // Apply filtering based on function name.
     $filter = new \local_sm_estratoos_plugin\webservice_filter($restrictions);
+    $params = $local_sm_estratoos_plugin_params ?? [];
 
     switch ($functionname) {
+        // ========================================
+        // COURSE FUNCTIONS
+        // ========================================
         case 'core_course_get_courses':
             return $filter->filter_courses($result);
 
         case 'core_course_get_categories':
             return $filter->filter_categories($result);
 
+        case 'core_course_get_courses_by_field':
+            return $filter->filter_courses_by_field($result);
+
+        case 'core_course_get_contents':
+            $courseid = $params['courseid'] ?? 0;
+            return $filter->filter_course_contents($result, (int)$courseid);
+
+        // ========================================
+        // USER FUNCTIONS
+        // ========================================
         case 'core_user_get_users':
             return $filter->filter_users($result);
 
         case 'core_user_get_users_by_field':
             return $filter->filter_users_by_field($result);
 
+        // ========================================
+        // ENROLLMENT FUNCTIONS
+        // ========================================
         case 'core_enrol_get_enrolled_users':
             return $filter->filter_enrolled_users($result);
 
         case 'core_enrol_get_users_courses':
             return $filter->filter_user_courses($result);
+
+        // ========================================
+        // COMPLETION FUNCTIONS
+        // ========================================
+        case 'core_completion_get_activities_completion_status':
+            $courseid = $params['courseid'] ?? 0;
+            $userid = $params['userid'] ?? 0;
+            return $filter->filter_completion_status($result, (int)$courseid, (int)$userid);
+
+        // ========================================
+        // ASSIGNMENT FUNCTIONS
+        // ========================================
+        case 'mod_assign_get_assignments':
+            return $filter->filter_assignments($result);
+
+        case 'mod_assign_get_submissions':
+            return $filter->filter_submissions($result);
+
+        case 'mod_assign_get_grades':
+            return $filter->filter_assignment_grades($result);
+
+        // ========================================
+        // QUIZ FUNCTIONS
+        // ========================================
+        case 'mod_quiz_get_quizzes_by_courses':
+            return $filter->filter_quizzes($result);
+
+        case 'mod_quiz_get_user_attempts':
+            $quizid = $params['quizid'] ?? 0;
+            return $filter->filter_quiz_attempts($result, (int)$quizid);
+
+        case 'mod_quiz_get_user_best_grade':
+            $quizid = $params['quizid'] ?? 0;
+            return $filter->filter_quiz_grade($result, (int)$quizid);
+
+        // ========================================
+        // CALENDAR FUNCTIONS
+        // ========================================
+        case 'core_calendar_get_calendar_events':
+            return $filter->filter_calendar_events($result);
+
+        // ========================================
+        // MESSAGING FUNCTIONS
+        // ========================================
+        case 'core_message_get_conversations':
+            return $filter->filter_conversations($result);
+
+        // ========================================
+        // FORUM FUNCTIONS
+        // ========================================
+        case 'mod_forum_get_forums_by_courses':
+            return $filter->filter_forums($result);
+
+        case 'mod_forum_get_forum_discussions':
+            $forumid = $params['forumid'] ?? 0;
+            return $filter->filter_discussions($result, (int)$forumid);
+
+        case 'mod_forum_get_discussion_posts':
+            $discussionid = $params['discussionid'] ?? 0;
+            return $filter->filter_discussion_posts($result, (int)$discussionid);
+
+        // ========================================
+        // GRADE FUNCTIONS
+        // ========================================
+        case 'gradereport_user_get_grade_items':
+            $courseid = $params['courseid'] ?? 0;
+            $userid = $params['userid'] ?? 0;
+            return $filter->filter_grade_items($result, (int)$courseid, (int)$userid);
+
+        case 'gradereport_user_get_grades_table':
+            $courseid = $params['courseid'] ?? 0;
+            $userid = $params['userid'] ?? 0;
+            return $filter->filter_grade_table($result, (int)$courseid, (int)$userid);
+
+        // ========================================
+        // LESSON FUNCTIONS
+        // ========================================
+        case 'mod_lesson_get_user_grade':
+            $lessonid = $params['lessonid'] ?? 0;
+            return $filter->filter_lesson_grade($result, (int)$lessonid);
 
         default:
             return $result;
