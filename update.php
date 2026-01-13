@@ -33,6 +33,8 @@ if (!is_siteadmin()) {
     throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
 }
 
+require_once(__DIR__ . '/classes/update_checker.php');
+
 $confirm = optional_param('confirm', 0, PARAM_BOOL);
 
 $PAGE->set_url(new moodle_url('/local/sm_estratoos_plugin/update.php'));
@@ -46,9 +48,8 @@ $plugin = core_plugin_manager::instance()->get_plugin_info('local_sm_estratoos_p
 $currentversion = $plugin->versiondisk;
 $currentrelease = $plugin->release ?? 'unknown';
 
-// Fetch update info.
-$updateurl = 'https://raw.githubusercontent.com/SmartmindTech/SM_Estratoos_plugin/main/update.xml';
-$updateinfo = fetch_update_info($updateurl);
+// Fetch update info using shared update_checker (with cache-busting).
+$updateinfo = \local_sm_estratoos_plugin\update_checker::fetch_update_info();
 
 if (!$updateinfo) {
     echo $OUTPUT->header();
@@ -115,45 +116,6 @@ echo $OUTPUT->confirm(
 );
 
 echo $OUTPUT->footer();
-
-/**
- * Fetch update information from the update server.
- *
- * @param string $url Update XML URL.
- * @return array|null Update info or null on failure.
- */
-function fetch_update_info(string $url): ?array {
-    $curl = new curl(['cache' => false]);
-    $curl->setopt([
-        'CURLOPT_TIMEOUT' => 30,
-        'CURLOPT_CONNECTTIMEOUT' => 10,
-        'CURLOPT_FOLLOWLOCATION' => true,
-        'CURLOPT_SSL_VERIFYPEER' => false,
-        'CURLOPT_SSL_VERIFYHOST' => 0,
-    ]);
-
-    $content = $curl->get($url);
-
-    if ($curl->get_errno() || empty($content)) {
-        debugging('Curl error: ' . $curl->error, DEBUG_DEVELOPER);
-        return null;
-    }
-
-    libxml_use_internal_errors(true);
-    $xml = simplexml_load_string($content);
-    if ($xml === false || !isset($xml->update)) {
-        return null;
-    }
-
-    $update = $xml->update;
-
-    return [
-        'version' => (int) $update->version,
-        'release' => (string) $update->release,
-        'download' => (string) $update->download,
-        'maturity' => (int) $update->maturity,
-    ];
-}
 
 /**
  * Perform the plugin update.

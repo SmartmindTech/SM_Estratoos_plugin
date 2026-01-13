@@ -98,6 +98,10 @@ class update_checker {
             $result->url = $updateinfo['url'] ?? '';
             $result->currentversion = $currentversion;
             $result->currentrelease = $plugin->release ?? $currentversion;
+
+            // Send notification to current admin if not already notified.
+            self::send_notification_if_needed($result);
+
             return $result;
         }
 
@@ -117,9 +121,15 @@ class update_checker {
             'CURLOPT_FOLLOWLOCATION' => true,
             'CURLOPT_SSL_VERIFYPEER' => false,
             'CURLOPT_SSL_VERIFYHOST' => 0,
+            'CURLOPT_HTTPHEADER' => [
+                'Cache-Control: no-cache, no-store, must-revalidate',
+                'Pragma: no-cache',
+            ],
         ]);
 
-        $content = $curl->get(self::UPDATE_URL);
+        // Add cache-busting parameter to bypass GitHub CDN cache.
+        $url = self::UPDATE_URL . '?t=' . time();
+        $content = $curl->get($url);
 
         if ($curl->get_errno() || empty($content)) {
             debugging('SmartMind update check failed: ' . $curl->error, DEBUG_DEVELOPER);
@@ -160,5 +170,63 @@ class update_checker {
         $result->version = $plugin->versiondisk;
         $result->release = $plugin->release ?? $plugin->versiondisk;
         return $result;
+    }
+
+    /**
+     * Send a Moodle notification to the current admin if not already notified about this version.
+     *
+     * @param object $updateinfo Update info object with version, release, etc.
+     */
+    public static function send_notification_if_needed(object $updateinfo): void {
+        global $USER, $CFG;
+
+        // Only send notifications to site administrators.
+        if (!is_siteadmin($USER)) {
+            return;
+        }
+
+        // Check if this user was already notified about this version.
+        $usernotified = get_user_preferences('sm_estratoos_update_notified', 0, $USER->id);
+        if ($usernotified == $updateinfo->version) {
+            return;
+        }
+
+        // Prepare the message.
+        $subject = get_string('updateavailable_subject', 'local_sm_estratoos_plugin', $updateinfo->release);
+
+        $messagedata = new \stdClass();
+        $messagedata->currentversion = $updateinfo->currentrelease;
+        $messagedata->newversion = $updateinfo->release;
+        $messagedata->updateurl = $CFG->wwwroot . '/local/sm_estratoos_plugin/update.php';
+
+        $fullmessage = get_string('updateavailable_message', 'local_sm_estratoos_plugin', $messagedata);
+        $htmlmessage = get_string('updateavailable_message_html', 'local_sm_estratoos_plugin', $messagedata);
+
+        // Get the noreply user for sending.
+        $noreplyuser = \core_user::get_noreply_user();
+
+        // Create and send message.
+        $message = new \core\message\message();
+        $message->component = 'local_sm_estratoos_plugin';
+        $message->name = 'updatenotification';
+        $message->userfrom = $noreplyuser;
+        $message->userto = $USER;
+        $message->subject = $subject;
+        $message->fullmessage = $fullmessage;
+        $message->fullmessageformat = FORMAT_PLAIN;
+        $message->fullmessagehtml = $htmlmessage;
+        $message->smallmessage = $subject;
+        $message->notification = 1;
+        $message->contexturl = new \moodle_url('/local/sm_estratoos_plugin/update.php');
+        $message->contexturlname = get_string('updateplugin', 'local_sm_estratoos_plugin');
+
+        try {
+            message_send($message);
+            // Mark this user as notified for this version.
+            set_user_preference('sm_estratoos_update_notified', $updateinfo->version, $USER->id);
+            debugging('SmartMind update check: Notification sent to ' . $USER->username, DEBUG_DEVELOPER);
+        } catch (\Exception $e) {
+            debugging('SmartMind update check: Failed to send notification - ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 }
