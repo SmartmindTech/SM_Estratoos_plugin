@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011403</version>
+        <version>2025011404</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.3</release>
+        <release>1.4.4</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,18 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.3/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.4/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.3</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.4</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.3</h3>
+            <h3>Version 1.4.4</h3>
             <ul>
-                <li>Renamed plugin to "SmartMind Estratoos Plugin"</li>
-                <li>Fixed SmartMind service to properly copy ALL mobile functions using external_functions table</li>
-                <li>SmartMind service now includes all mobile functions plus 17 plugin-specific functions</li>
+                <li>Fixed mobile function copy using SQL subqueries instead of PHP loops</li>
+                <li>SmartMind service now properly includes all 437+ mobile functions plus plugin functions</li>
             </ul>
             ]]>
         </releasenotes>

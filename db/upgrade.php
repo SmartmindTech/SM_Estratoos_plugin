@@ -163,5 +163,16 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011403, 'local', 'sm_estratoos_plugin');
     }
 
+    // Fix: Rewritten mobile function copy using SQL subqueries (v1.4.4).
+    if ($oldversion < 2025011404) {
+        // Include install.php to use the service functions.
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run with SQL subquery approach.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011404, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

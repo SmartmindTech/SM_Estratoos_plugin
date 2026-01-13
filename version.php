@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011403;  // YYYYMMDDXX format.
+$plugin->version = 2025011404;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.4.3';  // Fix function copy from mobile service + rename plugin.
+$plugin->release = '1.4.4';  // Fix mobile function copy using SQL subqueries.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
