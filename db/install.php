@@ -167,48 +167,48 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         }
     }
 
-    // Step 1: Copy ALL functions from Moodle mobile web service using bulk SQL.
+    // Step 1: Copy ALL functions from Moodle mobile web service.
+    // First, remove any non-plugin functions from our service to start fresh.
+    $DB->delete_records_select('external_services_functions',
+        "externalserviceid = :serviceid AND functionname NOT LIKE 'local_sm_estratoos_plugin%'",
+        ['serviceid' => $serviceid]
+    );
+
+    // Method A: Copy from external_services_functions table (where mobile service functions are stored).
     $mobileservice = $DB->get_record('external_services', ['shortname' => 'moodle_mobile_app']);
-
     if ($mobileservice) {
-        // Get all function names from mobile service that aren't already in our service.
-        $sql = "SELECT esf.functionname
-                FROM {external_services_functions} esf
-                WHERE esf.externalserviceid = :mobileserviceid
-                AND esf.functionname NOT IN (
-                    SELECT functionname FROM {external_services_functions}
-                    WHERE externalserviceid = :ourserviceid
-                )";
-        $functionstocopy = $DB->get_records_sql($sql, [
-            'mobileserviceid' => $mobileservice->id,
-            'ourserviceid' => $serviceid
-        ]);
+        $mobilefunctions = $DB->get_records('external_services_functions',
+            ['externalserviceid' => $mobileservice->id], '', 'id, functionname');
 
-        // Insert each function individually (bulk insert not supported in all DBs).
-        foreach ($functionstocopy as $func) {
-            $DB->insert_record('external_services_functions', [
-                'externalserviceid' => $serviceid,
-                'functionname' => $func->functionname,
-            ]);
+        foreach ($mobilefunctions as $func) {
+            try {
+                $DB->insert_record('external_services_functions', [
+                    'externalserviceid' => $serviceid,
+                    'functionname' => $func->functionname,
+                ], false); // false = don't return ID, slightly faster
+            } catch (Exception $e) {
+                // Ignore duplicates.
+            }
         }
     }
 
-    // Fallback: Also check external_functions table for functions with moodle_mobile_app in services field.
-    // This catches functions defined via services.php that might not be in external_services_functions yet.
-    $sql = "SELECT ef.name as functionname
-            FROM {external_functions} ef
-            WHERE ef.services LIKE '%moodle_mobile_app%'
-            AND ef.name NOT IN (
-                SELECT functionname FROM {external_services_functions}
-                WHERE externalserviceid = :ourserviceid
-            )";
-    $functionstocopy = $DB->get_records_sql($sql, ['ourserviceid' => $serviceid]);
+    // Method B: Also get functions from external_functions table where services contains moodle_mobile_app.
+    $sql = "SELECT name FROM {external_functions} WHERE services LIKE '%moodle_mobile_app%'";
+    $externalfunctions = $DB->get_records_sql($sql);
 
-    foreach ($functionstocopy as $func) {
-        $DB->insert_record('external_services_functions', [
-            'externalserviceid' => $serviceid,
-            'functionname' => $func->functionname,
-        ]);
+    foreach ($externalfunctions as $func) {
+        // Check if already exists to avoid duplicate key error.
+        if (!$DB->record_exists('external_services_functions',
+            ['externalserviceid' => $serviceid, 'functionname' => $func->name])) {
+            try {
+                $DB->insert_record('external_services_functions', [
+                    'externalserviceid' => $serviceid,
+                    'functionname' => $func->name,
+                ], false);
+            } catch (Exception $e) {
+                // Ignore duplicates.
+            }
+        }
     }
 
     // Step 2: Add all plugin-specific functions.
