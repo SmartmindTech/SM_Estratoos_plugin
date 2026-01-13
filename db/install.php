@@ -133,10 +133,12 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
 }
 
 /**
- * Create dedicated SmartMind - Estratoos Plugin web service.
- * This creates a copy of Moodle mobile web service plus all plugin functions.
+ * Ensure the SmartMind - Estratoos Plugin service exists.
+ * This function can be called from anywhere to guarantee the service is created.
+ *
+ * @return int The service ID
  */
-function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
+function xmldb_local_sm_estratoos_plugin_ensure_service_exists() {
     global $DB;
 
     $serviceshortname = 'sm_estratoos_plugin';
@@ -160,13 +162,36 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
             'downloadfiles' => 1,
             'uploadfiles' => 1,
         ]);
+        error_log("SM_ESTRATOOS_PLUGIN: Created new service with ID = $serviceid");
     } else {
         $serviceid = $service->id;
-        // Ensure service is enabled.
+        // Ensure service is enabled and has correct settings.
+        $updates = [];
         if (!$service->enabled) {
-            $DB->set_field('external_services', 'enabled', 1, ['id' => $serviceid]);
+            $updates['enabled'] = 1;
+        }
+        // Ensure component is empty (fix for services that were created with component set).
+        if (!empty($service->component)) {
+            $updates['component'] = '';
+        }
+        if (!empty($updates)) {
+            $updates['timemodified'] = time();
+            $DB->update_record('external_services', (object)array_merge(['id' => $serviceid], $updates));
         }
     }
+
+    return $serviceid;
+}
+
+/**
+ * Create dedicated SmartMind - Estratoos Plugin web service.
+ * This creates a copy of Moodle mobile web service plus all plugin functions.
+ */
+function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
+    global $DB;
+
+    // Ensure service exists first.
+    $serviceid = xmldb_local_sm_estratoos_plugin_ensure_service_exists();
 
     // Step 1: Copy ALL functions from Moodle mobile web service.
     // First, remove any non-plugin functions from our service to start fresh.

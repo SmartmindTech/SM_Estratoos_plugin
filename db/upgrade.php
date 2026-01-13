@@ -244,5 +244,17 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011409, 'local', 'sm_estratoos_plugin');
     }
 
+    // Ensure SmartMind service exists for fresh installs or missed upgrades (v1.4.10).
+    // This runs regardless of $oldversion to fix installations where service wasn't created.
+    if ($oldversion < 2025011410) {
+        // Include install.php to use the ensure function.
+        require_once(__DIR__ . '/install.php');
+
+        // Ensure the service exists and populate functions.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011410, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
