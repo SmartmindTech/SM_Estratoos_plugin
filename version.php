@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011408;  // YYYYMMDDXX format.
+$plugin->version = 2025011409;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.4.8';  // Fix: Create service without component to prevent Moodle deletion.
+$plugin->release = '1.4.9';  // Remove duplicate forum functions with shorter names.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

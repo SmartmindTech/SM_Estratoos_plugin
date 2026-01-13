@@ -218,5 +218,31 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011408, 'local', 'sm_estratoos_plugin');
     }
 
+    // Remove duplicate forum functions with shorter names (v1.4.9).
+    if ($oldversion < 2025011409) {
+        global $DB;
+
+        // Get the SmartMind service.
+        $service = $DB->get_record('external_services', ['shortname' => 'sm_estratoos_plugin']);
+        if ($service) {
+            // Remove duplicate/old forum functions.
+            $duplicatefunctions = [
+                'local_forum_create',
+                'local_forum_edit',
+                'local_forum_delete',
+                'local_discussion_edit',
+                'local_discussion_delete',
+            ];
+            foreach ($duplicatefunctions as $funcname) {
+                $DB->delete_records('external_services_functions', [
+                    'externalserviceid' => $service->id,
+                    'functionname' => $funcname,
+                ]);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2025011409, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

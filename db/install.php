@@ -233,6 +233,21 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
     $totalfunctions = $DB->count_records('external_services_functions', ['externalserviceid' => $serviceid]);
     error_log("SM_ESTRATOOS_PLUGIN: Total functions in SmartMind service: $totalfunctions");
 
+    // Remove duplicate/old forum functions that have shorter names.
+    $duplicatefunctions = [
+        'local_forum_create',
+        'local_forum_edit',
+        'local_forum_delete',
+        'local_discussion_edit',
+        'local_discussion_delete',
+    ];
+    foreach ($duplicatefunctions as $funcname) {
+        $DB->delete_records('external_services_functions', [
+            'externalserviceid' => $serviceid,
+            'functionname' => $funcname,
+        ]);
+    }
+
     // Step 2: Add all plugin-specific functions.
     $pluginfunctions = [
         // Token management functions.

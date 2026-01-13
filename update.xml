@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011408</version>
+        <version>2025011409</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.8</release>
+        <release>1.4.9</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,18 +29,18 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.8/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.9/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.8</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.9</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.8</h3>
+            <h3>Version 1.4.9</h3>
             <ul>
-                <li>FIXED: Service now created without component to prevent Moodle from deleting it</li>
-                <li>Re-creates the SmartMind service with all 450+ functions</li>
+                <li>Removed duplicate forum functions with shorter names (local_forum_*, local_discussion_*)</li>
+                <li>SmartMind service now contains only the correct functions</li>
             </ul>
             ]]>
         </releasenotes>
