@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011223</version>
+        <version>2025011224</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.19</release>
+        <release>1.2.20</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,18 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.19/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.20/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.19</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.20</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.19</h3>
+            <h3>Version 1.2.20</h3>
             <ul>
-                <li>Fixed token naming: now uses FIRSTNAME_LASTNAME_COMPANY format</li>
-                <li>Fixed CSV export: uses semicolons for Excel compatibility</li>
-                <li>Added UTF-8 BOM for proper character encoding in Excel</li>
+                <li>Upgrade script fixes existing token names to FIRSTNAME_LASTNAME_COMPANY format</li>
+                <li>All existing tokens will be renamed automatically on upgrade</li>
             </ul>
             ]]>
         </releasenotes>
