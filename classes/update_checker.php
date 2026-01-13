@@ -173,21 +173,30 @@ class update_checker {
     }
 
     /**
-     * Send a Moodle notification to the current admin if not already notified about this version.
+     * Send Moodle notifications to ALL site administrators if not already notified about this version.
+     *
+     * Uses the same plugin config key as the scheduled task to stay synchronized.
      *
      * @param object $updateinfo Update info object with version, release, etc.
      */
     public static function send_notification_if_needed(object $updateinfo): void {
         global $USER, $CFG;
 
-        // Only send notifications to site administrators.
+        // Only trigger from site administrators.
         if (!is_siteadmin($USER)) {
             return;
         }
 
-        // Check if this user was already notified about this version.
-        $usernotified = get_user_preferences('sm_estratoos_update_notified', 0, $USER->id);
-        if ($usernotified == $updateinfo->version) {
+        // Use the SAME config key as the scheduled task to stay synchronized.
+        $lastnotified = get_config('local_sm_estratoos_plugin', 'last_notified_version');
+        if ($lastnotified == $updateinfo->version) {
+            // Already notified all admins about this version.
+            return;
+        }
+
+        // New version - notify ALL site administrators (same as scheduled task).
+        $admins = get_admins();
+        if (empty($admins)) {
             return;
         }
 
@@ -205,28 +214,33 @@ class update_checker {
         // Get the noreply user for sending.
         $noreplyuser = \core_user::get_noreply_user();
 
-        // Create and send message.
-        $message = new \core\message\message();
-        $message->component = 'local_sm_estratoos_plugin';
-        $message->name = 'updatenotification';
-        $message->userfrom = $noreplyuser;
-        $message->userto = $USER;
-        $message->subject = $subject;
-        $message->fullmessage = $fullmessage;
-        $message->fullmessageformat = FORMAT_PLAIN;
-        $message->fullmessagehtml = $htmlmessage;
-        $message->smallmessage = $subject;
-        $message->notification = 1;
-        $message->contexturl = new \moodle_url('/local/sm_estratoos_plugin/update.php');
-        $message->contexturlname = get_string('updateplugin', 'local_sm_estratoos_plugin');
+        $notifiedcount = 0;
+        foreach ($admins as $admin) {
+            // Create and send message.
+            $message = new \core\message\message();
+            $message->component = 'local_sm_estratoos_plugin';
+            $message->name = 'updatenotification';
+            $message->userfrom = $noreplyuser;
+            $message->userto = $admin;
+            $message->subject = $subject;
+            $message->fullmessage = $fullmessage;
+            $message->fullmessageformat = FORMAT_PLAIN;
+            $message->fullmessagehtml = $htmlmessage;
+            $message->smallmessage = $subject;
+            $message->notification = 1;
+            $message->contexturl = new \moodle_url('/local/sm_estratoos_plugin/update.php');
+            $message->contexturlname = get_string('updateplugin', 'local_sm_estratoos_plugin');
 
-        try {
-            message_send($message);
-            // Mark this user as notified for this version.
-            set_user_preference('sm_estratoos_update_notified', $updateinfo->version, $USER->id);
-            debugging('SmartMind update check: Notification sent to ' . $USER->username, DEBUG_DEVELOPER);
-        } catch (\Exception $e) {
-            debugging('SmartMind update check: Failed to send notification - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            try {
+                message_send($message);
+                $notifiedcount++;
+            } catch (\Exception $e) {
+                debugging('SmartMind update check: Failed to notify ' . $admin->username . ' - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
         }
+
+        // Mark this version as notified (same key as scheduled task).
+        set_config('last_notified_version', $updateinfo->version, 'local_sm_estratoos_plugin');
+        debugging('SmartMind update check: Notified ' . $notifiedcount . ' administrator(s)', DEBUG_DEVELOPER);
     }
 }
