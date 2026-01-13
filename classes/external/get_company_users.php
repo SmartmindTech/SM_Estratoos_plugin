@@ -226,60 +226,96 @@ class get_company_users extends external_api {
         global $DB;
 
         $roles = [];
+        $hasmanager = false;
+        $hasteacher = false;
 
         // Check system-level roles.
         $systemcontext = \context_system::instance();
         $systemroles = get_user_roles($systemcontext, $userid, false);
         foreach ($systemroles as $role) {
+            $shortname = strtolower($role->shortname);
             $roles[] = [
                 'id' => $role->roleid,
                 'shortname' => $role->shortname,
                 'name' => $role->name ?: role_get_name($DB->get_record('role', ['id' => $role->roleid])),
             ];
-        }
 
-        // Check for manager/admin capabilities.
-        if (is_siteadmin($userid)) {
-            $hasAdmin = false;
-            foreach ($roles as $r) {
-                if ($r['shortname'] === 'admin' || stripos($r['shortname'], 'manager') !== false) {
-                    $hasAdmin = true;
-                    break;
-                }
+            // Track if manager or teacher role already found.
+            if (strpos($shortname, 'manager') !== false || $shortname === 'coursecreator') {
+                $hasmanager = true;
             }
-            if (!$hasAdmin) {
-                $roles[] = [
-                    'id' => 0,
-                    'shortname' => 'manager',
-                    'name' => get_string('manager', 'role'),
-                ];
+            if (strpos($shortname, 'teacher') !== false) {
+                $hasteacher = true;
             }
         }
 
-        // Check if user has teacher role in any course.
-        $teacherroleid = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
-        $noneditingteacherroleid = $DB->get_field('role', 'id', ['shortname' => 'teacher']);
+        // Check for manager role assignment at system level (by role shortname).
+        if (!$hasmanager) {
+            $managerroleid = $DB->get_field('role', 'id', ['shortname' => 'manager']);
+            if ($managerroleid) {
+                $hasmanagerrole = $DB->record_exists('role_assignments', [
+                    'userid' => $userid,
+                    'roleid' => $managerroleid,
+                    'contextid' => $systemcontext->id,
+                ]);
+                if ($hasmanagerrole) {
+                    $hasmanager = true;
+                    $roles[] = [
+                        'id' => $managerroleid,
+                        'shortname' => 'manager',
+                        'name' => get_string('manager', 'role'),
+                    ];
+                }
+            }
+        }
 
-        $hasteacherrole = $DB->record_exists_select(
-            'role_assignments',
-            "userid = ? AND roleid IN (?, ?)",
-            [$userid, $teacherroleid, $noneditingteacherroleid]
-        );
+        // Check for manager capabilities at system level (users with manager-like permissions).
+        if (!$hasmanager) {
+            // Check common manager capabilities.
+            $managercaps = [
+                'moodle/course:create',
+                'moodle/user:update',
+                'moodle/cohort:manage',
+                'moodle/category:manage',
+            ];
 
-        if ($hasteacherrole) {
-            $hasTeacher = false;
-            foreach ($roles as $r) {
-                if (stripos($r['shortname'], 'teacher') !== false) {
-                    $hasTeacher = true;
+            foreach ($managercaps as $cap) {
+                if (has_capability($cap, $systemcontext, $userid, false)) {
+                    $hasmanager = true;
+                    $managerroleid = $DB->get_field('role', 'id', ['shortname' => 'manager']);
+                    $roles[] = [
+                        'id' => $managerroleid ?: 0,
+                        'shortname' => 'manager',
+                        'name' => get_string('manager', 'role'),
+                    ];
                     break;
                 }
             }
-            if (!$hasTeacher) {
-                $roles[] = [
-                    'id' => $teacherroleid,
-                    'shortname' => 'teacher',
-                    'name' => get_string('teacher'),
-                ];
+        }
+
+        // Check if user has teacher role in any course context.
+        if (!$hasteacher) {
+            $teacherroleid = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
+            $noneditingteacherroleid = $DB->get_field('role', 'id', ['shortname' => 'teacher']);
+
+            $roleids = array_filter([$teacherroleid, $noneditingteacherroleid]);
+            if (!empty($roleids)) {
+                list($insql, $params) = $DB->get_in_or_equal($roleids);
+                $params[] = $userid;
+                $hasteacherrole = $DB->record_exists_select(
+                    'role_assignments',
+                    "roleid $insql AND userid = ?",
+                    $params
+                );
+
+                if ($hasteacherrole) {
+                    $hasteacher = true;
+                    $roles[] = [
+                        'id' => $teacherroleid ?: $noneditingteacherroleid,
+                        'shortname' => 'teacher',
+                        'name' => get_string('teacher'),
+                    ];
+                }
             }
         }
 

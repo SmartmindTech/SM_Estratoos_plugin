@@ -136,12 +136,12 @@ class batch_token_form extends \moodleform {
                 <input type="text" id="user-search" class="form-control form-control-sm"
                        style="width: 250px;" placeholder="' . get_string('searchusers', 'local_sm_estratoos_plugin') . '">
             </div>
-            <div id="user-list-wrapper" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+            <div id="user-list-wrapper" class="border rounded" style="max-height: 400px; overflow-y: auto; background: #fafafa;">
                 <div id="user-list-loading" class="text-center py-3">
                     <i class="fa fa-spinner fa-spin"></i> ' . get_string('loadingusers', 'local_sm_estratoos_plugin') . '
                 </div>
                 <div id="user-list" style="display:none;"></div>
-                <div id="user-list-empty" class="alert alert-info" style="display:none;">
+                <div id="user-list-empty" class="alert alert-info m-2" style="display:none;">
                     ' . get_string('nousersfound', 'local_sm_estratoos_plugin') . '
                 </div>
             </div>

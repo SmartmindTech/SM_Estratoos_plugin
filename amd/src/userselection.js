@@ -100,9 +100,11 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'], function($, Aja
      */
     var renderUserList = function(filter) {
         var list = $('#user-list');
-        var html = '<div class="user-items">';
+        var html = '<div class="user-items" style="padding: 0.5rem;">';
 
         filter = filter ? filter.toLowerCase() : '';
+        var hasManager = false;
+        var hasTeacher = false;
 
         users.forEach(function(user) {
             // Apply filter.
@@ -116,27 +118,46 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'], function($, Aja
             var isChecked = selectedIds.indexOf(user.id) !== -1;
             var roleClasses = [];
             var roleBadges = '';
+            var userHasManager = false;
+            var userHasTeacher = false;
 
-            // Determine role badges.
+            // Determine role badges - check all roles first to determine priority.
             if (user.roles) {
                 user.roles.forEach(function(role) {
                     var rolename = role.shortname.toLowerCase();
-                    if (rolename === 'student' || rolename === 'alumno' || rolename === 'estudante') {
-                        roleClasses.push('role-student');
-                        roleBadges += '<span class="badge badge-primary ml-1">' + strings.student + '</span>';
+                    if (rolename === 'manager' || rolename === 'companymanager' ||
+                        rolename === 'gerente' || rolename === 'gestor' || rolename === 'coursecreator') {
+                        userHasManager = true;
                     } else if (rolename === 'editingteacher' || rolename === 'teacher' ||
                                rolename === 'profesor' || rolename === 'professor') {
-                        roleClasses.push('role-teacher');
-                        roleBadges += '<span class="badge badge-success ml-1">' + strings.teacher + '</span>';
-                    } else if (rolename === 'manager' || rolename === 'companymanager' ||
-                               rolename === 'gerente' || rolename === 'gestor') {
-                        roleClasses.push('role-manager');
-                        roleBadges += '<span class="badge badge-warning ml-1">' + strings.manager + '</span>';
+                        userHasTeacher = true;
                     }
                 });
+
+                // Add badges based on priority: Manager > Teacher > Student.
+                if (userHasManager) {
+                    roleClasses.push('role-manager');
+                    roleBadges += '<span class="badge badge-warning ml-1">' + strings.manager + '</span>';
+                    hasManager = true;
+                } else if (userHasTeacher) {
+                    roleClasses.push('role-teacher');
+                    roleBadges += '<span class="badge badge-success ml-1">' + strings.teacher + '</span>';
+                    hasTeacher = true;
+                } else {
+                    // Check for student role explicitly or default to student.
+                    var isStudent = user.roles.some(function(role) {
+                        var rn = role.shortname.toLowerCase();
+                        return rn === 'student' || rn === 'alumno' || rn === 'estudante';
+                    });
+                    if (isStudent || user.roles.length === 0) {
+                        roleClasses.push('role-student');
+                        roleBadges += '<span class="badge badge-primary ml-1">' + strings.student + '</span>';
+                    }
+                }
             }
 
-            html += '<div class="user-item d-flex align-items-center py-1 border-bottom ' + roleClasses.join(' ') + '">';
+            html += '<div class="user-item d-flex align-items-center py-2 px-2 border-bottom ' + roleClasses.join(' ') + '" ';
+            html += 'style="background: #fff; margin-bottom: 1px;">';
             html += '<div class="custom-control custom-checkbox">';
             html += '<input type="checkbox" class="custom-control-input user-checkbox" ';
             html += 'id="user-' + user.id + '" data-userid="' + user.id + '"';
@@ -144,7 +165,7 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'], function($, Aja
                 html += ' checked';
             }
             html += '>';
-            html += '<label class="custom-control-label" for="user-' + user.id + '">';
+            html += '<label class="custom-control-label" for="user-' + user.id + '" style="cursor: pointer;">';
             html += '<strong>' + user.fullname + '</strong>';
             html += '<small class="text-muted ml-2">' + user.email + '</small>';
             html += roleBadges;
@@ -199,21 +220,36 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'], function($, Aja
 
         users.forEach(function(user) {
             if (user.roles) {
-                var hasRole = user.roles.some(function(role) {
+                var userHasManager = false;
+                var userHasTeacher = false;
+                var userHasStudent = false;
+
+                // Check all roles for this user.
+                user.roles.forEach(function(role) {
                     var rolename = role.shortname.toLowerCase();
-                    if (roleType === 'student') {
-                        return rolename === 'student' || rolename === 'alumno' || rolename === 'estudante';
-                    } else if (roleType === 'teacher') {
-                        return rolename === 'editingteacher' || rolename === 'teacher' ||
-                               rolename === 'profesor' || rolename === 'professor';
-                    } else if (roleType === 'manager') {
-                        return rolename === 'manager' || rolename === 'companymanager' ||
-                               rolename === 'gerente' || rolename === 'gestor';
+                    if (rolename === 'manager' || rolename === 'companymanager' ||
+                        rolename === 'gerente' || rolename === 'gestor' || rolename === 'coursecreator') {
+                        userHasManager = true;
+                    } else if (rolename === 'editingteacher' || rolename === 'teacher' ||
+                               rolename === 'profesor' || rolename === 'professor') {
+                        userHasTeacher = true;
+                    } else if (rolename === 'student' || rolename === 'alumno' || rolename === 'estudante') {
+                        userHasStudent = true;
                     }
-                    return false;
                 });
 
-                if (hasRole) {
+                // Select based on role type with priority logic.
+                var shouldSelect = false;
+                if (roleType === 'manager' && userHasManager) {
+                    shouldSelect = true;
+                } else if (roleType === 'teacher' && userHasTeacher && !userHasManager) {
+                    shouldSelect = true;
+                } else if (roleType === 'student' && !userHasManager && !userHasTeacher) {
+                    // Students are users without manager or teacher role.
+                    shouldSelect = userHasStudent || (!userHasManager && !userHasTeacher);
+                }
+
+                if (shouldSelect) {
                     selectedIds.push(user.id);
                 }
             }
