@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011228</version>
+        <version>2025011229</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.24</release>
+        <release>1.2.25</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,17 +29,19 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.24/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.25/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.24</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.25</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.24</h3>
+            <h3>Version 1.2.25</h3>
             <ul>
-                <li>Fixed navbar key icon not appearing - now uses render_navbar_output() with JS repositioning</li>
+                <li>Fixed database errors on standard Moodle (without IOMAD)</li>
+                <li>Added IOMAD checks to all company table queries</li>
+                <li>Plugin now works correctly in both standard Moodle and IOMAD modes</li>
             </ul>
             ]]>
         </releasenotes>

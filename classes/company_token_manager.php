@@ -237,27 +237,45 @@ class company_token_manager {
     public static function get_company_tokens(?int $companyid = null, array $filters = []): array {
         global $DB;
 
-        $sql = "SELECT lit.*, et.token, et.lastaccess, et.creatorid,
-                       u.id as userid, u.username, u.email, u.firstname, u.lastname,
-                       c.name as companyname, c.shortname as companyshortname,
-                       es.name as servicename
-                FROM {local_sm_estratoos_plugin} lit
-                JOIN {external_tokens} et ON et.id = lit.tokenid
-                JOIN {user} u ON u.id = et.userid
-                JOIN {company} c ON c.id = lit.companyid
-                JOIN {external_services} es ON es.id = et.externalserviceid
-                WHERE 1=1";
+        // Check if IOMAD is installed (company table exists).
+        $isiomad = util::is_iomad_installed();
+
+        if ($isiomad) {
+            $sql = "SELECT lit.*, et.token, et.lastaccess, et.creatorid,
+                           u.id as userid, u.username, u.email, u.firstname, u.lastname,
+                           c.name as companyname, c.shortname as companyshortname,
+                           es.name as servicename
+                    FROM {local_sm_estratoos_plugin} lit
+                    JOIN {external_tokens} et ON et.id = lit.tokenid
+                    JOIN {user} u ON u.id = et.userid
+                    LEFT JOIN {company} c ON c.id = lit.companyid
+                    JOIN {external_services} es ON es.id = et.externalserviceid
+                    WHERE 1=1";
+        } else {
+            // Standard Moodle - no company table.
+            $sql = "SELECT lit.*, et.token, et.lastaccess, et.creatorid,
+                           u.id as userid, u.username, u.email, u.firstname, u.lastname,
+                           '' as companyname, '' as companyshortname,
+                           es.name as servicename
+                    FROM {local_sm_estratoos_plugin} lit
+                    JOIN {external_tokens} et ON et.id = lit.tokenid
+                    JOIN {user} u ON u.id = et.userid
+                    JOIN {external_services} es ON es.id = et.externalserviceid
+                    WHERE 1=1";
+        }
 
         $params = [];
 
-        if ($companyid !== null) {
-            $sql .= " AND lit.companyid = :companyid";
-            $params['companyid'] = $companyid;
-        } else if (!empty($filters['companyids'])) {
-            // Filter by multiple company IDs (for company managers).
-            list($insql, $inparams) = $DB->get_in_or_equal($filters['companyids'], SQL_PARAMS_NAMED, 'cid');
-            $sql .= " AND lit.companyid $insql";
-            $params = array_merge($params, $inparams);
+        if ($isiomad) {
+            if ($companyid !== null) {
+                $sql .= " AND lit.companyid = :companyid";
+                $params['companyid'] = $companyid;
+            } else if (!empty($filters['companyids'])) {
+                // Filter by multiple company IDs (for company managers).
+                list($insql, $inparams) = $DB->get_in_or_equal($filters['companyids'], SQL_PARAMS_NAMED, 'cid');
+                $sql .= " AND lit.companyid $insql";
+                $params = array_merge($params, $inparams);
+            }
         }
 
         if (!empty($filters['serviceid'])) {
@@ -307,12 +325,24 @@ class company_token_manager {
     public static function get_token_restrictions(string $token): ?object {
         global $DB;
 
-        $sql = "SELECT lit.*, c.name as companyname, c.shortname as companyshortname,
-                       c.category as companycategory, et.userid
-                FROM {local_sm_estratoos_plugin} lit
-                JOIN {external_tokens} et ON et.id = lit.tokenid
-                JOIN {company} c ON c.id = lit.companyid
-                WHERE et.token = :token";
+        // Check if IOMAD is installed (company table exists).
+        $isiomad = util::is_iomad_installed();
+
+        if ($isiomad) {
+            $sql = "SELECT lit.*, c.name as companyname, c.shortname as companyshortname,
+                           c.category as companycategory, et.userid
+                    FROM {local_sm_estratoos_plugin} lit
+                    JOIN {external_tokens} et ON et.id = lit.tokenid
+                    LEFT JOIN {company} c ON c.id = lit.companyid
+                    WHERE et.token = :token";
+        } else {
+            // Standard Moodle - no company table.
+            $sql = "SELECT lit.*, '' as companyname, '' as companyshortname,
+                           0 as companycategory, et.userid
+                    FROM {local_sm_estratoos_plugin} lit
+                    JOIN {external_tokens} et ON et.id = lit.tokenid
+                    WHERE et.token = :token";
+        }
 
         $record = $DB->get_record_sql($sql, ['token' => $token]);
         return $record ?: null;
@@ -581,25 +611,40 @@ class company_token_manager {
     public static function get_batch_history($companyid = null, int $limit = 50): array {
         global $DB;
 
-        $sql = "SELECT b.*, c.name as companyname, es.name as servicename,
-                       u.firstname, u.lastname
-                FROM {local_sm_estratoos_plugin_batch} b
-                JOIN {company} c ON c.id = b.companyid
-                JOIN {external_services} es ON es.id = b.serviceid
-                JOIN {user} u ON u.id = b.createdby
-                WHERE 1=1";
+        // Check if IOMAD is installed (company table exists).
+        $isiomad = util::is_iomad_installed();
+
+        if ($isiomad) {
+            $sql = "SELECT b.*, c.name as companyname, es.name as servicename,
+                           u.firstname, u.lastname
+                    FROM {local_sm_estratoos_plugin_batch} b
+                    LEFT JOIN {company} c ON c.id = b.companyid
+                    JOIN {external_services} es ON es.id = b.serviceid
+                    JOIN {user} u ON u.id = b.createdby
+                    WHERE 1=1";
+        } else {
+            // Standard Moodle - no company table.
+            $sql = "SELECT b.*, '' as companyname, es.name as servicename,
+                           u.firstname, u.lastname
+                    FROM {local_sm_estratoos_plugin_batch} b
+                    JOIN {external_services} es ON es.id = b.serviceid
+                    JOIN {user} u ON u.id = b.createdby
+                    WHERE 1=1";
+        }
 
         $params = [];
 
-        if (is_array($companyid) && !empty($companyid)) {
-            // Multiple company IDs.
-            list($insql, $inparams) = $DB->get_in_or_equal($companyid, SQL_PARAMS_NAMED, 'cid');
-            $sql .= " AND b.companyid $insql";
-            $params = array_merge($params, $inparams);
-        } else if ($companyid !== null && !is_array($companyid)) {
-            // Single company ID.
-            $sql .= " AND b.companyid = :companyid";
-            $params['companyid'] = $companyid;
+        if ($isiomad) {
+            if (is_array($companyid) && !empty($companyid)) {
+                // Multiple company IDs.
+                list($insql, $inparams) = $DB->get_in_or_equal($companyid, SQL_PARAMS_NAMED, 'cid');
+                $sql .= " AND b.companyid $insql";
+                $params = array_merge($params, $inparams);
+            } else if ($companyid !== null && !is_array($companyid)) {
+                // Single company ID.
+                $sql .= " AND b.companyid = :companyid";
+                $params['companyid'] = $companyid;
+            }
         }
 
         $sql .= " ORDER BY b.timecreated DESC";
