@@ -363,7 +363,11 @@ class util {
      * @return string CSV content.
      */
     public static function export_tokens_csv(array $tokens, bool $includetoken = true): string {
-        $output = fopen('php://temp', 'r+');
+        // Use semicolon delimiter for Excel compatibility (works in all locales).
+        $delimiter = ';';
+
+        // Start with UTF-8 BOM for Excel to recognize encoding.
+        $csv = "\xEF\xBB\xBF";
 
         // Header row.
         $headers = ['User ID', 'Username', 'Email', 'Full Name', 'Company', 'Service',
@@ -374,7 +378,7 @@ class util {
             array_unshift($headers, 'Token');
         }
 
-        fputcsv($output, $headers);
+        $csv .= implode($delimiter, $headers) . "\n";
 
         // Data rows.
         foreach ($tokens as $token) {
@@ -387,7 +391,11 @@ class util {
             $row[] = $token->userid;
             $row[] = $token->username;
             $row[] = $token->email;
-            $row[] = fullname($token);
+            // Escape quotes in full name and wrap in quotes if contains delimiter.
+            $fullname = fullname($token);
+            $row[] = (strpos($fullname, $delimiter) !== false || strpos($fullname, '"') !== false)
+                ? '"' . str_replace('"', '""', $fullname) . '"'
+                : $fullname;
             $row[] = $token->companyname;
             $row[] = $token->servicename;
             $row[] = $token->restricttocompany ? 'Yes' : 'No';
@@ -397,12 +405,8 @@ class util {
             $row[] = userdate($token->timecreated);
             $row[] = $token->lastaccess ? userdate($token->lastaccess) : 'Never';
 
-            fputcsv($output, $row);
+            $csv .= implode($delimiter, $row) . "\n";
         }
-
-        rewind($output);
-        $csv = stream_get_contents($output);
-        fclose($output);
 
         return $csv;
     }

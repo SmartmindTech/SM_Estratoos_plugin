@@ -86,6 +86,9 @@ class company_token_manager {
         // Get the token record to link it.
         $tokenrecord = $DB->get_record('external_tokens', ['token' => $token], '*', MUST_EXIST);
 
+        // Update the token name in Moodle's external_tokens table.
+        $DB->set_field('external_tokens', 'name', $tokenname, ['id' => $tokenrecord->id]);
+
         // Create our extension record.
         $iomadtoken = new \stdClass();
         $iomadtoken->tokenid = $tokenrecord->id;
