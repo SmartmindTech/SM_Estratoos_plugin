@@ -83,34 +83,49 @@ class get_categories extends external_api {
             'addsubcategories' => $addsubcategories,
         ]);
 
-        // Get token and company restrictions.
-        $token = \local_sm_estratoos_plugin\util::get_current_request_token();
-        if (!$token) {
-            throw new \moodle_exception('invalidtoken', 'webservice');
+        // Determine if we need to apply company filtering.
+        $companyid = 0;
+        $companycategory = null;
+
+        // Check if IOMAD is installed and token has company restrictions.
+        if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
+            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+            if ($token) {
+                $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
+                if ($restrictions && !empty($restrictions->companyid)) {
+                    $companyid = $restrictions->companyid;
+                }
+            }
         }
 
-        $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-        if (!$restrictions || !$restrictions->companyid) {
-            throw new \moodle_exception('invalidtoken', 'local_sm_estratoos_plugin');
+        if ($companyid > 0) {
+            // IOMAD company-scoped token: validate at category context.
+            $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
+            $companycontext = \context_coursecat::instance($company->category);
+            self::validate_context($companycontext);
+
+            // Get company's category record to know its path.
+            $companycategory = $DB->get_record('course_categories', ['id' => $company->category], '*', MUST_EXIST);
+
+            // Build base query to get categories within company's tree.
+            $basesql = "SELECT cc.*
+                        FROM {course_categories} cc
+                        WHERE (cc.id = :companycat OR cc.path LIKE :pathpattern)";
+            $baseparams = [
+                'companycat' => $company->category,
+                'pathpattern' => $companycategory->path . '/%',
+            ];
+        } else {
+            // Standard Moodle token (non-IOMAD or no company): validate at system context.
+            $companycontext = \context_system::instance();
+            self::validate_context($companycontext);
+
+            // Get all visible categories.
+            $basesql = "SELECT cc.*
+                        FROM {course_categories} cc
+                        WHERE cc.visible = 1";
+            $baseparams = [];
         }
-
-        // Get company and validate at CATEGORY context (works with company-scoped tokens).
-        $company = $DB->get_record('company', ['id' => $restrictions->companyid], '*', MUST_EXIST);
-        $companycontext = \context_coursecat::instance($company->category);
-        self::validate_context($companycontext);
-
-        // Get company's category record to know its path.
-        $companycategory = $DB->get_record('course_categories', ['id' => $company->category], '*', MUST_EXIST);
-
-        // Build base query to get categories within company's tree.
-        // Categories in the tree have a path that starts with company category's path.
-        $basesql = "SELECT cc.*
-                    FROM {course_categories} cc
-                    WHERE (cc.id = :companycat OR cc.path LIKE :pathpattern)";
-        $baseparams = [
-            'companycat' => $company->category,
-            'pathpattern' => $companycategory->path . '/%',
-        ];
 
         // Apply criteria filters.
         $conditions = [];

@@ -55,7 +55,10 @@ class get_users_by_field extends external_api {
     }
 
     /**
-     * Get users by field, filtered to the token's company.
+     * Get users by field.
+     *
+     * For IOMAD company-scoped tokens, returns only users in the token's company.
+     * For standard Moodle tokens (non-IOMAD or no company), returns all matching users.
      *
      * @param string $field The field to search by (id, username, email, idnumber).
      * @param array $values The values to search for.
@@ -70,62 +73,85 @@ class get_users_by_field extends external_api {
             'values' => $values,
         ]);
 
-        // Get token and company restrictions.
-        $token = \local_sm_estratoos_plugin\util::get_current_request_token();
-        if (!$token) {
-            throw new \moodle_exception('invalidtoken', 'webservice');
-        }
-
-        $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-        if (!$restrictions || !$restrictions->companyid) {
-            throw new \moodle_exception('invalidtoken', 'local_sm_estratoos_plugin');
-        }
-
-        // Get company and validate at CATEGORY context (works with company-scoped tokens).
-        $company = $DB->get_record('company', ['id' => $restrictions->companyid], '*', MUST_EXIST);
-        $context = \context_coursecat::instance($company->category);
-        self::validate_context($context);
-
-        // Check capability at category context level.
-        require_capability('moodle/user:viewdetails', $context);
-
-        // Get company user IDs.
-        $companyuserids = $DB->get_fieldset_select(
-            'company_users',
-            'userid',
-            'companyid = ?',
-            [$restrictions->companyid]
-        );
-
-        if (empty($companyuserids)) {
-            return [];
-        }
-
         // Validate field.
         $allowedfields = ['id', 'username', 'email', 'idnumber'];
         if (!in_array($params['field'], $allowedfields)) {
             throw new \invalid_parameter_exception('Invalid field: ' . $params['field']);
         }
 
-        // Build IN clause for company users.
-        list($insql, $inparams) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED, 'uid');
+        // Determine if we need to apply company filtering.
+        $companyuserids = null;
+        $companyid = 0;
 
-        // Query users matching field AND in company.
+        // Check if IOMAD is installed and token has company restrictions.
+        if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
+            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+            if ($token) {
+                $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
+                if ($restrictions && !empty($restrictions->companyid)) {
+                    $companyid = $restrictions->companyid;
+                }
+            }
+        }
+
+        if ($companyid > 0) {
+            // IOMAD company-scoped token: validate at category context.
+            $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
+            $context = \context_coursecat::instance($company->category);
+            self::validate_context($context);
+            require_capability('moodle/user:viewdetails', $context);
+
+            // Get company user IDs for filtering.
+            $companyuserids = $DB->get_fieldset_select(
+                'company_users',
+                'userid',
+                'companyid = ?',
+                [$companyid]
+            );
+
+            if (empty($companyuserids)) {
+                return [];
+            }
+        } else {
+            // Standard Moodle token (non-IOMAD or no company): validate at system context.
+            $context = \context_system::instance();
+            self::validate_context($context);
+            require_capability('moodle/user:viewdetails', $context);
+        }
+
+        // Query users matching field.
         $users = [];
         foreach ($params['values'] as $index => $value) {
             $paramname = 'fieldvalue' . $index;
-            $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname,
-                           u.firstnamephonetic, u.lastnamephonetic, u.middlename, u.alternatename,
-                           u.city, u.country, u.timezone, u.description, u.descriptionformat,
-                           u.institution, u.department, u.phone1, u.phone2, u.address,
-                           u.lang, u.theme, u.picture, u.imagealt
-                    FROM {user} u
-                    WHERE u.{$params['field']} = :{$paramname}
-                      AND u.id {$insql}
-                      AND u.deleted = 0
-                      AND u.suspended = 0";
 
-            $queryparams = array_merge([$paramname => $value], $inparams);
+            if ($companyuserids !== null) {
+                // Company-scoped: filter by company users.
+                list($insql, $inparams) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED, 'uid');
+                $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname,
+                               u.firstnamephonetic, u.lastnamephonetic, u.middlename, u.alternatename,
+                               u.city, u.country, u.timezone, u.description, u.descriptionformat,
+                               u.institution, u.department, u.phone1, u.phone2, u.address,
+                               u.lang, u.theme, u.picture, u.imagealt
+                        FROM {user} u
+                        WHERE u.{$params['field']} = :{$paramname}
+                          AND u.id {$insql}
+                          AND u.deleted = 0
+                          AND u.suspended = 0";
+                $queryparams = array_merge([$paramname => $value], $inparams);
+            } else {
+                // No company filter.
+                $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname,
+                               u.firstnamephonetic, u.lastnamephonetic, u.middlename, u.alternatename,
+                               u.city, u.country, u.timezone, u.description, u.descriptionformat,
+                               u.institution, u.department, u.phone1, u.phone2, u.address,
+                               u.lang, u.theme, u.picture, u.imagealt
+                        FROM {user} u
+                        WHERE u.{$params['field']} = :{$paramname}
+                          AND u.deleted = 0
+                          AND u.suspended = 0";
+                $queryparams = [$paramname => $value];
+            }
+
             $user = $DB->get_record_sql($sql, $queryparams);
 
             if ($user) {

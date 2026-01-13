@@ -99,43 +99,57 @@ class get_conversations extends external_api {
             'mergeself' => $mergeself,
         ]);
 
-        // Get token and company restrictions.
-        $token = \local_sm_estratoos_plugin\util::get_current_request_token();
-        if (!$token) {
-            throw new \moodle_exception('invalidtoken', 'webservice');
+        // Determine if we need to apply company filtering.
+        $companyuserids = null;
+        $companyid = 0;
+
+        // Check if IOMAD is installed and token has company restrictions.
+        if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
+            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+            if ($token) {
+                $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
+                if ($restrictions && !empty($restrictions->companyid)) {
+                    $companyid = $restrictions->companyid;
+                }
+            }
         }
 
-        $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-        if (!$restrictions || !$restrictions->companyid) {
-            throw new \moodle_exception('invalidtoken', 'local_sm_estratoos_plugin');
-        }
+        if ($companyid > 0) {
+            // IOMAD company-scoped token: validate at category context.
+            $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
+            $companycontext = \context_coursecat::instance($company->category);
+            self::validate_context($companycontext);
 
-        // Get company and validate at CATEGORY context (works with company-scoped tokens).
-        $company = $DB->get_record('company', ['id' => $restrictions->companyid], '*', MUST_EXIST);
-        $companycontext = \context_coursecat::instance($company->category);
-        self::validate_context($companycontext);
+            // Check if user can access conversations for this userid.
+            if ($USER->id != $params['userid']) {
+                require_capability('moodle/site:readallmessages', $companycontext);
+            }
 
-        // Check if user can access conversations for this userid.
-        // User can access their own, or if they have readallmessages capability.
-        if ($USER->id != $params['userid']) {
-            require_capability('moodle/site:readallmessages', $companycontext);
-        }
+            // Get company user IDs for filtering.
+            $companyuserids = $DB->get_fieldset_select(
+                'company_users',
+                'userid',
+                'companyid = ?',
+                [$companyid]
+            );
 
-        // Verify the target user is in the company.
-        $companyuserids = $DB->get_fieldset_select(
-            'company_users',
-            'userid',
-            'companyid = ?',
-            [$restrictions->companyid]
-        );
+            // Verify the target user is in the company.
+            if (!in_array($params['userid'], $companyuserids)) {
+                throw new \moodle_exception('usernotincompany', 'local_sm_estratoos_plugin');
+            }
+        } else {
+            // Standard Moodle token (non-IOMAD or no company): validate at system context.
+            $context = \context_system::instance();
+            self::validate_context($context);
 
-        if (!in_array($params['userid'], $companyuserids)) {
-            throw new \moodle_exception('usernotincompany', 'local_sm_estratoos_plugin');
+            // Check if user can access conversations for this userid.
+            if ($USER->id != $params['userid']) {
+                require_capability('moodle/site:readallmessages', $context);
+            }
         }
 
         // Get conversations using core API.
-        // Note: We request more than limitnum because we'll filter some out.
-        $requestlimit = $params['limitnum'] > 0 ? $params['limitnum'] * 3 : 0;
+        $requestlimit = $params['limitnum'] > 0 ? ($companyuserids !== null ? $params['limitnum'] * 3 : $params['limitnum']) : 0;
         $conversations = \core_message\api::get_conversations(
             $params['userid'],
             $params['limitfrom'],
@@ -145,37 +159,45 @@ class get_conversations extends external_api {
             $params['mergeself']
         );
 
-        // Filter conversations to only those involving company users.
+        // Filter conversations if company-scoped.
         $filteredconversations = [];
         foreach ($conversations as $conversation) {
-            // Check if at least one member (besides the requesting user) is in the company.
-            $hascompanymember = false;
-            $filteredmembers = [];
+            if ($companyuserids !== null) {
+                // Company-scoped: filter to only conversations with company users.
+                $hascompanymember = false;
+                $filteredmembers = [];
 
-            if (isset($conversation->members) && is_array($conversation->members)) {
-                foreach ($conversation->members as $member) {
-                    $memberid = $member->id ?? null;
-                    if ($memberid && in_array($memberid, $companyuserids)) {
-                        $hascompanymember = true;
-                        $filteredmembers[] = $member;
+                if (isset($conversation->members) && is_array($conversation->members)) {
+                    foreach ($conversation->members as $member) {
+                        $memberid = $member->id ?? null;
+                        if ($memberid && in_array($memberid, $companyuserids)) {
+                            $hascompanymember = true;
+                            $filteredmembers[] = $member;
+                        }
                     }
                 }
-            }
 
-            // For self-conversations (type 3), always include if user is in company.
-            if (isset($conversation->type) && $conversation->type == 3) {
-                $hascompanymember = true;
-            }
-
-            // Include conversation if it has company members.
-            if ($hascompanymember) {
-                // Replace members with filtered list (only company members).
-                if (!empty($filteredmembers)) {
-                    $conversation->members = $filteredmembers;
+                // For self-conversations (type 3), always include if user is in company.
+                if (isset($conversation->type) && $conversation->type == 3) {
+                    $hascompanymember = true;
                 }
+
+                // Include conversation if it has company members.
+                if ($hascompanymember) {
+                    if (!empty($filteredmembers)) {
+                        $conversation->members = $filteredmembers;
+                    }
+                    $filteredconversations[] = $conversation;
+
+                    // Respect the original limit.
+                    if ($params['limitnum'] > 0 && count($filteredconversations) >= $params['limitnum']) {
+                        break;
+                    }
+                }
+            } else {
+                // No company filtering - include all conversations.
                 $filteredconversations[] = $conversation;
 
-                // Respect the original limit.
                 if ($params['limitnum'] > 0 && count($filteredconversations) >= $params['limitnum']) {
                     break;
                 }

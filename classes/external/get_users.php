@@ -72,35 +72,44 @@ class get_users extends external_api {
             'criteria' => $criteria,
         ]);
 
-        // Get token and company restrictions.
-        $token = \local_sm_estratoos_plugin\util::get_current_request_token();
-        if (!$token) {
-            throw new \moodle_exception('invalidtoken', 'webservice');
+        // Determine if we need to apply company filtering.
+        $companyuserids = null;
+        $companyid = 0;
+
+        // Check if IOMAD is installed and token has company restrictions.
+        if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
+            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+            if ($token) {
+                $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
+                if ($restrictions && !empty($restrictions->companyid)) {
+                    $companyid = $restrictions->companyid;
+                }
+            }
         }
 
-        $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-        if (!$restrictions || !$restrictions->companyid) {
-            throw new \moodle_exception('invalidtoken', 'local_sm_estratoos_plugin');
-        }
+        if ($companyid > 0) {
+            // IOMAD company-scoped token: validate at category context.
+            $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
+            $context = \context_coursecat::instance($company->category);
+            self::validate_context($context);
+            require_capability('moodle/user:viewdetails', $context);
 
-        // Get company and validate at CATEGORY context (works with company-scoped tokens).
-        $company = $DB->get_record('company', ['id' => $restrictions->companyid], '*', MUST_EXIST);
-        $context = \context_coursecat::instance($company->category);
-        self::validate_context($context);
+            // Get company user IDs for filtering.
+            $companyuserids = $DB->get_fieldset_select(
+                'company_users',
+                'userid',
+                'companyid = ?',
+                [$companyid]
+            );
 
-        // Check capability at category context level.
-        require_capability('moodle/user:viewdetails', $context);
-
-        // Get company user IDs.
-        $companyuserids = $DB->get_fieldset_select(
-            'company_users',
-            'userid',
-            'companyid = ?',
-            [$restrictions->companyid]
-        );
-
-        if (empty($companyuserids)) {
-            return ['users' => [], 'warnings' => []];
+            if (empty($companyuserids)) {
+                return ['users' => [], 'warnings' => []];
+            }
+        } else {
+            // Standard Moodle token (non-IOMAD or no company): validate at system context.
+            $context = \context_system::instance();
+            self::validate_context($context);
+            require_capability('moodle/user:viewdetails', $context);
         }
 
         // Build WHERE clause from criteria.
@@ -108,10 +117,12 @@ class get_users extends external_api {
         $where = ['u.deleted = 0', 'u.suspended = 0'];
         $queryparams = [];
 
-        // Add company user filter.
-        list($insql, $inparams) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED, 'uid');
-        $where[] = "u.id {$insql}";
-        $queryparams = array_merge($queryparams, $inparams);
+        // Add company user filter if applicable.
+        if ($companyuserids !== null) {
+            list($insql, $inparams) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED, 'uid');
+            $where[] = "u.id {$insql}";
+            $queryparams = array_merge($queryparams, $inparams);
+        }
 
         // Process search criteria.
         $warnings = [];
