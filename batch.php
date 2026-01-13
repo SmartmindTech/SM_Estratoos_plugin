@@ -28,10 +28,8 @@ require_once($CFG->dirroot . '/local/sm_estratoos_plugin/classes/form/batch_toke
 
 require_login();
 
-// Only site administrators can access this page.
-if (!is_siteadmin()) {
-    throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
-}
+// Site administrators and company managers can access this page.
+\local_sm_estratoos_plugin\util::require_token_admin();
 
 $PAGE->set_url(new moodle_url('/local/sm_estratoos_plugin/batch.php'));
 $PAGE->set_context(context_system::instance());
@@ -55,6 +53,13 @@ $mform = new \local_sm_estratoos_plugin\form\batch_token_form();
 if ($mform->is_cancelled()) {
     redirect($returnurl);
 } else if ($data = $mform->get_data()) {
+    // Validate company access for non-site-admins.
+    if (!is_siteadmin() && !empty($data->companyid)) {
+        if (!\local_sm_estratoos_plugin\util::can_manage_company($data->companyid)) {
+            throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
+        }
+    }
+
     // Process form submission.
     try {
         // Get user IDs based on selection method.

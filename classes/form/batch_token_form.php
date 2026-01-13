@@ -58,8 +58,18 @@ class batch_token_form extends \moodleform {
                     'csv' => get_string('bycsv', 'local_sm_estratoos_plugin'),
                 ]);
 
-            // Company selection.
-            $companies = $DB->get_records_menu('company', [], 'name', 'id, name');
+            // Company selection - filter by user access (site admin vs company manager).
+            if (is_siteadmin()) {
+                $companies = $DB->get_records_menu('company', [], 'name', 'id, name');
+            } else {
+                // Company manager - only show managed companies.
+                $managedcompanies = \local_sm_estratoos_plugin\util::get_user_managed_companies();
+                $companies = [];
+                foreach ($managedcompanies as $company) {
+                    $companies[$company->id] = $company->name;
+                }
+            }
+
             if (empty($companies)) {
                 $mform->addElement('static', 'nocompanies', '',
                     get_string('invalidcompany', 'local_sm_estratoos_plugin'));

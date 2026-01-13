@@ -27,10 +27,8 @@ require_once($CFG->libdir . '/adminlib.php');
 
 require_login();
 
-// Only site administrators can access this page.
-if (!is_siteadmin()) {
-    throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
-}
+// Site administrators and company managers can access this page.
+\local_sm_estratoos_plugin\util::require_token_admin();
 
 // Get parameters.
 $companyid = optional_param('companyid', 0, PARAM_INT);
@@ -115,7 +113,22 @@ echo $OUTPUT->heading(get_string('managetokens', 'local_sm_estratoos_plugin'));
 
 // Filters.
 global $DB;
-$companies = ['' => get_string('all')] + $DB->get_records_menu('company', [], 'name', 'id, name');
+
+// Get companies based on user access - site admins see all, company managers see only their companies.
+$issiteadmin = is_siteadmin();
+if ($issiteadmin) {
+    $companies = ['' => get_string('all')] + $DB->get_records_menu('company', [], 'name', 'id, name');
+} else {
+    // Company manager - only show managed companies.
+    $managedcompanies = \local_sm_estratoos_plugin\util::get_user_managed_companies();
+    $companies = [];
+    foreach ($managedcompanies as $company) {
+        $companies[$company->id] = $company->name;
+    }
+    if (count($companies) > 1) {
+        $companies = ['' => get_string('all')] + $companies;
+    }
+}
 $services = ['' => get_string('all')] + $DB->get_records_menu('external_services', ['enabled' => 1], 'name', 'id, name');
 
 echo html_writer::start_tag('form', ['method' => 'get', 'class' => 'form-inline mb-4']);
@@ -142,14 +155,26 @@ echo html_writer::end_tag('form');
 // Get tokens.
 $filters = [];
 if ($companyid > 0) {
+    // Validate that user can access this company.
+    if (!$issiteadmin && !isset($companies[$companyid])) {
+        throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
+    }
     $filters['companyid'] = $companyid;
 }
 if ($serviceid > 0) {
     $filters['serviceid'] = $serviceid;
 }
 
+// For company managers, restrict to their managed companies.
+$companyfilter = $companyid > 0 ? $companyid : null;
+if (!$issiteadmin && !$companyfilter) {
+    // Get all managed company IDs.
+    $managedids = array_keys(\local_sm_estratoos_plugin\util::get_user_managed_companies());
+    $filters['companyids'] = $managedids;
+}
+
 $tokens = \local_sm_estratoos_plugin\company_token_manager::get_company_tokens(
-    $companyid > 0 ? $companyid : null,
+    $companyfilter,
     $filters
 );
 

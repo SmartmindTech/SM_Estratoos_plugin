@@ -39,7 +39,10 @@
             <![CDATA[
             <h3>Version 1.2.13</h3>
             <ul>
-                <li>Test release for API filtering</li>
+                <li>Company managers can now access the token management dashboard</li>
+                <li>Added navigation menu item for token management</li>
+                <li>Company managers can only see and manage tokens for their companies</li>
+                <li>Added company filtering for all API functions</li>
             </ul>
             ]]>
         </releasenotes>

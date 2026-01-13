@@ -27,16 +27,17 @@ require_once($CFG->libdir . '/adminlib.php');
 
 require_login();
 
-// Only site administrators can access this page.
-if (!is_siteadmin()) {
-    throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
-}
+// Site administrators and company managers can access this page.
+\local_sm_estratoos_plugin\util::require_token_admin();
 
 // Get parameters.
 $companyid = optional_param('companyid', 0, PARAM_INT);
 $serviceid = optional_param('serviceid', 0, PARAM_INT);
 $batchid = optional_param('batchid', '', PARAM_ALPHANUMEXT);
 $includetoken = optional_param('includetoken', 0, PARAM_INT);
+
+// Check if site admin (for access control).
+$issiteadmin = is_siteadmin();
 
 // Get tokens based on filters.
 $filters = [];
@@ -45,6 +46,22 @@ if ($serviceid > 0) {
 }
 if (!empty($batchid)) {
     $filters['batchid'] = $batchid;
+}
+
+// Validate company access for non-site-admins.
+if (!$issiteadmin) {
+    $managedcompanies = \local_sm_estratoos_plugin\util::get_user_managed_companies();
+    $managedids = array_keys($managedcompanies);
+
+    if ($companyid > 0) {
+        // Check if user can access this company.
+        if (!in_array($companyid, $managedids)) {
+            throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
+        }
+    } else {
+        // Filter by all managed companies.
+        $filters['companyids'] = $managedids;
+    }
 }
 
 $tokens = \local_sm_estratoos_plugin\company_token_manager::get_company_tokens(

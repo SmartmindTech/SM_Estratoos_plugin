@@ -204,10 +204,47 @@ function local_sm_estratoos_plugin_post_processor($functionname, $result) {
 /**
  * Extend navigation for admin menu.
  *
- * @param navigation_node $navigation The navigation node.
+ * Adds the SmartMind Token Manager to the navigation for:
+ * - Site administrators
+ * - IOMAD company managers (managertype > 0)
+ *
+ * @param global_navigation $navigation The navigation node.
  */
-function local_sm_estratoos_plugin_extend_navigation(navigation_node $navigation) {
-    // Navigation extension if needed.
+function local_sm_estratoos_plugin_extend_navigation(global_navigation $navigation) {
+    global $CFG, $PAGE;
+
+    // Check if user has access (site admin or company manager).
+    if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
+        return;
+    }
+
+    // Add to flat navigation (appears in left sidebar/drawer).
+    $url = new moodle_url('/local/sm_estratoos_plugin/index.php');
+    $nodename = get_string('pluginname', 'local_sm_estratoos_plugin');
+
+    // Add to the site administration node if it exists.
+    $siteadmin = $navigation->find('siteadministration', navigation_node::TYPE_SITE_ADMIN);
+    if ($siteadmin) {
+        $siteadmin->add(
+            $nodename,
+            $url,
+            navigation_node::TYPE_CUSTOM,
+            null,
+            'sm_estratoos_plugin',
+            new pix_icon('i/settings', '')
+        );
+    }
+
+    // Also add as a top-level node for easier access.
+    $node = $navigation->add(
+        $nodename,
+        $url,
+        navigation_node::TYPE_CUSTOM,
+        null,
+        'sm_estratoos_plugin_main',
+        new pix_icon('i/settings', '')
+    );
+    $node->showinflatnavigation = true;
 }
 
 /**

@@ -240,6 +240,11 @@ class company_token_manager {
         if ($companyid !== null) {
             $sql .= " AND lit.companyid = :companyid";
             $params['companyid'] = $companyid;
+        } else if (!empty($filters['companyids'])) {
+            // Filter by multiple company IDs (for company managers).
+            list($insql, $inparams) = $DB->get_in_or_equal($filters['companyids'], SQL_PARAMS_NAMED, 'cid');
+            $sql .= " AND lit.companyid $insql";
+            $params = array_merge($params, $inparams);
         }
 
         if (!empty($filters['serviceid'])) {
@@ -527,13 +532,13 @@ class company_token_manager {
     }
 
     /**
-     * Get batch history.
+     * Get batch history, optionally filtered by company.
      *
-     * @param int|null $companyid Filter by company.
-     * @param int $limit Number of records to return.
+     * @param int|array|null $companyid Single company ID, array of company IDs, or null for all.
+     * @param int $limit Maximum number of batches to return.
      * @return array Array of batch records.
      */
-    public static function get_batch_history(?int $companyid = null, int $limit = 50): array {
+    public static function get_batch_history($companyid = null, int $limit = 50): array {
         global $DB;
 
         $sql = "SELECT b.*, c.name as companyname, es.name as servicename,
@@ -546,7 +551,13 @@ class company_token_manager {
 
         $params = [];
 
-        if ($companyid !== null) {
+        if (is_array($companyid) && !empty($companyid)) {
+            // Multiple company IDs.
+            list($insql, $inparams) = $DB->get_in_or_equal($companyid, SQL_PARAMS_NAMED, 'cid');
+            $sql .= " AND b.companyid $insql";
+            $params = array_merge($params, $inparams);
+        } else if ($companyid !== null && !is_array($companyid)) {
+            // Single company ID.
             $sql .= " AND b.companyid = :companyid";
             $params['companyid'] = $companyid;
         }

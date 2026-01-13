@@ -27,24 +27,28 @@ require_once($CFG->libdir . '/adminlib.php');
 
 require_login();
 
-// Only site administrators can access this page.
-if (!is_siteadmin()) {
-    throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
-}
+// Site administrators and company managers can access this page.
+\local_sm_estratoos_plugin\util::require_token_admin();
 
 require_once(__DIR__ . '/classes/update_checker.php');
 
-// Handle manual update check.
+// Check if site admin (for admin-only features).
+$issiteadmin = is_siteadmin();
+
+// Handle manual update check (only for site admins).
 $checkupdates = optional_param('checkupdates', 0, PARAM_BOOL);
 $updatechecked = false;
+$updateavailable = false;
 
-if ($checkupdates && confirm_sesskey()) {
-    // Force fetch updates.
-    $updateavailable = \local_sm_estratoos_plugin\update_checker::check(true);
-    $updatechecked = true;
-} else {
-    // Check for available updates (uses cache if recent).
-    $updateavailable = \local_sm_estratoos_plugin\update_checker::check();
+if ($issiteadmin) {
+    if ($checkupdates && confirm_sesskey()) {
+        // Force fetch updates.
+        $updateavailable = \local_sm_estratoos_plugin\update_checker::check(true);
+        $updatechecked = true;
+    } else {
+        // Check for available updates (uses cache if recent).
+        $updateavailable = \local_sm_estratoos_plugin\update_checker::check();
+    }
 }
 
 $PAGE->set_url(new moodle_url('/local/sm_estratoos_plugin/index.php'));
@@ -121,22 +125,26 @@ echo $OUTPUT->pix_icon($modeicon, '', 'moodle', ['class' => 'mr-2']);
 echo html_writer::tag('span', get_string('moodlemode', 'local_sm_estratoos_plugin') . ': ', ['class' => 'font-weight-bold mr-1']);
 echo html_writer::tag('span', $iomadstatus['message']);
 echo html_writer::end_div();
-// Check for updates button.
-$checkurl = new moodle_url('/local/sm_estratoos_plugin/index.php', ['checkupdates' => 1, 'sesskey' => sesskey()]);
-echo html_writer::link($checkurl, get_string('checkforupdates', 'local_sm_estratoos_plugin'), ['class' => 'btn btn-outline-secondary btn-sm']);
+// Check for updates button (only for site admins).
+if ($issiteadmin) {
+    $checkurl = new moodle_url('/local/sm_estratoos_plugin/index.php', ['checkupdates' => 1, 'sesskey' => sesskey()]);
+    echo html_writer::link($checkurl, get_string('checkforupdates', 'local_sm_estratoos_plugin'), ['class' => 'btn btn-outline-secondary btn-sm']);
+}
 echo html_writer::end_div();
 
 // Dashboard cards.
 $cards = [];
 
-// Card 1: Create Admin Token.
-$cards[] = [
-    'title' => get_string('createadmintoken', 'local_sm_estratoos_plugin'),
-    'description' => get_string('createadmintokendesc', 'local_sm_estratoos_plugin'),
-    'url' => new moodle_url('/local/sm_estratoos_plugin/admin_token.php'),
-    'icon' => 'i/lock',
-    'class' => 'bg-primary text-white',
-];
+// Card 1: Create Admin Token (only for site admins).
+if ($issiteadmin) {
+    $cards[] = [
+        'title' => get_string('createadmintoken', 'local_sm_estratoos_plugin'),
+        'description' => get_string('createadmintokendesc', 'local_sm_estratoos_plugin'),
+        'url' => new moodle_url('/local/sm_estratoos_plugin/admin_token.php'),
+        'icon' => 'i/lock',
+        'class' => 'bg-primary text-white',
+    ];
+}
 
 // Card 2: Create Company/User Tokens (depending on IOMAD mode).
 if ($isiomad) {
@@ -206,12 +214,27 @@ echo html_writer::tag('h3', get_string('statistics'), ['class' => 'mt-5']);
 
 global $DB;
 
-// Count tokens.
-$totalcompanytokens = $DB->count_records('local_sm_estratoos_plugin');
-$totalbatches = $DB->count_records('local_sm_estratoos_plugin_batch');
+// Count tokens (filtered for company managers).
+if ($issiteadmin) {
+    $totalcompanytokens = $DB->count_records('local_sm_estratoos_plugin');
+    $totalbatches = $DB->count_records('local_sm_estratoos_plugin_batch');
+    $recentbatches = \local_sm_estratoos_plugin\company_token_manager::get_batch_history(null, 5);
+} else {
+    // Company manager - filter by managed companies.
+    $managedcompanies = \local_sm_estratoos_plugin\util::get_user_managed_companies();
+    $managedids = array_keys($managedcompanies);
 
-// Get recent batches.
-$recentbatches = \local_sm_estratoos_plugin\company_token_manager::get_batch_history(null, 5);
+    if (!empty($managedids)) {
+        list($insql, $params) = $DB->get_in_or_equal($managedids);
+        $totalcompanytokens = $DB->count_records_select('local_sm_estratoos_plugin', "companyid $insql", $params);
+        $totalbatches = $DB->count_records_select('local_sm_estratoos_plugin_batch', "companyid $insql", $params);
+        $recentbatches = \local_sm_estratoos_plugin\company_token_manager::get_batch_history($managedids, 5);
+    } else {
+        $totalcompanytokens = 0;
+        $totalbatches = 0;
+        $recentbatches = [];
+    }
+}
 
 echo html_writer::start_div('row mt-3');
 

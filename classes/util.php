@@ -230,6 +230,114 @@ class util {
     }
 
     /**
+     * Check if user is a company admin (IOMAD manager) or site admin.
+     *
+     * @param int|null $userid User ID (defaults to current user).
+     * @return bool True if user can administer tokens.
+     */
+    public static function is_token_admin(int $userid = null): bool {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        // Site admins always have access.
+        if (is_siteadmin($userid)) {
+            return true;
+        }
+
+        // Check if IOMAD is installed.
+        if (!self::is_iomad_installed()) {
+            return false;
+        }
+
+        // Check if user is a company manager (managertype > 0).
+        try {
+            $sql = "SELECT cu.id, cu.managertype
+                    FROM {company_users} cu
+                    WHERE cu.userid = :userid AND cu.managertype > 0";
+            $result = $DB->get_record_sql($sql, ['userid' => $userid]);
+            return !empty($result);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get companies that the user can manage.
+     *
+     * @param int|null $userid User ID (defaults to current user).
+     * @return array Array of company records [id => {id, name, shortname, category}].
+     */
+    public static function get_user_managed_companies(int $userid = null): array {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        // Site admins can manage all companies.
+        if (is_siteadmin($userid)) {
+            return self::get_companies();
+        }
+
+        // Check if IOMAD is installed.
+        if (!self::is_iomad_installed()) {
+            return [];
+        }
+
+        // Get companies where user is a manager.
+        try {
+            $sql = "SELECT c.id, c.name, c.shortname, c.category
+                    FROM {company} c
+                    JOIN {company_users} cu ON cu.companyid = c.id
+                    WHERE cu.userid = :userid AND cu.managertype > 0
+                    ORDER BY c.name";
+            return $DB->get_records_sql($sql, ['userid' => $userid]);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Check if user can manage a specific company.
+     *
+     * @param int $companyid Company ID.
+     * @param int|null $userid User ID (defaults to current user).
+     * @return bool True if user can manage the company.
+     */
+    public static function can_manage_company(int $companyid, int $userid = null): bool {
+        global $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        // Site admins can manage all companies.
+        if (is_siteadmin($userid)) {
+            return true;
+        }
+
+        $managedcompanies = self::get_user_managed_companies($userid);
+        return isset($managedcompanies[$companyid]);
+    }
+
+    /**
+     * Require token admin access (site admin or company manager).
+     * Throws exception if access denied.
+     */
+    public static function require_token_admin(): void {
+        global $USER;
+
+        require_login();
+
+        if (!self::is_token_admin($USER->id)) {
+            throw new \moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
+        }
+    }
+
+    /**
      * Format a token for display (partial masking).
      *
      * @param string $token The full token.
