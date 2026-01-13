@@ -114,6 +114,9 @@ class update_checker {
      * @return array|null Update info array or null on failure.
      */
     public static function fetch_update_info(): ?array {
+        global $CFG;
+        require_once($CFG->libdir . '/filelib.php');
+
         $curl = new \curl(['cache' => false]);
         $curl->setopt([
             'CURLOPT_TIMEOUT' => 30,
