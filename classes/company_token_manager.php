@@ -78,10 +78,13 @@ class company_token_manager {
         }
 
         // Determine validity period.
+        // Use isset() instead of !empty() to respect explicitly set 0 (never expires).
         $validuntil = 0;
-        if (!empty($options['validuntil'])) {
-            $validuntil = $options['validuntil'];
+        if (isset($options['validuntil'])) {
+            // Explicitly set - use the value (0 means never expires).
+            $validuntil = (int)$options['validuntil'];
         } else {
+            // Not specified - use default if configured.
             $defaultdays = get_config('local_sm_estratoos_plugin', 'default_validity_days');
             if ($defaultdays > 0) {
                 $validuntil = time() + ($defaultdays * DAYSECS);

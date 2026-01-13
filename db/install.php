@@ -30,6 +30,8 @@ defined('MOODLE_INTERNAL') || die();
  * @return bool
  */
 function xmldb_local_sm_estratoos_plugin_install() {
+    global $DB, $CFG;
+
     // Set default configuration values.
     set_config('default_validity_days', 365, 'local_sm_estratoos_plugin');
     set_config('default_restricttocompany', 1, 'local_sm_estratoos_plugin');
@@ -37,5 +39,92 @@ function xmldb_local_sm_estratoos_plugin_install() {
     set_config('allow_individual_overrides', 1, 'local_sm_estratoos_plugin');
     set_config('cleanup_expired_tokens', 1, 'local_sm_estratoos_plugin');
 
+    // Auto-configure web services for the plugin to work properly.
+    xmldb_local_sm_estratoos_plugin_configure_webservices();
+
     return true;
+}
+
+/**
+ * Configure web services automatically.
+ * This enables the necessary settings for the plugin to work.
+ */
+function xmldb_local_sm_estratoos_plugin_configure_webservices() {
+    global $DB, $CFG;
+
+    // 1. Enable web services globally.
+    set_config('enablewebservices', 1);
+
+    // 2. Enable REST protocol.
+    $protocols = !empty($CFG->webserviceprotocols) ? explode(',', $CFG->webserviceprotocols) : [];
+    if (!in_array('rest', $protocols)) {
+        $protocols[] = 'rest';
+        set_config('webserviceprotocols', implode(',', $protocols));
+    }
+
+    // 3. Enable "Moodle mobile web service".
+    $mobileservice = $DB->get_record('external_services', ['shortname' => 'moodle_mobile_app']);
+    if ($mobileservice && !$mobileservice->enabled) {
+        $DB->set_field('external_services', 'enabled', 1, ['id' => $mobileservice->id]);
+    }
+
+    // 4 & 5. Configure Teacher and Student roles.
+    $rolestoconfig = ['editingteacher', 'student'];
+
+    foreach ($rolestoconfig as $roleshortname) {
+        $role = $DB->get_record('role', ['shortname' => $roleshortname]);
+        if (!$role) {
+            continue;
+        }
+
+        // 4. Enable "System" context for the role.
+        // Context level 10 = CONTEXT_SYSTEM.
+        $existingcontext = $DB->get_record('role_context_levels', [
+            'roleid' => $role->id,
+            'contextlevel' => CONTEXT_SYSTEM
+        ]);
+        if (!$existingcontext) {
+            $DB->insert_record('role_context_levels', [
+                'roleid' => $role->id,
+                'contextlevel' => CONTEXT_SYSTEM
+            ]);
+        }
+
+        // 5. Add capabilities to the role in system context.
+        $systemcontext = context_system::instance();
+        $capabilities = ['moodle/site:sendmessage', 'webservice/rest:use'];
+
+        foreach ($capabilities as $capability) {
+            // Check if capability exists in the system.
+            if (!$DB->record_exists('capabilities', ['name' => $capability])) {
+                continue;
+            }
+
+            // Check if role already has this capability.
+            $existingperm = $DB->get_record('role_capabilities', [
+                'roleid' => $role->id,
+                'capability' => $capability,
+                'contextid' => $systemcontext->id
+            ]);
+
+            if (!$existingperm) {
+                // Add the capability with CAP_ALLOW permission.
+                $DB->insert_record('role_capabilities', [
+                    'roleid' => $role->id,
+                    'capability' => $capability,
+                    'contextid' => $systemcontext->id,
+                    'permission' => CAP_ALLOW,
+                    'timemodified' => time(),
+                    'modifierid' => get_admin()->id
+                ]);
+            } else if ($existingperm->permission != CAP_ALLOW) {
+                // Update to allow if it was previously denied/prohibited.
+                $DB->set_field('role_capabilities', 'permission', CAP_ALLOW, ['id' => $existingperm->id]);
+                $DB->set_field('role_capabilities', 'timemodified', time(), ['id' => $existingperm->id]);
+            }
+        }
+    }
+
+    // Purge caches to ensure changes take effect.
+    purge_all_caches();
 }

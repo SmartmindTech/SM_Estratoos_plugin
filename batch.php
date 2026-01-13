@@ -141,9 +141,10 @@ if ($mform->is_cancelled()) {
             $options['iprestriction'] = $data->iprestriction;
         }
 
-        if (!empty($data->validuntil)) {
-            $options['validuntil'] = $data->validuntil;
-        }
+        // Always set validuntil explicitly.
+        // When checkbox is unchecked, $data->validuntil is 0 (never expires).
+        // When checkbox is checked, $data->validuntil is the timestamp.
+        $options['validuntil'] = !empty($data->validuntil) ? $data->validuntil : 0;
 
         if (!empty($data->notes)) {
             $options['notes'] = $data->notes;

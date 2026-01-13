@@ -107,5 +107,14 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011226, 'local', 'sm_estratoos_plugin');
     }
 
+    // Auto-configure web services (v1.2.34).
+    if ($oldversion < 2025011238) {
+        // Include install.php to use the configure function.
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_configure_webservices();
+
+        upgrade_plugin_savepoint(true, 2025011238, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

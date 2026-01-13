@@ -313,4 +313,13 @@ if (empty($tokens)) {
     ");
 }
 
+// Back button.
+echo html_writer::start_div('mt-4');
+echo html_writer::link(
+    new moodle_url('/local/sm_estratoos_plugin/index.php'),
+    get_string('back'),
+    ['class' => 'btn btn-secondary']
+);
+echo html_writer::end_div();
+
 echo $OUTPUT->footer();

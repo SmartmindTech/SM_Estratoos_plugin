@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011237</version>
+        <version>2025011238</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.33</release>
+        <release>1.2.34</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,18 +29,19 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.33/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.34/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.33</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.34</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.33</h3>
+            <h3>Version 1.2.34</h3>
             <ul>
-                <li>Added Spanish and Portuguese translations for role names in token naming</li>
-                <li>Fixed "Valid until" checkbox - now unchecked by default (tokens never expire unless enabled)</li>
+                <li>Fixed "Valid until" checkbox - properly respects unchecked state (never expires)</li>
+                <li>Added back button to Manage Tokens page</li>
+                <li>Auto-configure web services on plugin install (REST protocol, mobile service, role permissions)</li>
             </ul>
             ]]>
         </releasenotes>
