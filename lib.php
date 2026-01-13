@@ -298,24 +298,22 @@ function local_sm_estratoos_plugin_render_navbar_output(\renderer_base $renderer
     $url = new moodle_url('/local/sm_estratoos_plugin/index.php');
     $title = get_string('pluginname', 'local_sm_estratoos_plugin');
 
-    // Create a navbar icon similar to the notification bell.
+    // Create a navbar icon styled like the notification bell.
     $html = html_writer::start_tag('div', [
-        'class' => 'popover-region collapsed popover-region-sm-tokens',
-        'id' => 'sm-tokens-navbar-icon',
-        'style' => 'margin-right: 5px;'
+        'class' => 'popover-region',
+        'id' => 'sm-tokens-navbar-icon'
     ]);
 
     $html .= html_writer::link($url,
         html_writer::tag('i', '', [
             'class' => 'icon fa fa-key fa-fw',
-            'title' => $title,
-            'aria-label' => $title
+            'aria-hidden' => 'true',
+            'style' => 'color: #6c757d; font-size: 1.2rem;'
         ]),
         [
-            'class' => 'nav-link',
+            'class' => 'nav-link icon-no-margin',
             'title' => $title,
-            'aria-label' => $title,
-            'style' => 'padding: 0.5rem; color: inherit;'
+            'aria-label' => $title
         ]
     );
 
@@ -325,9 +323,7 @@ function local_sm_estratoos_plugin_render_navbar_output(\renderer_base $renderer
 }
 
 /**
- * Inject JavaScript to add token icon to navbar if render_navbar_output didn't work.
- *
- * This is a fallback for themes that don't support render_navbar_output.
+ * Inject JavaScript to add token icon to navbar next to the notification bell.
  *
  * @return string HTML/JS to inject.
  */
@@ -347,56 +343,58 @@ function local_sm_estratoos_plugin_before_standard_top_of_body_html() {
     $url = (new moodle_url('/local/sm_estratoos_plugin/index.php'))->out(false);
     $title = get_string('pluginname', 'local_sm_estratoos_plugin');
 
-    // JavaScript to inject the icon next to the notification bell if not already present.
+    // JavaScript to inject the icon next to the notification bell.
     $js = <<<JS
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if icon already exists (from render_navbar_output).
+    // Check if icon already exists.
     if (document.getElementById('sm-tokens-navbar-icon')) {
         return;
     }
 
-    // Find the notification bell or user menu area.
-    var targetSelectors = [
-        '.popover-region-notifications',  // Next to notification bell
-        '.usermenu',                       // Before user menu
-        '#usernavigation',                 // User navigation area
-        '.navbar-nav.ml-auto',             // Right side of navbar
-        '.nav.navbar-nav.ml-auto'          // Alternative right nav
-    ];
+    // Find the notification bell container.
+    var notificationBell = document.querySelector('.popover-region-notifications');
 
-    var target = null;
-    for (var i = 0; i < targetSelectors.length; i++) {
-        target = document.querySelector(targetSelectors[i]);
-        if (target) break;
+    if (!notificationBell) {
+        // Try alternative selectors.
+        var targetSelectors = [
+            '#usernavigation .navbar-nav',
+            '.usermenu',
+            '.navbar-nav.ml-auto'
+        ];
+
+        for (var i = 0; i < targetSelectors.length; i++) {
+            notificationBell = document.querySelector(targetSelectors[i]);
+            if (notificationBell) break;
+        }
     }
 
-    if (!target) {
+    if (!notificationBell) {
         return;
     }
 
-    // Create the token icon element.
+    // Create the token icon element - styled like the notification bell.
     var iconDiv = document.createElement('div');
     iconDiv.id = 'sm-tokens-navbar-icon';
-    iconDiv.className = 'popover-region collapsed popover-region-sm-tokens';
-    iconDiv.style.cssText = 'margin-right: 5px; display: inline-flex; align-items: center;';
+    iconDiv.className = 'popover-region';
 
     var link = document.createElement('a');
     link.href = '{$url}';
-    link.className = 'nav-link';
+    link.className = 'nav-link icon-no-margin';
     link.title = '{$title}';
     link.setAttribute('aria-label', '{$title}');
-    link.style.cssText = 'padding: 0.5rem; color: inherit;';
 
     var icon = document.createElement('i');
     icon.className = 'icon fa fa-key fa-fw';
-    icon.title = '{$title}';
+    icon.setAttribute('aria-hidden', 'true');
+    // Match the notification bell color (dark grey).
+    icon.style.cssText = 'color: #6c757d; font-size: 1.2rem;';
 
     link.appendChild(icon);
     iconDiv.appendChild(link);
 
-    // Insert before the target element.
-    target.parentNode.insertBefore(iconDiv, target);
+    // Insert right before the notification bell.
+    notificationBell.parentNode.insertBefore(iconDiv, notificationBell);
 });
 </script>
 JS;

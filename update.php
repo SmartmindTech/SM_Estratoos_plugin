@@ -126,7 +126,7 @@ echo $OUTPUT->footer();
 function perform_plugin_update(array $updateinfo): bool {
     global $CFG;
 
-    // Download the ZIP file.
+    // Download the ZIP file from GitHub main branch.
     $downloadurl = 'https://github.com/SmartmindTech/SM_Estratoos_plugin/archive/refs/heads/main.zip';
 
     $tempdir = make_temp_directory('local_sm_estratoos_plugin_update');
@@ -138,14 +138,19 @@ function perform_plugin_update(array $updateinfo): bool {
     $curl->setopt([
         'CURLOPT_TIMEOUT' => 120,
         'CURLOPT_FOLLOWLOCATION' => true,
+        'CURLOPT_SSL_VERIFYPEER' => false,
     ]);
 
     $result = $curl->download_one($downloadurl, null, ['filepath' => $zipfile]);
 
     if (!file_exists($zipfile) || filesize($zipfile) < 1000) {
-        echo html_writer::tag('p', get_string('downloadfailed', 'local_sm_estratoos_plugin'), ['class' => 'text-danger']);
+        echo html_writer::tag('p', get_string('downloadfailed', 'local_sm_estratoos_plugin') .
+            ' (curl error: ' . $curl->error . ')', ['class' => 'text-danger']);
         return false;
     }
+
+    echo html_writer::tag('p', '✓ ' . get_string('downloadingupdate', 'local_sm_estratoos_plugin') .
+        ' (' . round(filesize($zipfile) / 1024) . ' KB)', ['class' => 'text-success']);
 
     echo html_writer::tag('p', get_string('extractingupdate', 'local_sm_estratoos_plugin'));
 
@@ -157,7 +162,7 @@ function perform_plugin_update(array $updateinfo): bool {
     }
 
     $extractdir = $tempdir . '/extracted';
-    mkdir($extractdir, 0777, true);
+    @mkdir($extractdir, 0777, true);
     $zip->extractTo($extractdir);
     $zip->close();
 
@@ -169,35 +174,34 @@ function perform_plugin_update(array $updateinfo): bool {
     }
     $sourcedir = $folders[0];
 
+    echo html_writer::tag('p', '✓ ' . get_string('extractingupdate', 'local_sm_estratoos_plugin'), ['class' => 'text-success']);
+
     // Target directory.
     $targetdir = $CFG->dirroot . '/local/sm_estratoos_plugin';
 
     echo html_writer::tag('p', get_string('installingupdate', 'local_sm_estratoos_plugin'));
 
-    // Backup current version (optional).
-    $backupdir = $tempdir . '/backup_' . time();
-    if (is_dir($targetdir)) {
-        rename($targetdir, $backupdir);
+    // Check if target directory is writable.
+    if (!is_writable($targetdir)) {
+        echo html_writer::tag('p', get_string('installfailed', 'local_sm_estratoos_plugin') .
+            ' (Directory not writable: ' . $targetdir . ')', ['class' => 'text-danger']);
+        echo html_writer::tag('p', 'Please ensure the web server has write permissions to the plugin directory, or update manually.', ['class' => 'text-muted']);
+        return false;
     }
 
-    // Copy new version.
-    if (!rename($sourcedir, $targetdir)) {
-        // Try recursive copy instead.
-        if (!recursive_copy($sourcedir, $targetdir)) {
-            // Restore backup.
-            if (is_dir($backupdir)) {
-                rename($backupdir, $targetdir);
-            }
-            echo html_writer::tag('p', get_string('installfailed', 'local_sm_estratoos_plugin'), ['class' => 'text-danger']);
-            return false;
-        }
+    // Copy files from source to target (overwriting existing files).
+    $copyresult = recursive_copy_overwrite($sourcedir, $targetdir);
+    if (!$copyresult['success']) {
+        echo html_writer::tag('p', get_string('installfailed', 'local_sm_estratoos_plugin') .
+            ' (' . $copyresult['error'] . ')', ['class' => 'text-danger']);
+        return false;
     }
+
+    echo html_writer::tag('p', '✓ ' . get_string('installingupdate', 'local_sm_estratoos_plugin') .
+        ' (' . $copyresult['count'] . ' files)', ['class' => 'text-success']);
 
     // Clean up.
     @unlink($zipfile);
-    if (is_dir($backupdir)) {
-        recursive_delete($backupdir);
-    }
     if (is_dir($extractdir)) {
         recursive_delete($extractdir);
     }
@@ -209,19 +213,30 @@ function perform_plugin_update(array $updateinfo): bool {
 }
 
 /**
- * Recursively copy a directory.
+ * Recursively copy files from source to destination, overwriting existing files.
  *
  * @param string $src Source directory.
  * @param string $dst Destination directory.
- * @return bool True on success.
+ * @return array Result with 'success', 'count', and 'error' keys.
  */
-function recursive_copy(string $src, string $dst): bool {
-    $dir = opendir($src);
+function recursive_copy_overwrite(string $src, string $dst): array {
+    $result = ['success' => true, 'count' => 0, 'error' => ''];
+
+    $dir = @opendir($src);
     if (!$dir) {
-        return false;
+        $result['success'] = false;
+        $result['error'] = "Cannot open source directory: $src";
+        return $result;
     }
 
-    @mkdir($dst, 0777, true);
+    if (!is_dir($dst)) {
+        if (!@mkdir($dst, 0755, true)) {
+            $result['success'] = false;
+            $result['error'] = "Cannot create directory: $dst";
+            closedir($dir);
+            return $result;
+        }
+    }
 
     while (($file = readdir($dir)) !== false) {
         if ($file === '.' || $file === '..') {
@@ -232,20 +247,25 @@ function recursive_copy(string $src, string $dst): bool {
         $dstpath = $dst . '/' . $file;
 
         if (is_dir($srcpath)) {
-            if (!recursive_copy($srcpath, $dstpath)) {
+            $subresult = recursive_copy_overwrite($srcpath, $dstpath);
+            if (!$subresult['success']) {
                 closedir($dir);
-                return false;
+                return $subresult;
             }
+            $result['count'] += $subresult['count'];
         } else {
-            if (!copy($srcpath, $dstpath)) {
+            if (!@copy($srcpath, $dstpath)) {
+                $result['success'] = false;
+                $result['error'] = "Cannot copy file: $srcpath to $dstpath";
                 closedir($dir);
-                return false;
+                return $result;
             }
+            $result['count']++;
         }
     }
 
     closedir($dir);
-    return true;
+    return $result;
 }
 
 /**
