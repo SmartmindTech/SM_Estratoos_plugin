@@ -124,10 +124,16 @@ class company_token_manager {
      * @return string The token string.
      */
     public static function create_admin_token(int $userid, int $serviceid, array $options = []): string {
-        global $CFG;
+        global $CFG, $DB;
 
         // Get system context for admin token.
         $context = \context_system::instance();
+
+        // Get user for token naming.
+        $user = $DB->get_record('user', ['id' => $userid], 'id, firstname, lastname', MUST_EXIST);
+
+        // Generate token name: FIRSTNAME_LASTNAME_ADMIN.
+        $tokenname = self::generate_token_name($user->firstname, $user->lastname, 'ADMIN');
 
         // Determine validity period.
         $validuntil = 0;
@@ -147,6 +153,10 @@ class company_token_manager {
             $validuntil,
             $iprestriction
         );
+
+        // Get the token record and update the name.
+        $tokenrecord = $DB->get_record('external_tokens', ['token' => $token], 'id', MUST_EXIST);
+        $DB->set_field('external_tokens', 'name', $tokenname, ['id' => $tokenrecord->id]);
 
         return $token;
     }
