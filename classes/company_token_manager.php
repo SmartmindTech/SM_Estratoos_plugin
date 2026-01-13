@@ -920,9 +920,10 @@ class company_token_manager {
      * Get user's primary role for token naming (non-IOMAD mode).
      *
      * Priority: MANAGER > TEACHER > OTHER > STUDENT
+     * Returns translated role name based on current language.
      *
      * @param int $userid User ID.
-     * @return string Role name in uppercase (MANAGER, TEACHER, OTHER, STUDENT).
+     * @return string Role name in uppercase (translated).
      */
     private static function get_user_primary_role(int $userid): string {
         global $DB;
@@ -958,15 +959,15 @@ class company_token_manager {
             }
         }
 
-        // Return based on priority.
+        // Return translated role name based on priority.
         if ($hasmanager) {
-            return 'MANAGER';
+            return get_string('tokenrole_manager', 'local_sm_estratoos_plugin');
         } else if ($hasteacher) {
-            return 'TEACHER';
+            return get_string('tokenrole_teacher', 'local_sm_estratoos_plugin');
         } else if ($hasother) {
-            return 'OTHER';
+            return get_string('tokenrole_other', 'local_sm_estratoos_plugin');
         } else {
-            return 'STUDENT';
+            return get_string('tokenrole_student', 'local_sm_estratoos_plugin');
         }
     }
 

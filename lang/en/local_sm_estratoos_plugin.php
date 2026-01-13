@@ -38,7 +38,7 @@ $string['sm_estratoos_plugin:createtokensapi'] = 'Create tokens via API';
 
 // Dashboard.
 $string['dashboard'] = 'Token Management Dashboard';
-$string['dashboarddesc'] = 'Create and manage API tokens for your SmartMind - Estratoos installation.';
+$string['dashboarddesc'] = 'Create and manage API tokens for your Moodle installation.';
 $string['createadmintoken'] = 'Create Admin Token';
 $string['createadmintokendesc'] = 'Create a system-wide token for the Moodle administrator with full access.';
 $string['createcompanytokens'] = 'Create Company Tokens';
@@ -210,6 +210,12 @@ $string['role_student'] = 'Student';
 $string['role_teacher'] = 'Teacher';
 $string['role_manager'] = 'Manager';
 $string['role_other'] = 'Other';
+
+// Role names for token naming (uppercase, no accents).
+$string['tokenrole_student'] = 'STUDENT';
+$string['tokenrole_teacher'] = 'TEACHER';
+$string['tokenrole_manager'] = 'MANAGER';
+$string['tokenrole_other'] = 'OTHER';
 
 // IOMAD detection.
 $string['iomaddetected'] = 'IOMAD multi-tenant mode detected';

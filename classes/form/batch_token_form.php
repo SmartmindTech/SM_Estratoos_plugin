@@ -241,17 +241,14 @@ class batch_token_form extends \moodleform {
         $mform->addHelpButton('iprestriction', 'iprestriction', 'local_sm_estratoos_plugin');
 
         // Valid until.
+        // Note: When 'optional' => true and checkbox is unchecked, the element returns 0 (never expires).
+        // We don't set a default timestamp here because that would enable the checkbox by default.
+        // Users must explicitly enable and select a date if they want token expiration.
         $mform->addElement('date_time_selector', 'validuntil',
             get_string('validuntil', 'local_sm_estratoos_plugin'), [
                 'optional' => true
             ]);
         $mform->addHelpButton('validuntil', 'validuntil', 'local_sm_estratoos_plugin');
-
-        // Set default validity if configured.
-        $defaultdays = get_config('local_sm_estratoos_plugin', 'default_validity_days');
-        if ($defaultdays > 0) {
-            $mform->setDefault('validuntil', time() + ($defaultdays * DAYSECS));
-        }
 
         // Notes.
         $mform->addElement('textarea', 'notes',
