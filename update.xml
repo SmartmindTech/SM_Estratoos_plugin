@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011407</version>
+        <version>2025011408</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.7</release>
+        <release>1.4.8</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,18 +29,18 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.7/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.8/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.7</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.8</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.7</h3>
+            <h3>Version 1.4.8</h3>
             <ul>
-                <li>FIXED: Removed service definition from services.php that was causing Moodle to overwrite functions</li>
-                <li>SmartMind service now properly retains all 450+ functions (437 mobile + 17 plugin)</li>
+                <li>FIXED: Service now created without component to prevent Moodle from deleting it</li>
+                <li>Re-creates the SmartMind service with all 450+ functions</li>
             </ul>
             ]]>
         </releasenotes>

@@ -207,5 +207,16 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011407, 'local', 'sm_estratoos_plugin');
     }
 
+    // Fix: Re-create service without component (v1.4.8).
+    if ($oldversion < 2025011408) {
+        // Include install.php to use the service functions.
+        require_once(__DIR__ . '/install.php');
+
+        // This will re-create the service (since v1.4.7 caused Moodle to delete it).
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011408, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

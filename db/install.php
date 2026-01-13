@@ -146,14 +146,15 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
     $service = $DB->get_record('external_services', ['shortname' => $serviceshortname]);
 
     if (!$service) {
-        // Create the service.
+        // Create the service WITHOUT a component so Moodle treats it as a custom service
+        // and doesn't try to manage it based on services.php.
         $serviceid = $DB->insert_record('external_services', [
             'name' => $servicename,
             'shortname' => $serviceshortname,
             'enabled' => 1,
             'requiredcapability' => '',
             'restrictedusers' => 0,
-            'component' => 'local_sm_estratoos_plugin',
+            'component' => '',  // Empty component = custom service, not managed by plugin.
             'timecreated' => time(),
             'timemodified' => time(),
             'downloadfiles' => 1,
