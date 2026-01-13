@@ -312,4 +312,72 @@ if (!empty($recentbatches)) {
     echo html_writer::table($table);
 }
 
+// Deletion history section.
+if ($issiteadmin) {
+    $deletions = \local_sm_estratoos_plugin\company_token_manager::get_recent_deletions(null, 50);
+} else if (!empty($managedids)) {
+    $deletions = \local_sm_estratoos_plugin\company_token_manager::get_recent_deletions($managedids, 50);
+} else {
+    $deletions = [];
+}
+
+if (!empty($deletions)) {
+    echo html_writer::tag('h4', get_string('deletionhistory', 'local_sm_estratoos_plugin'), ['class' => 'mt-4']);
+
+    $deletioncount = count($deletions);
+    $collapseclass = $deletioncount > 5 ? '' : ' show';
+
+    echo html_writer::start_div('card');
+
+    // Collapsible header.
+    echo html_writer::start_div('card-header', ['id' => 'deletionHistoryHeader']);
+    echo html_writer::start_tag('button', [
+        'class' => 'btn btn-link text-left w-100',
+        'type' => 'button',
+        'data-toggle' => 'collapse',
+        'data-target' => '#deletionHistoryContent',
+        'aria-expanded' => ($deletioncount <= 5 ? 'true' : 'false'),
+        'aria-controls' => 'deletionHistoryContent'
+    ]);
+    echo $OUTPUT->pix_icon('i/trash', '', 'moodle', ['class' => 'mr-2']);
+    echo html_writer::tag('strong', $deletioncount . ' ' . get_string('tokensdeleted', 'local_sm_estratoos_plugin'));
+    echo ' (' . get_string('clicktoexpand', 'local_sm_estratoos_plugin') . ')';
+    echo html_writer::end_tag('button');
+    echo html_writer::end_div(); // card-header
+
+    // Collapsible content.
+    echo html_writer::start_div('collapse' . $collapseclass, ['id' => 'deletionHistoryContent', 'aria-labelledby' => 'deletionHistoryHeader']);
+    echo html_writer::start_div('card-body');
+
+    // Scrollable table container.
+    echo html_writer::start_div('table-responsive', ['style' => 'max-height: 300px; overflow-y: auto;']);
+
+    $deltable = new html_table();
+    $deltable->head = [
+        get_string('date'),
+        get_string('user', 'local_sm_estratoos_plugin'),
+        get_string('token', 'local_sm_estratoos_plugin'),
+        get_string('company', 'local_sm_estratoos_plugin'),
+        get_string('deletedby', 'local_sm_estratoos_plugin')
+    ];
+    $deltable->attributes['class'] = 'table table-sm table-striped';
+
+    foreach ($deletions as $deletion) {
+        $deltable->data[] = [
+            html_writer::tag('small', userdate($deletion->timedeleted, get_string('strftimedatetimeshort', 'langconfig'))),
+            $deletion->userfullname,
+            html_writer::tag('code', $deletion->tokenname),
+            $deletion->companyname ?: '-',
+            fullname($deletion)
+        ];
+    }
+
+    echo html_writer::table($deltable);
+    echo html_writer::end_div(); // table-responsive
+
+    echo html_writer::end_div(); // card-body
+    echo html_writer::end_div(); // collapse
+    echo html_writer::end_div(); // card
+}
+
 echo $OUTPUT->footer();

@@ -260,6 +260,12 @@ $string['downloadfailed'] = 'Failed to download the update package.';
 $string['extractfailed'] = 'Failed to extract the update package.';
 $string['installfailed'] = 'Failed to install the update.';
 
+// Deletion history.
+$string['deletionhistory'] = 'Deletion History';
+$string['tokensdeleted'] = 'tokens deleted';
+$string['deletedby'] = 'Deleted by';
+$string['clicktoexpand'] = 'click to expand';
+
 // Manual update instructions.
 $string['manualupdate_title'] = 'Manual Update Required';
 $string['manualupdate_intro'] = 'The automatic update could not be completed due to file permissions. Please follow these steps to update manually:';

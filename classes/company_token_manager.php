@@ -325,12 +325,39 @@ class company_token_manager {
      * @return bool True if successful.
      */
     public static function revoke_token(int $tokenid): bool {
-        global $DB;
+        global $DB, $USER;
 
-        // Get the token record.
+        // Get the token record with all info for logging.
         $iomadtoken = $DB->get_record('local_sm_estratoos_plugin', ['id' => $tokenid]);
         if (!$iomadtoken) {
             return false;
+        }
+
+        // Get the external token info.
+        $externaltoken = $DB->get_record('external_tokens', ['id' => $iomadtoken->tokenid]);
+        if ($externaltoken) {
+            // Get user info.
+            $user = $DB->get_record('user', ['id' => $externaltoken->userid], 'id, username, firstname, lastname');
+
+            // Get company info if available.
+            $companyname = null;
+            if ($iomadtoken->companyid) {
+                $company = $DB->get_record('company', ['id' => $iomadtoken->companyid], 'shortname');
+                $companyname = $company ? $company->shortname : null;
+            }
+
+            // Log the deletion.
+            $deletion = new \stdClass();
+            $deletion->batchid = $iomadtoken->batchid;
+            $deletion->tokenname = $externaltoken->name ?? 'Unknown';
+            $deletion->username = $user ? $user->username : 'unknown';
+            $deletion->userfullname = $user ? fullname($user) : 'Unknown User';
+            $deletion->companyid = $iomadtoken->companyid;
+            $deletion->companyname = $companyname;
+            $deletion->deletedby = $USER->id;
+            $deletion->timedeleted = time();
+
+            $DB->insert_record('local_sm_estratoos_plugin_del', $deletion);
         }
 
         // Delete from external_tokens.
@@ -576,6 +603,51 @@ class company_token_manager {
         }
 
         $sql .= " ORDER BY b.timecreated DESC";
+
+        return $DB->get_records_sql($sql, $params, 0, $limit);
+    }
+
+    /**
+     * Get deletion history for a specific batch.
+     *
+     * @param string $batchid The batch UUID.
+     * @return array Array of deletion records.
+     */
+    public static function get_batch_deletions(string $batchid): array {
+        global $DB;
+
+        return $DB->get_records('local_sm_estratoos_plugin_del', ['batchid' => $batchid], 'timedeleted DESC');
+    }
+
+    /**
+     * Get recent deletions (not tied to a batch, or all).
+     *
+     * @param int|null $companyid Filter by company ID (null for all).
+     * @param int $limit Maximum number of records.
+     * @return array Array of deletion records grouped by date.
+     */
+    public static function get_recent_deletions($companyid = null, int $limit = 100): array {
+        global $DB;
+
+        $sql = "SELECT d.*, u.firstname as deleterfirstname, u.lastname as deleterlastname
+                FROM {local_sm_estratoos_plugin_del} d
+                JOIN {user} u ON u.id = d.deletedby
+                WHERE 1=1";
+
+        $params = [];
+
+        if ($companyid !== null) {
+            if (is_array($companyid) && !empty($companyid)) {
+                list($insql, $inparams) = $DB->get_in_or_equal($companyid, SQL_PARAMS_NAMED, 'cid');
+                $sql .= " AND d.companyid $insql";
+                $params = array_merge($params, $inparams);
+            } else if (!is_array($companyid)) {
+                $sql .= " AND d.companyid = :companyid";
+                $params['companyid'] = $companyid;
+            }
+        }
+
+        $sql .= " ORDER BY d.timedeleted DESC";
 
         return $DB->get_records_sql($sql, $params, 0, $limit);
     }

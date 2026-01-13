@@ -56,5 +56,28 @@
         <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
       </INDEXES>
     </TABLE>
+
+    <TABLE NAME="local_sm_estratoos_plugin_del" COMMENT="Deleted tokens history log">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="batchid" TYPE="char" LENGTH="40" NOTNULL="false" COMMENT="Batch ID if token was from a batch"/>
+        <FIELD NAME="tokenname" TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Name of the deleted token"/>
+        <FIELD NAME="username" TYPE="char" LENGTH="100" NOTNULL="true" COMMENT="Username of token owner"/>
+        <FIELD NAME="userfullname" TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Full name of token owner"/>
+        <FIELD NAME="companyid" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Company ID"/>
+        <FIELD NAME="companyname" TYPE="char" LENGTH="255" NOTNULL="false" COMMENT="Company name"/>
+        <FIELD NAME="deletedby" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="User who deleted the token"/>
+        <FIELD NAME="timedeleted" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="deletedby_fk" TYPE="foreign" FIELDS="deletedby" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="batchid_idx" UNIQUE="false" FIELDS="batchid"/>
+        <INDEX NAME="companyid_idx" UNIQUE="false" FIELDS="companyid"/>
+        <INDEX NAME="timedeleted_idx" UNIQUE="false" FIELDS="timedeleted"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

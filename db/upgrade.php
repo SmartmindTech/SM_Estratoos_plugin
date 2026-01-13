@@ -71,5 +71,38 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011224, 'local', 'sm_estratoos_plugin');
     }
 
+    // Create deletion history table (v1.2.22).
+    if ($oldversion < 2025011226) {
+        // Define table local_sm_estratoos_plugin_del.
+        $table = new xmldb_table('local_sm_estratoos_plugin_del');
+
+        // Adding fields.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('batchid', XMLDB_TYPE_CHAR, '40', null, null, null, null);
+        $table->add_field('tokenname', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('username', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userfullname', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('companyid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('companyname', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+        $table->add_field('deletedby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timedeleted', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+        // Adding keys.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('deletedby_fk', XMLDB_KEY_FOREIGN, ['deletedby'], 'user', ['id']);
+
+        // Adding indexes.
+        $table->add_index('batchid_idx', XMLDB_INDEX_NOTUNIQUE, ['batchid']);
+        $table->add_index('companyid_idx', XMLDB_INDEX_NOTUNIQUE, ['companyid']);
+        $table->add_index('timedeleted_idx', XMLDB_INDEX_NOTUNIQUE, ['timedeleted']);
+
+        // Create the table if it doesn't exist.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2025011226, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

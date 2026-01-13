@@ -298,20 +298,20 @@ function local_sm_estratoos_plugin_render_navbar_output(\renderer_base $renderer
     $url = new moodle_url('/local/sm_estratoos_plugin/index.php');
     $title = get_string('pluginname', 'local_sm_estratoos_plugin');
 
-    // Create a navbar icon styled like the notification bell.
+    // Create a navbar icon matching the bell icon style.
     $html = html_writer::start_tag('div', [
         'class' => 'popover-region',
-        'id' => 'sm-tokens-navbar-icon'
+        'id' => 'sm-tokens-navbar-icon',
+        'style' => 'display: flex; align-items: center;'
     ]);
 
     $html .= html_writer::link($url,
         html_writer::tag('i', '', [
             'class' => 'icon fa fa-key fa-fw',
-            'aria-hidden' => 'true',
-            'style' => 'color: #6c757d; font-size: 1.2rem;'
+            'aria-hidden' => 'true'
         ]),
         [
-            'class' => 'nav-link icon-no-margin',
+            'class' => 'nav-link position-relative icon-no-margin',
             'title' => $title,
             'aria-label' => $title
         ]
@@ -343,7 +343,7 @@ function local_sm_estratoos_plugin_before_standard_top_of_body_html() {
     $url = (new moodle_url('/local/sm_estratoos_plugin/index.php'))->out(false);
     $title = get_string('pluginname', 'local_sm_estratoos_plugin');
 
-    // JavaScript to inject the icon next to the notification bell.
+    // JavaScript to inject the icon to the LEFT of the notification bell.
     $js = <<<JS
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -356,44 +356,30 @@ document.addEventListener('DOMContentLoaded', function() {
     var notificationBell = document.querySelector('.popover-region-notifications');
 
     if (!notificationBell) {
-        // Try alternative selectors.
-        var targetSelectors = [
-            '#usernavigation .navbar-nav',
-            '.usermenu',
-            '.navbar-nav.ml-auto'
-        ];
-
-        for (var i = 0; i < targetSelectors.length; i++) {
-            notificationBell = document.querySelector(targetSelectors[i]);
-            if (notificationBell) break;
-        }
-    }
-
-    if (!notificationBell) {
         return;
     }
 
-    // Create the token icon element - styled like the notification bell.
+    // Create the token icon element - matching the bell icon style exactly.
     var iconDiv = document.createElement('div');
     iconDiv.id = 'sm-tokens-navbar-icon';
     iconDiv.className = 'popover-region';
+    iconDiv.style.cssText = 'display: flex; align-items: center;';
 
     var link = document.createElement('a');
     link.href = '{$url}';
-    link.className = 'nav-link icon-no-margin';
+    link.className = 'nav-link position-relative icon-no-margin';
     link.title = '{$title}';
     link.setAttribute('aria-label', '{$title}');
 
     var icon = document.createElement('i');
     icon.className = 'icon fa fa-key fa-fw';
     icon.setAttribute('aria-hidden', 'true');
-    // Match the notification bell color (dark grey).
-    icon.style.cssText = 'color: #6c757d; font-size: 1.2rem;';
+    // No custom styles - inherit from parent to match other icons.
 
     link.appendChild(icon);
     iconDiv.appendChild(link);
 
-    // Insert right before the notification bell.
+    // Insert to the LEFT of the notification bell.
     notificationBell.parentNode.insertBefore(iconDiv, notificationBell);
 });
 </script>

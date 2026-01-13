@@ -260,6 +260,12 @@ $string['downloadfailed'] = 'Error al descargar el paquete de actualización.';
 $string['extractfailed'] = 'Error al extraer el paquete de actualización.';
 $string['installfailed'] = 'Error al instalar la actualización.';
 
+// Historial de eliminaciones.
+$string['deletionhistory'] = 'Historial de Eliminaciones';
+$string['tokensdeleted'] = 'tokens eliminados';
+$string['deletedby'] = 'Eliminado por';
+$string['clicktoexpand'] = 'clic para expandir';
+
 // Instrucciones de actualización manual.
 $string['manualupdate_title'] = 'Actualización Manual Requerida';
 $string['manualupdate_intro'] = 'La actualización automática no se pudo completar debido a los permisos de archivos. Siga estos pasos para actualizar manualmente:';

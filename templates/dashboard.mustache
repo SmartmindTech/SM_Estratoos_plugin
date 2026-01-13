@@ -113,4 +113,46 @@
         </tbody>
     </table>
     {{/hasrecentbatches}}
+
+    {{! Deletion History }}
+    {{#hasdeletions}}
+    <h4 class="mt-4">{{#str}}deletionhistory, local_sm_estratoos_plugin{{/str}}</h4>
+    <div class="card">
+        <div class="card-header" id="deletionHistoryHeader">
+            <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#deletionHistoryContent" aria-expanded="false" aria-controls="deletionHistoryContent">
+                <i class="fa fa-trash mr-2"></i>
+                {{totaldeletions}} {{#str}}tokensdeleted, local_sm_estratoos_plugin{{/str}}
+                <i class="fa fa-chevron-down ml-2"></i>
+            </button>
+        </div>
+        <div id="deletionHistoryContent" class="collapse" aria-labelledby="deletionHistoryHeader">
+            <div class="card-body">
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-sm table-striped">
+                        <thead class="sticky-top bg-white">
+                            <tr>
+                                <th>{{#str}}date{{/str}}</th>
+                                <th>{{#str}}user, local_sm_estratoos_plugin{{/str}}</th>
+                                <th>{{#str}}token, local_sm_estratoos_plugin{{/str}}</th>
+                                <th>{{#str}}company, local_sm_estratoos_plugin{{/str}}</th>
+                                <th>{{#str}}deletedby, local_sm_estratoos_plugin{{/str}}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{#deletions}}
+                            <tr>
+                                <td><small>{{timedeleted_formatted}}</small></td>
+                                <td>{{userfullname}}</td>
+                                <td><code>{{tokenname}}</code></td>
+                                <td>{{companyname}}</td>
+                                <td>{{deletedbyname}}</td>
+                            </tr>
+                            {{/deletions}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{/hasdeletions}}
 </div>
