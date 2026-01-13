@@ -152,5 +152,16 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011402, 'local', 'sm_estratoos_plugin');
     }
 
+    // Fix: Improved function copy from mobile service using external_functions table (v1.4.3).
+    if ($oldversion < 2025011403) {
+        // Include install.php to use the service functions.
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run with improved logic that also checks external_functions table.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011403, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

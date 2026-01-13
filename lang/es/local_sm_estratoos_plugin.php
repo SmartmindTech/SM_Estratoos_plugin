@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 // General.
-$string['pluginname'] = 'Tokens de Empresa SmartMind - Estratoos';
+$string['pluginname'] = 'SmartMind Estratoos Plugin';
 $string['plugindescription'] = 'Crear y gestionar tokens de API con alcance por empresa para instalaciones multi-tenant de SmartMind - Estratoos.';
 
 // Capacidades.

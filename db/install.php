@@ -168,9 +168,12 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
     }
 
     // Step 1: Copy ALL functions from Moodle mobile web service.
+    // First try external_services_functions table.
     $mobileservice = $DB->get_record('external_services', ['shortname' => 'moodle_mobile_app']);
+    $functioncount = 0;
+
     if ($mobileservice) {
-        // Get all functions from mobile service.
+        // Get all functions from mobile service via external_services_functions.
         $mobilefunctions = $DB->get_records('external_services_functions', [
             'externalserviceid' => $mobileservice->id
         ]);
@@ -187,6 +190,32 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
                 $DB->insert_record('external_services_functions', [
                     'externalserviceid' => $serviceid,
                     'functionname' => $mobilefunction->functionname,
+                ]);
+                $functioncount++;
+            }
+        }
+    }
+
+    // If no functions were found in external_services_functions, try external_functions table.
+    // Built-in services store function associations in the 'services' field of external_functions.
+    if ($functioncount == 0) {
+        // Get all functions that are associated with moodle_mobile_app service.
+        $sql = "SELECT name FROM {external_functions}
+                WHERE services LIKE '%moodle_mobile_app%'";
+        $mobilefunctions = $DB->get_records_sql($sql);
+
+        foreach ($mobilefunctions as $mobilefunction) {
+            // Check if function is already in our service.
+            $existing = $DB->get_record('external_services_functions', [
+                'externalserviceid' => $serviceid,
+                'functionname' => $mobilefunction->name,
+            ]);
+
+            if (!$existing) {
+                // Add function to our service.
+                $DB->insert_record('external_services_functions', [
+                    'externalserviceid' => $serviceid,
+                    'functionname' => $mobilefunction->name,
                 ]);
             }
         }
