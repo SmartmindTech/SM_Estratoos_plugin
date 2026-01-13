@@ -114,19 +114,26 @@ echo $OUTPUT->heading(get_string('managetokens', 'local_sm_estratoos_plugin'));
 // Filters.
 global $DB;
 
+// Check if IOMAD is installed.
+$isiomad = \local_sm_estratoos_plugin\util::is_iomad_installed();
+
 // Get companies based on user access - site admins see all, company managers see only their companies.
 $issiteadmin = is_siteadmin();
-if ($issiteadmin) {
-    $companies = ['' => get_string('all')] + $DB->get_records_menu('company', [], 'name', 'id, name');
-} else {
-    // Company manager - only show managed companies.
-    $managedcompanies = \local_sm_estratoos_plugin\util::get_user_managed_companies();
-    $companies = [];
-    foreach ($managedcompanies as $company) {
-        $companies[$company->id] = $company->name;
-    }
-    if (count($companies) > 1) {
-        $companies = ['' => get_string('all')] + $companies;
+$companies = [];
+
+if ($isiomad) {
+    // IOMAD MODE: Show company filter.
+    if ($issiteadmin) {
+        $companies = ['' => get_string('all')] + $DB->get_records_menu('company', [], 'name', 'id, name');
+    } else {
+        // Company manager - only show managed companies.
+        $managedcompanies = \local_sm_estratoos_plugin\util::get_user_managed_companies();
+        foreach ($managedcompanies as $company) {
+            $companies[$company->id] = $company->name;
+        }
+        if (count($companies) > 1) {
+            $companies = ['' => get_string('all')] + $companies;
+        }
     }
 }
 $services = ['' => get_string('all')] + $DB->get_records_menu('external_services', ['enabled' => 1], 'name', 'id, name');
@@ -134,10 +141,13 @@ $services = ['' => get_string('all')] + $DB->get_records_menu('external_services
 echo html_writer::start_tag('form', ['method' => 'get', 'class' => 'form-inline mb-4']);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
-echo html_writer::start_div('form-group mr-2');
-echo html_writer::label(get_string('company', 'local_sm_estratoos_plugin') . ': ', 'filtercompany', true, ['class' => 'mr-2']);
-echo html_writer::select($companies, 'companyid', $companyid, false, ['id' => 'filtercompany', 'class' => 'form-control']);
-echo html_writer::end_div();
+// Only show company filter in IOMAD mode.
+if ($isiomad && !empty($companies)) {
+    echo html_writer::start_div('form-group mr-2');
+    echo html_writer::label(get_string('company', 'local_sm_estratoos_plugin') . ': ', 'filtercompany', true, ['class' => 'mr-2']);
+    echo html_writer::select($companies, 'companyid', $companyid, false, ['id' => 'filtercompany', 'class' => 'form-control']);
+    echo html_writer::end_div();
+}
 
 echo html_writer::start_div('form-group mr-2');
 echo html_writer::label(get_string('service', 'local_sm_estratoos_plugin') . ': ', 'filterservice', true, ['class' => 'mr-2']);
