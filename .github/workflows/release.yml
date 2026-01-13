@@ -1,0 +1,62 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create plugin ZIP with correct structure
+        run: |
+          # Create a temporary directory with the correct folder name
+          mkdir -p release/sm_estratoos_plugin
+
+          # Copy all plugin files (excluding git and github folders)
+          rsync -av --exclude='.git' --exclude='.github' --exclude='release' . release/sm_estratoos_plugin/
+
+          # Create the ZIP file from the release directory
+          cd release
+          zip -r ../sm_estratoos_plugin.zip sm_estratoos_plugin/
+          cd ..
+
+          # Verify ZIP structure
+          echo "ZIP contents:"
+          unzip -l sm_estratoos_plugin.zip | head -20
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: sm_estratoos_plugin.zip
+          generate_release_notes: true
+          body: |
+            ## SmartMind - Estratoos Plugin v${{ steps.version.outputs.VERSION }}
+
+            ### Installation
+
+            **For new installations:**
+            1. Download `sm_estratoos_plugin.zip`
+            2. Go to Site Administration > Plugins > Install plugins
+            3. Upload the ZIP file
+
+            **For updates (Moodle native updater):**
+            1. Go to Site Administration > Plugins > Plugins overview
+            2. Find "SmartMind - Estratoos Plugin"
+            3. Click "Install update" if available
+
+            ### Requirements
+            - Moodle 4.1 or higher
+            - PHP 8.0 or higher
+            - Optional: IOMAD 5.0+ for multi-tenant features

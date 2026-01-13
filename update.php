@@ -118,6 +118,46 @@ echo $OUTPUT->confirm(
 echo $OUTPUT->footer();
 
 /**
+ * Show manual update instructions when auto-update fails.
+ *
+ * @param array $updateinfo Update information.
+ */
+function show_manual_update_instructions(array $updateinfo): void {
+    global $CFG;
+
+    echo html_writer::start_tag('div', ['class' => 'alert alert-info']);
+    echo html_writer::tag('h5', get_string('manualupdate_title', 'local_sm_estratoos_plugin'));
+
+    echo html_writer::tag('p', get_string('manualupdate_intro', 'local_sm_estratoos_plugin'));
+
+    echo html_writer::start_tag('ol');
+
+    // Step 1: Download ZIP.
+    $downloadurl = $updateinfo['download'] ?? 'https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/latest';
+    echo html_writer::tag('li', get_string('manualupdate_step1', 'local_sm_estratoos_plugin') . ' ' .
+        html_writer::link($downloadurl, get_string('manualupdate_download', 'local_sm_estratoos_plugin'),
+            ['class' => 'btn btn-sm btn-primary', 'target' => '_blank']));
+
+    // Step 2: Go to plugin installer.
+    $installerurl = new moodle_url('/admin/tool/installaddon/index.php');
+    echo html_writer::tag('li', get_string('manualupdate_step2', 'local_sm_estratoos_plugin') . ' ' .
+        html_writer::link($installerurl, get_string('manualupdate_installer', 'local_sm_estratoos_plugin'),
+            ['class' => 'btn btn-sm btn-secondary', 'target' => '_blank']));
+
+    // Step 3: Upload and install.
+    echo html_writer::tag('li', get_string('manualupdate_step3', 'local_sm_estratoos_plugin'));
+
+    echo html_writer::end_tag('ol');
+
+    // Alternative: command line.
+    echo html_writer::tag('p', html_writer::tag('strong', get_string('manualupdate_cli_title', 'local_sm_estratoos_plugin')));
+    echo html_writer::tag('pre', "cd {$CFG->dirroot}/local\nrm -rf sm_estratoos_plugin\nunzip /path/to/sm_estratoos_plugin.zip\nphp {$CFG->dirroot}/admin/cli/upgrade.php",
+        ['class' => 'bg-light p-2', 'style' => 'font-size: 0.85em;']);
+
+    echo html_writer::end_tag('div');
+}
+
+/**
  * Perform the plugin update.
  *
  * @param array $updateinfo Update information.
@@ -184,8 +224,9 @@ function perform_plugin_update(array $updateinfo): bool {
     // Check if target directory is writable.
     if (!is_writable($targetdir)) {
         echo html_writer::tag('p', get_string('installfailed', 'local_sm_estratoos_plugin') .
-            ' (Directory not writable: ' . $targetdir . ')', ['class' => 'text-danger']);
-        echo html_writer::tag('p', 'Please ensure the web server has write permissions to the plugin directory, or update manually.', ['class' => 'text-muted']);
+            ' (Directory not writable)', ['class' => 'text-danger']);
+        echo html_writer::tag('p', '', ['class' => 'mb-3']);
+        show_manual_update_instructions($updateinfo);
         return false;
     }
 
@@ -193,7 +234,9 @@ function perform_plugin_update(array $updateinfo): bool {
     $copyresult = recursive_copy_overwrite($sourcedir, $targetdir);
     if (!$copyresult['success']) {
         echo html_writer::tag('p', get_string('installfailed', 'local_sm_estratoos_plugin') .
-            ' (' . $copyresult['error'] . ')', ['class' => 'text-danger']);
+            ' (File copy failed)', ['class' => 'text-danger']);
+        echo html_writer::tag('p', '', ['class' => 'mb-3']);
+        show_manual_update_instructions($updateinfo);
         return false;
     }
 

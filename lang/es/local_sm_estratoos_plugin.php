@@ -259,3 +259,13 @@ $string['alreadyuptodate'] = 'El plugin ya está actualizado.';
 $string['downloadfailed'] = 'Error al descargar el paquete de actualización.';
 $string['extractfailed'] = 'Error al extraer el paquete de actualización.';
 $string['installfailed'] = 'Error al instalar la actualización.';
+
+// Instrucciones de actualización manual.
+$string['manualupdate_title'] = 'Actualización Manual Requerida';
+$string['manualupdate_intro'] = 'La actualización automática no se pudo completar debido a los permisos de archivos. Siga estos pasos para actualizar manualmente:';
+$string['manualupdate_step1'] = 'Descargue la última versión del plugin:';
+$string['manualupdate_download'] = 'Descargar ZIP';
+$string['manualupdate_step2'] = 'Vaya al instalador de plugins de Moodle:';
+$string['manualupdate_installer'] = 'Abrir Instalador de Plugins';
+$string['manualupdate_step3'] = 'Suba el archivo ZIP y siga las instrucciones de instalación.';
+$string['manualupdate_cli_title'] = 'Alternativa: Línea de Comandos (si tiene acceso al servidor):';

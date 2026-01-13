@@ -206,7 +206,8 @@ class update_checker {
         $messagedata = new \stdClass();
         $messagedata->currentversion = $updateinfo->currentrelease;
         $messagedata->newversion = $updateinfo->release;
-        $messagedata->updateurl = $CFG->wwwroot . '/local/sm_estratoos_plugin/update.php';
+        // Point to Moodle's native plugin updater instead of custom update.php.
+        $messagedata->updateurl = $CFG->wwwroot . '/admin/plugins.php';
 
         $fullmessage = get_string('updateavailable_message', 'local_sm_estratoos_plugin', $messagedata);
         $htmlmessage = get_string('updateavailable_message_html', 'local_sm_estratoos_plugin', $messagedata);
@@ -228,8 +229,8 @@ class update_checker {
             $message->fullmessagehtml = $htmlmessage;
             $message->smallmessage = $subject;
             $message->notification = 1;
-            $message->contexturl = new \moodle_url('/local/sm_estratoos_plugin/update.php');
-            $message->contexturlname = get_string('updateplugin', 'local_sm_estratoos_plugin');
+            $message->contexturl = new \moodle_url('/admin/plugins.php');
+            $message->contexturlname = get_string('pluginsoverview', 'core_admin');
 
             try {
                 message_send($message);

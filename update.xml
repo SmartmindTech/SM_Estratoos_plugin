@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011221</version>
+        <version>2025011222</version>
 
         <!-- Human-readable release version -->
-        <release>1.2.17</release>
+        <release>1.2.18</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,20 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.17/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.2.18/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.17</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.2.18</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.2.17</h3>
+            <h3>Version 1.2.18</h3>
             <ul>
-                <li>Added token key icon to navbar (next to notification bell)</li>
-                <li>Company managers can now access the token management dashboard</li>
-                <li>Company managers can only see and manage tokens for their companies</li>
-                <li>Added company filtering for all API functions</li>
+                <li>Use Moodle's native plugin updater for seamless updates</li>
+                <li>Added GitHub Actions workflow for automated releases</li>
+                <li>Update notifications now link to Plugins overview page</li>
+                <li>Improved fallback instructions when auto-update fails</li>
             </ul>
             ]]>
         </releasenotes>

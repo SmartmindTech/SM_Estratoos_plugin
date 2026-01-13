@@ -163,7 +163,8 @@ class check_for_updates extends \core\task\scheduled_task {
         $messagedata = new \stdClass();
         $messagedata->currentversion = $currentrelease;
         $messagedata->newversion = $updateinfo['release'];
-        $messagedata->updateurl = $CFG->wwwroot . '/local/sm_estratoos_plugin/update.php';
+        // Point to Moodle's native plugin updater.
+        $messagedata->updateurl = $CFG->wwwroot . '/admin/plugins.php';
 
         $fullmessage = get_string('updateavailable_message', 'local_sm_estratoos_plugin', $messagedata);
         $htmlmessage = get_string('updateavailable_message_html', 'local_sm_estratoos_plugin', $messagedata);
@@ -185,8 +186,9 @@ class check_for_updates extends \core\task\scheduled_task {
             $message->fullmessagehtml = $htmlmessage;
             $message->smallmessage = $subject;
             $message->notification = 1;
-            $message->contexturl = new \moodle_url('/local/sm_estratoos_plugin/update.php');
-            $message->contexturlname = get_string('updateplugin', 'local_sm_estratoos_plugin');
+            // Point to Moodle's native plugin management page.
+            $message->contexturl = new \moodle_url('/admin/plugins.php');
+            $message->contexturlname = get_string('pluginsoverview', 'core_admin');
 
             try {
                 message_send($message);
