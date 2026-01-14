@@ -288,10 +288,14 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
                         FROM {role} r
                         JOIN {role_capabilities} rc ON rc.roleid = r.id
                         JOIN {context} c ON c.id = rc.contextid
-                        WHERE rc.capability = 'webservice/rest:use'
-                          AND rc.permission = " . CAP_ALLOW . "
-                          AND c.contextlevel = " . CONTEXT_SYSTEM;
-            $role = $DB->get_record_sql($rolesql);
+                        WHERE rc.capability = :capability
+                          AND rc.permission = :permission
+                          AND c.contextlevel = :contextlevel";
+            $role = $DB->get_record_sql($rolesql, [
+                'capability' => 'webservice/rest:use',
+                'permission' => CAP_ALLOW,
+                'contextlevel' => CONTEXT_SYSTEM,
+            ]);
 
             if (!$role) {
                 // No role with capability. Try to add it to 'user' or 'student' role.
