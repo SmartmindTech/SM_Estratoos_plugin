@@ -223,6 +223,15 @@ class get_course_content extends external_api {
             return null;
         }
 
+        // Get the module instance from DB for format_module_intro.
+        $moduleinstance = $DB->get_record($cm->modname, ['id' => $cm->instance]);
+
+        // Get description/intro.
+        $description = '';
+        if ($moduleinstance && isset($moduleinstance->intro)) {
+            $description = format_module_intro($cm->modname, $moduleinstance, $cm->id, false);
+        }
+
         $moduledata = [
             'id' => $cm->id,
             'name' => $cm->name,
@@ -230,7 +239,7 @@ class get_course_content extends external_api {
             'instance' => $cm->instance,
             'visible' => $cm->visible ? true : false,
             'uservisible' => $cm->uservisible ? true : false,
-            'description' => format_module_intro($cm->modname, $cm->get_module_instance(), $cm->id, false),
+            'description' => $description,
             'completion' => $cm->completion,
             'completionstate' => 0,
             'url' => $cm->url ? $cm->url->out(false) : '',
@@ -239,9 +248,12 @@ class get_course_content extends external_api {
 
         // Get completion state if available.
         if ($cm->completion != COMPLETION_TRACKING_NONE) {
-            $completion = new \completion_info($cm->get_course());
-            $completiondata = $completion->get_data($cm);
-            $moduledata['completionstate'] = $completiondata->completionstate ?? 0;
+            $course = $DB->get_record('course', ['id' => $cm->course]);
+            if ($course) {
+                $completion = new \completion_info($course);
+                $completiondata = $completion->get_data($cm);
+                $moduledata['completionstate'] = $completiondata->completionstate ?? 0;
+            }
         }
 
         // Get module-specific content based on type.
