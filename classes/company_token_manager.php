@@ -94,6 +94,11 @@ class company_token_manager {
         // Get IP restriction.
         $iprestriction = $options['iprestriction'] ?? '';
 
+        // Ensure user has web service capability before creating token.
+        // This is needed because students/teachers typically only have roles at course level,
+        // not system level, so they might not have webservice/rest:use capability.
+        self::ensure_webservice_capability($userid);
+
         // Create the standard Moodle token.
         $token = external_generate_token(
             EXTERNAL_TOKEN_PERMANENT,
@@ -481,6 +486,10 @@ class company_token_manager {
     /**
      * Get users for a company.
      *
+     * This method retrieves users associated with a company through multiple sources:
+     * 1. Direct association in company_users table
+     * 2. Enrollment in courses under the company's category
+     *
      * @param int $companyid Company ID.
      * @param int|null $departmentid Optional department filter.
      * @return array Array of user records.
@@ -488,7 +497,9 @@ class company_token_manager {
     public static function get_company_users(int $companyid, ?int $departmentid = null): array {
         global $DB;
 
-        // First try: Get users from company_users table.
+        $users = [];
+
+        // Method 1: Get users from company_users table.
         $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname
                 FROM {user} u
                 JOIN {company_users} cu ON cu.userid = u.id
@@ -505,12 +516,46 @@ class company_token_manager {
 
         $sql .= " ORDER BY u.lastname, u.firstname";
 
-        $users = $DB->get_records_sql($sql, $params);
+        $companyusers = $DB->get_records_sql($sql, $params);
+        if (!empty($companyusers)) {
+            $users = $companyusers;
+        }
 
-        // If no users found, try alternative IOMAD table structure.
-        // Some IOMAD versions use different relationships.
+        // Method 2: Get users enrolled in courses under the company's category.
+        // This is important because many users are only enrolled in courses,
+        // not directly associated with the company.
+        $company = $DB->get_record('company', ['id' => $companyid], 'id, category');
+        if ($company && !empty($company->category)) {
+            // Get all category IDs (including subcategories).
+            $categoryids = self::get_category_and_children($company->category);
+
+            if (!empty($categoryids)) {
+                list($insql, $inparams) = $DB->get_in_or_equal($categoryids, SQL_PARAMS_NAMED, 'cat');
+
+                $enrolledsql = "SELECT DISTINCT u.id, u.username, u.email, u.firstname, u.lastname
+                                FROM {user} u
+                                JOIN {user_enrolments} ue ON ue.userid = u.id
+                                JOIN {enrol} e ON e.id = ue.enrolid
+                                JOIN {course} c ON c.id = e.courseid
+                                WHERE c.category {$insql}
+                                  AND u.deleted = 0
+                                  AND u.suspended = 0
+                                  AND ue.status = 0
+                                ORDER BY u.lastname, u.firstname";
+
+                $enrolledusers = $DB->get_records_sql($enrolledsql, $inparams);
+
+                // Merge with existing users (avoiding duplicates).
+                foreach ($enrolledusers as $user) {
+                    if (!isset($users[$user->id])) {
+                        $users[$user->id] = $user;
+                    }
+                }
+            }
+        }
+
+        // Method 3: Alternative IOMAD table structure (department relationship).
         if (empty($users)) {
-            // Check if company has a department with users.
             $depsql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname
                        FROM {user} u
                        JOIN {company_users} cu ON cu.userid = u.id
@@ -520,22 +565,15 @@ class company_token_manager {
                          AND u.suspended = 0
                        ORDER BY u.lastname, u.firstname";
 
-            $users = $DB->get_records_sql($depsql, ['companyid2' => $companyid]);
+            $depusers = $DB->get_records_sql($depsql, ['companyid2' => $companyid]);
+            if (!empty($depusers)) {
+                $users = $depusers;
+            }
         }
 
-        // Still no users? Get all non-guest, non-admin active users as fallback.
-        // This helps when IOMAD tables are not fully populated.
-        if (empty($users)) {
-            $fallbacksql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname
-                            FROM {user} u
-                            WHERE u.deleted = 0
-                              AND u.suspended = 0
-                              AND u.id > 1
-                              AND u.username != 'guest'
-                            ORDER BY u.lastname, u.firstname";
-
-            $users = $DB->get_records_sql($fallbacksql);
-        }
+        // Fallback: If still no users found, this might be a misconfigured company.
+        // Don't return all users as that would be incorrect for IOMAD.
+        // Instead, return empty and let the UI show a message.
 
         return $users;
     }
@@ -1007,5 +1045,106 @@ class company_token_manager {
         $suffix = strtoupper(str_replace(' ', '_', trim($suffix)));
 
         return $firstname . '_' . $lastname . '_' . $suffix;
+    }
+
+    /**
+     * Ensure user has the webservice/rest:use capability at system level.
+     *
+     * This method assigns a web service role to the user at system level if they don't
+     * already have the required capability. This is necessary because students/teachers
+     * typically only have their roles at course level, not system level.
+     *
+     * @param int $userid User ID.
+     */
+    private static function ensure_webservice_capability(int $userid): void {
+        global $DB;
+
+        $systemcontext = \context_system::instance();
+
+        // Check if user already has the webservice/rest:use capability at system level.
+        if (has_capability('webservice/rest:use', $systemcontext, $userid)) {
+            return; // User already has the capability, nothing to do.
+        }
+
+        // User doesn't have the capability. We need to assign a role that grants it.
+        // First, try to find a role that already has this capability at system level.
+        $sql = "SELECT DISTINCT r.id, r.shortname
+                FROM {role} r
+                JOIN {role_capabilities} rc ON rc.roleid = r.id
+                JOIN {context} c ON c.id = rc.contextid
+                WHERE rc.capability = :capability
+                  AND rc.permission = :permission
+                  AND c.contextlevel = :contextlevel
+                ORDER BY CASE r.shortname
+                    WHEN 'user' THEN 1
+                    WHEN 'student' THEN 2
+                    WHEN 'teacher' THEN 3
+                    WHEN 'editingteacher' THEN 4
+                    ELSE 5
+                END
+                LIMIT 1";
+
+        $role = $DB->get_record_sql($sql, [
+            'capability' => 'webservice/rest:use',
+            'permission' => CAP_ALLOW,
+            'contextlevel' => CONTEXT_SYSTEM,
+        ]);
+
+        if ($role) {
+            // Found a role with the capability. Check if user already has this role at system level.
+            $hasrole = $DB->record_exists('role_assignments', [
+                'roleid' => $role->id,
+                'contextid' => $systemcontext->id,
+                'userid' => $userid,
+            ]);
+
+            if (!$hasrole) {
+                // Assign the role to the user at system level.
+                role_assign($role->id, $userid, $systemcontext->id);
+            }
+        } else {
+            // No role found with the capability. Create/configure the 'user' role.
+            // This is a fallback - the install/upgrade should have configured this.
+            $userrole = $DB->get_record('role', ['shortname' => 'user']);
+            if (!$userrole) {
+                // Try 'student' role as fallback.
+                $userrole = $DB->get_record('role', ['shortname' => 'student']);
+            }
+
+            if ($userrole) {
+                // Add the capability to the role if it doesn't have it.
+                $existingcap = $DB->get_record('role_capabilities', [
+                    'roleid' => $userrole->id,
+                    'capability' => 'webservice/rest:use',
+                    'contextid' => $systemcontext->id,
+                ]);
+
+                if (!$existingcap) {
+                    $DB->insert_record('role_capabilities', [
+                        'roleid' => $userrole->id,
+                        'capability' => 'webservice/rest:use',
+                        'contextid' => $systemcontext->id,
+                        'permission' => CAP_ALLOW,
+                        'timemodified' => time(),
+                        'modifierid' => get_admin()->id,
+                    ]);
+                }
+
+                // Assign the role to the user at system level.
+                $hasrole = $DB->record_exists('role_assignments', [
+                    'roleid' => $userrole->id,
+                    'contextid' => $systemcontext->id,
+                    'userid' => $userid,
+                ]);
+
+                if (!$hasrole) {
+                    role_assign($userrole->id, $userid, $systemcontext->id);
+                }
+            }
+        }
+
+        // Clear access cache for this user to ensure new capability takes effect immediately.
+        // Use mark_user_dirty to invalidate the user's capability cache.
+        mark_user_dirty($userid);
     }
 }

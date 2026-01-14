@@ -269,5 +269,78 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011412, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.4.13: Assign webservice role to existing token users.
+    // This fixes tokens created before v1.4.13 that don't have the capability.
+    if ($oldversion < 2025011413) {
+        global $DB;
+
+        // Get all users who have tokens from our plugin.
+        $sql = "SELECT DISTINCT et.userid
+                FROM {external_tokens} et
+                JOIN {local_sm_estratoos_plugin} smp ON smp.tokenid = et.id";
+        $tokenusers = $DB->get_records_sql($sql);
+
+        if (!empty($tokenusers)) {
+            $systemcontext = context_system::instance();
+
+            // Find a role with webservice/rest:use capability.
+            $rolesql = "SELECT DISTINCT r.id, r.shortname
+                        FROM {role} r
+                        JOIN {role_capabilities} rc ON rc.roleid = r.id
+                        JOIN {context} c ON c.id = rc.contextid
+                        WHERE rc.capability = 'webservice/rest:use'
+                          AND rc.permission = " . CAP_ALLOW . "
+                          AND c.contextlevel = " . CONTEXT_SYSTEM;
+            $role = $DB->get_record_sql($rolesql);
+
+            if (!$role) {
+                // No role with capability. Try to add it to 'user' or 'student' role.
+                $role = $DB->get_record('role', ['shortname' => 'user']);
+                if (!$role) {
+                    $role = $DB->get_record('role', ['shortname' => 'student']);
+                }
+
+                if ($role) {
+                    // Add the capability to this role.
+                    if (!$DB->record_exists('role_capabilities', [
+                        'roleid' => $role->id,
+                        'capability' => 'webservice/rest:use',
+                        'contextid' => $systemcontext->id,
+                    ])) {
+                        $DB->insert_record('role_capabilities', [
+                            'roleid' => $role->id,
+                            'capability' => 'webservice/rest:use',
+                            'contextid' => $systemcontext->id,
+                            'permission' => CAP_ALLOW,
+                            'timemodified' => time(),
+                            'modifierid' => get_admin()->id,
+                        ]);
+                    }
+                }
+            }
+
+            if ($role) {
+                // Assign the role to all token users at system level.
+                foreach ($tokenusers as $tokenuser) {
+                    // Skip site admins - they already have all capabilities.
+                    if (is_siteadmin($tokenuser->userid)) {
+                        continue;
+                    }
+
+                    // Check if user already has this role at system level.
+                    if (!$DB->record_exists('role_assignments', [
+                        'roleid' => $role->id,
+                        'contextid' => $systemcontext->id,
+                        'userid' => $tokenuser->userid,
+                    ])) {
+                        role_assign($role->id, $tokenuser->userid, $systemcontext->id);
+                    }
+                }
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2025011413, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011412;  // YYYYMMDDXX format.
+$plugin->version = 2025011414;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.4.12';  // Fix access exception for non-admin tokens and batch user retrieval.
+$plugin->release = '1.4.14';  // Fix user retrieval to include course enrollments.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
