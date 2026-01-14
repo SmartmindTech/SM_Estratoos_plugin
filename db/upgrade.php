@@ -346,5 +346,85 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011413, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.4.16: Re-run capability repair (v1.4.13 failed due to SQL error).
+    // This ensures all token users have the webservice/rest:use capability.
+    if ($oldversion < 2025011416) {
+        global $DB;
+
+        // Get all users who have tokens from our plugin.
+        $sql = "SELECT DISTINCT et.userid
+                FROM {external_tokens} et
+                JOIN {local_sm_estratoos_plugin} smp ON smp.tokenid = et.id";
+        $tokenusers = $DB->get_records_sql($sql);
+
+        if (!empty($tokenusers)) {
+            $systemcontext = context_system::instance();
+
+            // First, ensure a role has the webservice/rest:use capability.
+            // Try to find 'user' role first, then 'student'.
+            $role = $DB->get_record('role', ['shortname' => 'user']);
+            if (!$role) {
+                $role = $DB->get_record('role', ['shortname' => 'student']);
+            }
+
+            if ($role) {
+                // Add the capability to this role if it doesn't have it.
+                $existingcap = $DB->get_record('role_capabilities', [
+                    'roleid' => $role->id,
+                    'capability' => 'webservice/rest:use',
+                    'contextid' => $systemcontext->id,
+                ]);
+
+                if (!$existingcap) {
+                    $DB->insert_record('role_capabilities', [
+                        'roleid' => $role->id,
+                        'capability' => 'webservice/rest:use',
+                        'contextid' => $systemcontext->id,
+                        'permission' => CAP_ALLOW,
+                        'timemodified' => time(),
+                        'modifierid' => get_admin()->id,
+                    ]);
+                }
+
+                // Assign the role to all token users at system level.
+                foreach ($tokenusers as $tokenuser) {
+                    // Skip site admins - they already have all capabilities.
+                    if (is_siteadmin($tokenuser->userid)) {
+                        continue;
+                    }
+
+                    // Check if user already has this role at system level.
+                    if (!$DB->record_exists('role_assignments', [
+                        'roleid' => $role->id,
+                        'contextid' => $systemcontext->id,
+                        'userid' => $tokenuser->userid,
+                    ])) {
+                        role_assign($role->id, $tokenuser->userid, $systemcontext->id);
+                    }
+                }
+            }
+        }
+
+        // Also run webservice configuration to ensure REST is enabled.
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_configure_webservices();
+
+        upgrade_plugin_savepoint(true, 2025011416, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v1.4.17: Fix service restrictedusers setting.
+    // The service must have restrictedusers=0 to allow any authenticated user with capability.
+    if ($oldversion < 2025011417) {
+        global $DB;
+
+        $service = $DB->get_record('external_services', ['shortname' => 'sm_estratoos_plugin']);
+        if ($service && $service->restrictedusers != 0) {
+            $DB->set_field('external_services', 'restrictedusers', 0, ['id' => $service->id]);
+            $DB->set_field('external_services', 'timemodified', time(), ['id' => $service->id]);
+        }
+
+        upgrade_plugin_savepoint(true, 2025011417, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

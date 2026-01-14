@@ -181,6 +181,10 @@ function xmldb_local_sm_estratoos_plugin_ensure_service_exists() {
         if (!empty($service->component)) {
             $updates['component'] = '';
         }
+        // Ensure restrictedusers is 0 (allows any authenticated user with capability).
+        if ($service->restrictedusers != 0) {
+            $updates['restrictedusers'] = 0;
+        }
         if (!empty($updates)) {
             $updates['timemodified'] = time();
             $DB->update_record('external_services', (object)array_merge(['id' => $serviceid], $updates));
