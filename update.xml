@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011418</version>
+        <version>2025011419</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.18</release>
+        <release>1.4.19</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,18 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.18/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.19/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.18</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.19</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.18</h3>
+            <h3>Version 1.4.19</h3>
             <ul>
-                <li>Removed: 'user' role from system level configuration (not needed)</li>
-                <li>Kept: Teacher and student roles configuration for web service access</li>
+                <li>New: Course content retrieval API function (local_sm_estratoos_plugin_get_course_content)</li>
+                <li>Retrieves comprehensive educational content: SCORM, files, pages, URLs, assignments, quizzes, forums, books, lessons</li>
+                <li>Supports company filtering for IOMAD tokens</li>
+                <li>For use with SmartLearning platform to display course content outside Moodle</li>
             </ul>
             ]]>
         </releasenotes>

@@ -235,6 +235,23 @@ $functions = [
         'capabilities' => '',
         'loginrequired' => true,
     ],
+
+    // =========================================================================
+    // COURSE CONTENT FUNCTIONS
+    // =========================================================================
+
+    // Get comprehensive course content including SCORM, files, pages, and all educational materials.
+    'local_sm_estratoos_plugin_get_course_content' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_course_content',
+        'methodname' => 'execute',
+        'description' => 'Retrieve comprehensive course content including SCORM packages, files, pages, URLs, ' .
+                        'assignments, quizzes, forums, books, lessons, and all educational materials. ' .
+                        'Supports company filtering for IOMAD tokens. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'moodle/course:view',
+        'loginrequired' => true,
+    ],
 ];
 
 // NOTE: The SmartMind - Estratoos Plugin service is created and managed in install.php,

@@ -420,5 +420,16 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011417, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.4.19: Add course content retrieval function to SmartMind service.
+    if ($oldversion < 2025011419) {
+        // Include install.php to use the service functions.
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run to add new function to the service.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011419, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
