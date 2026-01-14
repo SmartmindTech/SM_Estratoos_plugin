@@ -94,11 +94,6 @@ class company_token_manager {
         // Get IP restriction.
         $iprestriction = $options['iprestriction'] ?? '';
 
-        // Ensure user has web service capability before creating token.
-        // This is needed because students/teachers typically only have roles at course level,
-        // not system level, so they might not have webservice/rest:use capability.
-        self::ensure_webservice_capability($userid);
-
         // Create the standard Moodle token.
         $token = external_generate_token(
             EXTERNAL_TOKEN_PERMANENT,
@@ -1068,6 +1063,7 @@ class company_token_manager {
 
         // User doesn't have the capability. We need to assign a role that grants it.
         // First, try to find a role that already has this capability at system level.
+        // Prioritize student/teacher roles (not 'user' - authenticated users).
         $sql = "SELECT DISTINCT r.id, r.shortname
                 FROM {role} r
                 JOIN {role_capabilities} rc ON rc.roleid = r.id
@@ -1075,12 +1071,12 @@ class company_token_manager {
                 WHERE rc.capability = :capability
                   AND rc.permission = :permission
                   AND c.contextlevel = :contextlevel
+                  AND r.shortname IN ('student', 'teacher', 'editingteacher')
                 ORDER BY CASE r.shortname
-                    WHEN 'user' THEN 1
-                    WHEN 'student' THEN 2
-                    WHEN 'teacher' THEN 3
-                    WHEN 'editingteacher' THEN 4
-                    ELSE 5
+                    WHEN 'student' THEN 1
+                    WHEN 'teacher' THEN 2
+                    WHEN 'editingteacher' THEN 3
+                    ELSE 4
                 END
                 LIMIT 1";
 
@@ -1103,25 +1099,20 @@ class company_token_manager {
                 role_assign($role->id, $userid, $systemcontext->id);
             }
         } else {
-            // No role found with the capability. Create/configure the 'user' role.
-            // This is a fallback - the install/upgrade should have configured this.
-            $userrole = $DB->get_record('role', ['shortname' => 'user']);
-            if (!$userrole) {
-                // Try 'student' role as fallback.
-                $userrole = $DB->get_record('role', ['shortname' => 'student']);
-            }
+            // No role found with the capability. Configure the 'student' role as fallback.
+            $studentrole = $DB->get_record('role', ['shortname' => 'student']);
 
-            if ($userrole) {
+            if ($studentrole) {
                 // Add the capability to the role if it doesn't have it.
                 $existingcap = $DB->get_record('role_capabilities', [
-                    'roleid' => $userrole->id,
+                    'roleid' => $studentrole->id,
                     'capability' => 'webservice/rest:use',
                     'contextid' => $systemcontext->id,
                 ]);
 
                 if (!$existingcap) {
                     $DB->insert_record('role_capabilities', [
-                        'roleid' => $userrole->id,
+                        'roleid' => $studentrole->id,
                         'capability' => 'webservice/rest:use',
                         'contextid' => $systemcontext->id,
                         'permission' => CAP_ALLOW,
@@ -1132,13 +1123,13 @@ class company_token_manager {
 
                 // Assign the role to the user at system level.
                 $hasrole = $DB->record_exists('role_assignments', [
-                    'roleid' => $userrole->id,
+                    'roleid' => $studentrole->id,
                     'contextid' => $systemcontext->id,
                     'userid' => $userid,
                 ]);
 
                 if (!$hasrole) {
-                    role_assign($userrole->id, $userid, $systemcontext->id);
+                    role_assign($studentrole->id, $userid, $systemcontext->id);
                 }
             }
         }

@@ -73,13 +73,8 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
 
     // 4 & 5. Configure roles for web service access.
     // We need to grant webservice/rest:use to roles so users can use API tokens.
-
-    // First, add to the "user" role (authenticated users) - this is the most reliable approach
-    // because all logged-in users have this role, regardless of other role assignments.
-    $userrole = $DB->get_record('role', ['shortname' => 'user']);
-
-    // Also configure specific roles as fallback (teacher, student, etc.).
-    $rolestoconfig = ['user', 'editingteacher', 'teacher', 'student'];
+    // Configure teacher and student roles (not 'user' - authenticated users don't need system role).
+    $rolestoconfig = ['editingteacher', 'teacher', 'student'];
 
     $systemcontext = context_system::instance();
     $capabilities = ['moodle/site:sendmessage', 'webservice/rest:use'];

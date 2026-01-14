@@ -298,11 +298,8 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
             ]);
 
             if (!$role) {
-                // No role with capability. Try to add it to 'user' or 'student' role.
-                $role = $DB->get_record('role', ['shortname' => 'user']);
-                if (!$role) {
-                    $role = $DB->get_record('role', ['shortname' => 'student']);
-                }
+                // No role with capability. Try to add it to 'student' role.
+                $role = $DB->get_record('role', ['shortname' => 'student']);
 
                 if ($role) {
                     // Add the capability to this role.
@@ -361,11 +358,8 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
             $systemcontext = context_system::instance();
 
             // First, ensure a role has the webservice/rest:use capability.
-            // Try to find 'user' role first, then 'student'.
-            $role = $DB->get_record('role', ['shortname' => 'user']);
-            if (!$role) {
-                $role = $DB->get_record('role', ['shortname' => 'student']);
-            }
+            // Use 'student' role (not 'user' - authenticated users).
+            $role = $DB->get_record('role', ['shortname' => 'student']);
 
             if ($role) {
                 // Add the capability to this role if it doesn't have it.
