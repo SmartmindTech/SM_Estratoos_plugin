@@ -95,8 +95,7 @@ class get_course_content extends external_api {
             if ($token) {
                 $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
                 if ($restrictions && !empty($restrictions->companyid)) {
-                    $filter = new \local_sm_estratoos_plugin\webservice_filter();
-                    $filter->set_company_id($restrictions->companyid);
+                    $filter = new \local_sm_estratoos_plugin\webservice_filter($restrictions);
                     $allowedcourses = $filter->get_allowed_course_ids();
                     if (!empty($allowedcourses)) {
                         $courseids = array_intersect($courseids, $allowedcourses);
