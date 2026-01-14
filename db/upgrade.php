@@ -256,5 +256,18 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011410, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.4.12: Re-run webservice configuration to fix access exceptions for non-admin tokens.
+    // This adds webservice/rest:use capability to the 'user' role (authenticated users),
+    // which fixes the issue where student/teacher tokens didn't have web service access.
+    if ($oldversion < 2025011412) {
+        // Include install.php to use the configure function.
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run webservice configuration with updated logic.
+        xmldb_local_sm_estratoos_plugin_configure_webservices();
+
+        upgrade_plugin_savepoint(true, 2025011412, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

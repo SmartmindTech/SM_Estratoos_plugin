@@ -71,8 +71,18 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
         $DB->set_field('external_services', 'enabled', 1, ['id' => $mobileservice->id]);
     }
 
-    // 4 & 5. Configure Teacher and Student roles.
-    $rolestoconfig = ['editingteacher', 'student'];
+    // 4 & 5. Configure roles for web service access.
+    // We need to grant webservice/rest:use to roles so users can use API tokens.
+
+    // First, add to the "user" role (authenticated users) - this is the most reliable approach
+    // because all logged-in users have this role, regardless of other role assignments.
+    $userrole = $DB->get_record('role', ['shortname' => 'user']);
+
+    // Also configure specific roles as fallback (teacher, student, etc.).
+    $rolestoconfig = ['user', 'editingteacher', 'teacher', 'student'];
+
+    $systemcontext = context_system::instance();
+    $capabilities = ['moodle/site:sendmessage', 'webservice/rest:use'];
 
     foreach ($rolestoconfig as $roleshortname) {
         $role = $DB->get_record('role', ['shortname' => $roleshortname]);
@@ -80,7 +90,7 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
             continue;
         }
 
-        // 4. Enable "System" context for the role.
+        // Enable "System" context for the role if not already enabled.
         // Context level 10 = CONTEXT_SYSTEM.
         $existingcontext = $DB->get_record('role_context_levels', [
             'roleid' => $role->id,
@@ -93,10 +103,7 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
             ]);
         }
 
-        // 5. Add capabilities to the role in system context.
-        $systemcontext = context_system::instance();
-        $capabilities = ['moodle/site:sendmessage', 'webservice/rest:use'];
-
+        // Add capabilities to the role in system context.
         foreach ($capabilities as $capability) {
             // Check if capability exists in the system.
             if (!$DB->record_exists('capabilities', ['name' => $capability])) {

@@ -69,14 +69,23 @@ class get_company_users extends external_api {
         // Check capabilities.
         $context = \context_system::instance();
         self::validate_context($context);
-        require_capability('local/sm_estratoos_plugin:managecompanytokens', $context);
 
-        // Only site admins can use this API.
-        if (!is_siteadmin()) {
-            throw new \moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
-        }
-
+        // Allow site admins, or company managers for their own companies.
         $isiomad = \local_sm_estratoos_plugin\util::is_iomad_installed();
+        $issiteadmin = is_siteadmin();
+
+        if (!$issiteadmin) {
+            // Non-site-admin: check if they can manage this company.
+            if ($isiomad && $params['companyid'] > 0) {
+                // IOMAD mode: check if user is a manager of this company.
+                if (!\local_sm_estratoos_plugin\util::can_manage_company($params['companyid'])) {
+                    throw new \moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
+                }
+            } else {
+                // Standard Moodle mode: require site admin for getting all users.
+                throw new \moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
+            }
+        }
 
         // Get users based on mode.
         if ($isiomad && $params['companyid'] > 0) {
