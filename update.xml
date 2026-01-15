@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011424</version>
+        <version>2025011425</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.24</release>
+        <release>1.4.25</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,15 +29,15 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.24/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.25/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.24</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.25</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.24</h3>
+            <h3>Version 1.4.25</h3>
             <ul>
                 <li>Enhanced: Full quiz content with questions, answers, and user attempts for external consumption</li>
                 <li>Enhanced: Full assignment data with submission types, user submissions, and grades</li>

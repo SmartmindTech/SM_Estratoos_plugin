@@ -360,6 +360,14 @@ class get_course_content extends external_api {
                 break;
         }
 
+        // JSON encode complex module data fields (return structure expects PARAM_RAW strings).
+        $jsonfields = ['scorm', 'quiz', 'assignment', 'forum', 'book', 'lesson'];
+        foreach ($jsonfields as $field) {
+            if (isset($moduledata[$field]) && is_array($moduledata[$field])) {
+                $moduledata[$field] = json_encode($moduledata[$field]);
+            }
+        }
+
         return $moduledata;
     }
 
