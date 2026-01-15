@@ -124,6 +124,25 @@ class update_activity_grade extends external_api {
         }
         require_once($libfile);
 
+        // Special handling for SCORM - read score directly from tracks table.
+        // Moodle's scorm_update_grades() may not read the score correctly from mdl_scorm_scoes_track.
+        if ($modname === 'scorm') {
+            $scormgrade = self::update_scorm_grade_directly($activity, $userid, $warnings);
+            if ($scormgrade !== null) {
+                return [
+                    'status' => true,
+                    'modname' => $modname,
+                    'instanceid' => $instanceid,
+                    'userid' => $userid,
+                    'grade' => $scormgrade['grade'],
+                    'grademax' => $scormgrade['grademax'],
+                    'grademin' => $scormgrade['grademin'],
+                    'warnings' => $warnings,
+                ];
+            }
+            // If direct update failed, fall through to standard grade update.
+        }
+
         // Build the grade update function name.
         // Pattern: {modname}_update_grades($activity, $userid)
         $functionname = $modname . '_update_grades';
@@ -195,6 +214,100 @@ class update_activity_grade extends external_api {
             'grademin' => $grademin,
             'warnings' => $warnings,
         ];
+    }
+
+    /**
+     * Update SCORM grade directly by reading from tracks table.
+     *
+     * This bypasses scorm_update_grades() which may not correctly read the score
+     * when data is saved via mod_scorm_insert_scorm_tracks. We read the score
+     * directly from mdl_scorm_scoes_track and update the gradebook.
+     *
+     * @param object $scorm The SCORM activity record
+     * @param int $userid User ID
+     * @param array &$warnings Warnings array (passed by reference)
+     * @return array|null Array with grade info, or null if no score found
+     */
+    private static function update_scorm_grade_directly($scorm, int $userid, array &$warnings): ?array {
+        global $DB;
+
+        try {
+            // Get the latest score directly from tracks table.
+            // Try multiple element name formats that different SCORM versions use.
+            $sql = "SELECT t.value, t.attempt, t.timemodified
+                    FROM {scorm_scoes_track} t
+                    WHERE t.scormid = :scormid
+                      AND t.userid = :userid
+                      AND t.element IN ('cmi.core.score.raw', 'cmi.score.raw', 'score_raw')
+                    ORDER BY t.timemodified DESC, t.attempt DESC
+                    LIMIT 1";
+
+            $scorerecord = $DB->get_record_sql($sql, [
+                'scormid' => $scorm->id,
+                'userid' => $userid,
+            ]);
+
+            if (!$scorerecord || $scorerecord->value === null || $scorerecord->value === '') {
+                // No score found, let the caller fall back to standard grade update.
+                return null;
+            }
+
+            $score = floatval($scorerecord->value);
+
+            // Normalize the score based on SCORM max grade.
+            // If the SCORM has a max grade different from 100, we need to scale.
+            $maxgrade = floatval($scorm->maxgrade);
+            if ($maxgrade <= 0) {
+                $maxgrade = 100;
+            }
+
+            // Check if we need to scale the score.
+            // SCORM scores are typically 0-100, but Moodle grade might be different.
+            // If maxgrade is 100, use score as-is. Otherwise, scale proportionally.
+            // Actually, SCORM packages can have their own max score, so we assume
+            // the raw score is already in the correct scale for the SCORM package.
+            // We should use the score as-is and let Moodle handle the scaling.
+
+            // Update grade directly in gradebook.
+            $grades = [];
+            $grades[$userid] = new \stdClass();
+            $grades[$userid]->userid = $userid;
+            $grades[$userid]->rawgrade = $score;
+
+            $result = grade_update(
+                'mod/scorm',
+                $scorm->course,
+                'mod',
+                'scorm',
+                $scorm->id,
+                0,
+                $grades
+            );
+
+            if ($result !== GRADE_UPDATE_OK) {
+                $warnings[] = [
+                    'item' => 'gradeupdate',
+                    'itemid' => $scorm->id,
+                    'warningcode' => 'directgradeupdatefailed',
+                    'message' => 'Direct grade update returned: ' . $result,
+                ];
+            }
+
+            return [
+                'grade' => $score,
+                'grademax' => $maxgrade,
+                'grademin' => 0.0,
+            ];
+
+        } catch (\Exception $e) {
+            $warnings[] = [
+                'item' => 'scormgrade',
+                'itemid' => $scorm->id,
+                'warningcode' => 'directgradeerror',
+                'message' => 'Error reading SCORM score directly: ' . $e->getMessage(),
+            ];
+            return null;
+        }
     }
 
     /**

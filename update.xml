@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011429</version>
+        <version>2025011430</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.29</release>
+        <release>1.4.30</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.29/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.30/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.29</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.30</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.29</h3>
+            <h3>Version 1.4.30</h3>
             <ul>
-                <li>Fix: Ensure update_activity_grade function is properly added to SmartMind service</li>
-                <li>Fix: Resolved timing issue where upgrade step ran before function registration</li>
-                <li>Improved: Full service rebuild during upgrade to catch any missing functions</li>
+                <li>Fix: SCORM grade now reads directly from scorm_scoes_track table</li>
+                <li>Fix: Resolved issue where scorm_update_grades() returned old/incorrect score</li>
+                <li>Supports: cmi.core.score.raw, cmi.score.raw, and score_raw element formats</li>
+                <li>Uses grade_update() to directly update gradebook with correct score</li>
             </ul>
             ]]>
         </releasenotes>
