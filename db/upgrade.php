@@ -528,5 +528,40 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011427, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.4.28: Add generic grade update function.
+    if ($oldversion < 2025011428) {
+        global $DB;
+
+        // Get the SmartMind service.
+        $service = $DB->get_record('external_services', ['shortname' => 'sm_estratoos_plugin']);
+        if ($service) {
+            $functionname = 'local_sm_estratoos_plugin_update_activity_grade';
+
+            // Check if function exists in external_functions table.
+            $functionexists = $DB->record_exists('external_functions', ['name' => $functionname]);
+
+            if ($functionexists) {
+                // Check if function is already in the service.
+                $existing = $DB->get_record('external_services_functions', [
+                    'externalserviceid' => $service->id,
+                    'functionname' => $functionname,
+                ]);
+
+                if (!$existing) {
+                    try {
+                        $DB->insert_record('external_services_functions', [
+                            'externalserviceid' => $service->id,
+                            'functionname' => $functionname,
+                        ]);
+                    } catch (\Exception $e) {
+                        // Ignore if already exists.
+                    }
+                }
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2025011428, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

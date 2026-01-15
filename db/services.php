@@ -269,6 +269,19 @@ $functions = [
         'capabilities' => 'moodle/course:view',
         'loginrequired' => true,
     ],
+
+    // Force grade recalculation for any gradable activity.
+    'local_sm_estratoos_plugin_update_activity_grade' => [
+        'classname' => 'local_sm_estratoos_plugin\external\update_activity_grade',
+        'methodname' => 'execute',
+        'description' => 'Force grade recalculation for any gradable activity (SCORM, Quiz, Assignment, Lesson, etc.). ' .
+                        'Call this after saving tracking data via mod_scorm_insert_scorm_tracks or similar functions ' .
+                        'to ensure the grade is updated in Moodle gradebook. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'moodle/grade:view',
+        'loginrequired' => true,
+    ],
 ];
 
 // NOTE: The SmartMind - Estratoos Plugin service is created and managed in install.php,
