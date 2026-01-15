@@ -28,6 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/externallib.php');
 require_once($CFG->dirroot . '/course/lib.php');
+require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 
 use external_api;
 use external_function_parameters;
@@ -35,6 +36,7 @@ use external_value;
 use external_single_structure;
 use external_multiple_structure;
 use context_course;
+use context_module;
 use moodle_url;
 
 /**
@@ -56,9 +58,13 @@ class get_course_content extends external_api {
                 []
             ),
             'options' => new external_single_structure([
-                'includescormdetails' => new external_value(PARAM_BOOL, 'Include SCORM SCO details', VALUE_DEFAULT, true),
+                'includescormdetails' => new external_value(PARAM_BOOL, 'Include SCORM SCO details and content files', VALUE_DEFAULT, true),
                 'includefilecontents' => new external_value(PARAM_BOOL, 'Include file content URLs', VALUE_DEFAULT, true),
                 'includepagecontent' => new external_value(PARAM_BOOL, 'Include page HTML content', VALUE_DEFAULT, true),
+                'includequizquestions' => new external_value(PARAM_BOOL, 'Include quiz questions and answers', VALUE_DEFAULT, true),
+                'includeassignmentdetails' => new external_value(PARAM_BOOL, 'Include assignment submission details', VALUE_DEFAULT, true),
+                'includelessonpages' => new external_value(PARAM_BOOL, 'Include lesson pages with content', VALUE_DEFAULT, true),
+                'includeuserdata' => new external_value(PARAM_BOOL, 'Include user progress/attempts data', VALUE_DEFAULT, true),
             ], 'Options', VALUE_DEFAULT, [])
         ]);
     }
@@ -71,7 +77,7 @@ class get_course_content extends external_api {
      * @return array Course content data.
      */
     public static function execute(array $courseids = [], array $options = []): array {
-        global $DB, $CFG;
+        global $DB, $CFG, $USER;
 
         // Validate parameters.
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -84,6 +90,10 @@ class get_course_content extends external_api {
             'includescormdetails' => true,
             'includefilecontents' => true,
             'includepagecontent' => true,
+            'includequizquestions' => true,
+            'includeassignmentdetails' => true,
+            'includelessonpages' => true,
+            'includeuserdata' => true,
         ], $params['options']);
 
         $warnings = [];
@@ -169,7 +179,7 @@ class get_course_content extends external_api {
                                 continue;
                             }
 
-                            $moduledata = self::get_module_data($cm, $context, $options);
+                            $moduledata = self::get_module_data($cm, $context, $options, $USER->id);
                             if ($moduledata) {
                                 $sectiondata['modules'][] = $moduledata;
                             }
@@ -213,12 +223,13 @@ class get_course_content extends external_api {
      * @param \cm_info $cm Course module info.
      * @param \context_course $context Course context.
      * @param array $options Retrieval options.
+     * @param int $userid Current user ID.
      * @return array|null Module data or null if error.
      */
-    private static function get_module_data(\cm_info $cm, \context_course $context, array $options): ?array {
+    private static function get_module_data(\cm_info $cm, \context_course $context, array $options, int $userid): ?array {
         global $DB, $CFG;
 
-        $modulecontext = \context_module::instance($cm->id, IGNORE_MISSING);
+        $modulecontext = context_module::instance($cm->id, IGNORE_MISSING);
         if (!$modulecontext) {
             return null;
         }
@@ -260,7 +271,7 @@ class get_course_content extends external_api {
         switch ($cm->modname) {
             case 'scorm':
                 if ($options['includescormdetails']) {
-                    $moduledata['scorm'] = self::get_scorm_data($cm->instance, $modulecontext);
+                    $moduledata['scorm'] = self::get_scorm_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
                 }
                 break;
 
@@ -308,11 +319,19 @@ class get_course_content extends external_api {
                 break;
 
             case 'assign':
-                $moduledata['assignment'] = self::get_assignment_data($cm->instance);
+                if ($options['includeassignmentdetails']) {
+                    $moduledata['assignment'] = self::get_assignment_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
+                } else {
+                    $moduledata['assignment'] = self::get_assignment_basic($cm->instance);
+                }
                 break;
 
             case 'quiz':
-                $moduledata['quiz'] = self::get_quiz_data($cm->instance);
+                if ($options['includequizquestions']) {
+                    $moduledata['quiz'] = self::get_quiz_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
+                } else {
+                    $moduledata['quiz'] = self::get_quiz_basic($cm->instance);
+                }
                 break;
 
             case 'forum':
@@ -326,7 +345,11 @@ class get_course_content extends external_api {
                 break;
 
             case 'lesson':
-                $moduledata['lesson'] = self::get_lesson_data($cm->instance);
+                if ($options['includelessonpages']) {
+                    $moduledata['lesson'] = self::get_lesson_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
+                } else {
+                    $moduledata['lesson'] = self::get_lesson_basic($cm->instance);
+                }
                 break;
 
             default:
@@ -340,14 +363,20 @@ class get_course_content extends external_api {
         return $moduledata;
     }
 
+    // ========================================
+    // SCORM DATA - Enhanced for external player
+    // ========================================
+
     /**
-     * Get SCORM package data including SCOs.
+     * Get SCORM package data including content files for external player.
      *
      * @param int $scormid SCORM instance ID.
      * @param \context_module $context Module context.
+     * @param int $userid User ID for tracking data.
+     * @param bool $includeuserdata Include user tracking data.
      * @return array SCORM data.
      */
-    private static function get_scorm_data(int $scormid, \context_module $context): array {
+    private static function get_scorm_data(int $scormid, \context_module $context, int $userid, bool $includeuserdata): array {
         global $DB, $CFG;
 
         $scorm = $DB->get_record('scorm', ['id' => $scormid]);
@@ -368,17 +397,19 @@ class get_course_content extends external_api {
             'launch' => '',
             'scos' => [],
             'packageurl' => '',
+            'contentfiles' => [],
+            'userdata' => [],
         ];
 
-        // Get launch URL.
+        // Get launch URL (Moodle player).
         if (!empty($scorm->launch)) {
             $data['launch'] = $CFG->wwwroot . '/mod/scorm/player.php?scoid=' . $scorm->launch . '&cm=' . $context->instanceid;
         }
 
         // Get package file URL.
         $fs = get_file_storage();
-        $files = $fs->get_area_files($context->id, 'mod_scorm', 'package', 0, 'sortorder', false);
-        foreach ($files as $file) {
+        $packagefiles = $fs->get_area_files($context->id, 'mod_scorm', 'package', 0, 'sortorder', false);
+        foreach ($packagefiles as $file) {
             $data['packageurl'] = moodle_url::make_pluginfile_url(
                 $file->get_contextid(),
                 $file->get_component(),
@@ -388,6 +419,28 @@ class get_course_content extends external_api {
                 $file->get_filename()
             )->out(false);
             break;
+        }
+
+        // Get all SCORM content files (extracted package contents).
+        $contentfiles = $fs->get_area_files($context->id, 'mod_scorm', 'content', 0, 'sortorder', false);
+        foreach ($contentfiles as $file) {
+            if ($file->is_directory()) {
+                continue;
+            }
+            $data['contentfiles'][] = [
+                'filename' => $file->get_filename(),
+                'filepath' => $file->get_filepath(),
+                'filesize' => $file->get_filesize(),
+                'fileurl' => moodle_url::make_pluginfile_url(
+                    $file->get_contextid(),
+                    $file->get_component(),
+                    $file->get_filearea(),
+                    $file->get_itemid(),
+                    $file->get_filepath(),
+                    $file->get_filename()
+                )->out(false),
+                'mimetype' => $file->get_mimetype(),
+            ];
         }
 
         // Get SCOs (Sharable Content Objects).
@@ -410,11 +463,668 @@ class get_course_content extends external_api {
                 $scodata[$extra->name] = $extra->value;
             }
 
+            // Get user's tracking data for this SCO.
+            if ($includeuserdata && !empty($sco->scormtype) && $sco->scormtype === 'sco') {
+                $scodata['usertrack'] = self::get_scorm_user_track($sco->id, $userid, $scormid);
+            }
+
             $data['scos'][] = $scodata;
+        }
+
+        // Get overall user data.
+        if ($includeuserdata) {
+            $data['userdata'] = self::get_scorm_user_data($scormid, $userid);
         }
 
         return $data;
     }
+
+    /**
+     * Get SCORM user tracking data for a SCO.
+     *
+     * @param int $scoid SCO ID.
+     * @param int $userid User ID.
+     * @param int $scormid SCORM ID.
+     * @return array Tracking data.
+     */
+    private static function get_scorm_user_track(int $scoid, int $userid, int $scormid): array {
+        global $DB;
+
+        $tracks = [];
+
+        // Get the latest attempt.
+        $attempt = $DB->get_field('scorm_scoes_track', 'MAX(attempt)', [
+            'scormid' => $scormid,
+            'userid' => $userid,
+            'scoid' => $scoid,
+        ]);
+
+        if ($attempt) {
+            $trackrecords = $DB->get_records('scorm_scoes_track', [
+                'scormid' => $scormid,
+                'userid' => $userid,
+                'scoid' => $scoid,
+                'attempt' => $attempt,
+            ]);
+
+            foreach ($trackrecords as $track) {
+                $tracks[$track->element] = $track->value;
+            }
+        }
+
+        return [
+            'attempt' => $attempt ?? 0,
+            'tracks' => $tracks,
+        ];
+    }
+
+    /**
+     * Get overall SCORM user data.
+     *
+     * @param int $scormid SCORM ID.
+     * @param int $userid User ID.
+     * @return array User data.
+     */
+    private static function get_scorm_user_data(int $scormid, int $userid): array {
+        global $DB;
+
+        // Get number of attempts.
+        $attemptcount = $DB->get_field_sql(
+            "SELECT MAX(attempt) FROM {scorm_scoes_track} WHERE scormid = ? AND userid = ?",
+            [$scormid, $userid]
+        );
+
+        // Get grades.
+        $grades = $DB->get_records('scorm_scoes_track', [
+            'scormid' => $scormid,
+            'userid' => $userid,
+            'element' => 'cmi.core.score.raw',
+        ], 'attempt DESC', '*', 0, 1);
+
+        $grade = !empty($grades) ? reset($grades)->value : null;
+
+        return [
+            'attemptcount' => (int) ($attemptcount ?? 0),
+            'grade' => $grade,
+        ];
+    }
+
+    // ========================================
+    // QUIZ DATA - Enhanced with questions
+    // ========================================
+
+    /**
+     * Get basic quiz data (without questions).
+     *
+     * @param int $quizid Quiz instance ID.
+     * @return array Quiz data.
+     */
+    private static function get_quiz_basic(int $quizid): array {
+        global $DB;
+
+        $quiz = $DB->get_record('quiz', ['id' => $quizid]);
+        if (!$quiz) {
+            return [];
+        }
+
+        return [
+            'id' => $quiz->id,
+            'name' => $quiz->name,
+            'timeopen' => $quiz->timeopen,
+            'timeclose' => $quiz->timeclose,
+            'timelimit' => $quiz->timelimit,
+            'grade' => (float) $quiz->grade,
+            'attempts' => $quiz->attempts,
+            'grademethod' => $quiz->grademethod,
+            'sumgrades' => (float) ($quiz->sumgrades ?? 0),
+            'questionsperpage' => $quiz->questionsperpage ?? 0,
+        ];
+    }
+
+    /**
+     * Get comprehensive quiz data including questions and user attempts.
+     *
+     * @param int $quizid Quiz instance ID.
+     * @param \context_module $context Module context.
+     * @param int $userid User ID.
+     * @param bool $includeuserdata Include user attempts.
+     * @return array Quiz data.
+     */
+    private static function get_quiz_data(int $quizid, \context_module $context, int $userid, bool $includeuserdata): array {
+        global $DB, $CFG;
+
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+        require_once($CFG->dirroot . '/question/engine/lib.php');
+
+        $quiz = $DB->get_record('quiz', ['id' => $quizid]);
+        if (!$quiz) {
+            return [];
+        }
+
+        $data = [
+            'id' => $quiz->id,
+            'name' => $quiz->name,
+            'timeopen' => $quiz->timeopen,
+            'timeclose' => $quiz->timeclose,
+            'timelimit' => $quiz->timelimit,
+            'grade' => (float) $quiz->grade,
+            'attempts' => $quiz->attempts,
+            'grademethod' => $quiz->grademethod,
+            'sumgrades' => (float) ($quiz->sumgrades ?? 0),
+            'questionsperpage' => $quiz->questionsperpage ?? 0,
+            'shuffleanswers' => $quiz->shuffleanswers ?? 0,
+            'preferredbehaviour' => $quiz->preferredbehaviour ?? 'deferredfeedback',
+            'questions' => [],
+            'userattempts' => [],
+        ];
+
+        // Get quiz questions.
+        try {
+            $data['questions'] = self::get_quiz_questions($quiz, $context);
+        } catch (\Exception $e) {
+            // If we can't get questions, return basic data.
+            $data['questionserror'] = $e->getMessage();
+        }
+
+        // Get user attempts.
+        if ($includeuserdata) {
+            $data['userattempts'] = self::get_quiz_user_attempts($quiz, $userid);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get quiz questions with answers.
+     *
+     * @param object $quiz Quiz record.
+     * @param \context_module $context Module context.
+     * @return array Questions data.
+     */
+    private static function get_quiz_questions(object $quiz, \context_module $context): array {
+        global $DB, $CFG;
+
+        $questions = [];
+
+        // Get quiz slots (question positions).
+        $slots = $DB->get_records('quiz_slots', ['quizid' => $quiz->id], 'slot');
+
+        foreach ($slots as $slot) {
+            $question = $DB->get_record('question', ['id' => $slot->questionid]);
+            if (!$question) {
+                continue;
+            }
+
+            $qdata = [
+                'id' => $question->id,
+                'slot' => $slot->slot,
+                'page' => $slot->page,
+                'name' => $question->name,
+                'questiontext' => format_text($question->questiontext, $question->questiontextformat, ['context' => $context]),
+                'questiontextformat' => $question->questiontextformat,
+                'qtype' => $question->qtype,
+                'defaultmark' => (float) $slot->maxmark,
+                'answers' => [],
+            ];
+
+            // Get answers based on question type.
+            switch ($question->qtype) {
+                case 'multichoice':
+                case 'truefalse':
+                    $qdata['answers'] = self::get_question_answers($question->id, $context);
+                    // Get multichoice options.
+                    $mcoptions = $DB->get_record('qtype_multichoice_options', ['questionid' => $question->id]);
+                    if ($mcoptions) {
+                        $qdata['single'] = $mcoptions->single ? true : false;
+                        $qdata['shuffleanswers'] = $mcoptions->shuffleanswers ? true : false;
+                    }
+                    break;
+
+                case 'match':
+                    $qdata['subquestions'] = self::get_match_subquestions($question->id, $context);
+                    break;
+
+                case 'shortanswer':
+                case 'numerical':
+                    $qdata['answers'] = self::get_question_answers($question->id, $context);
+                    break;
+
+                case 'essay':
+                    $essayoptions = $DB->get_record('qtype_essay_options', ['questionid' => $question->id]);
+                    if ($essayoptions) {
+                        $qdata['responseformat'] = $essayoptions->responseformat;
+                        $qdata['responserequired'] = $essayoptions->responserequired;
+                        $qdata['responsefieldlines'] = $essayoptions->responsefieldlines;
+                        $qdata['attachments'] = $essayoptions->attachments;
+                        $qdata['attachmentsrequired'] = $essayoptions->attachmentsrequired;
+                    }
+                    break;
+            }
+
+            $questions[] = $qdata;
+        }
+
+        return $questions;
+    }
+
+    /**
+     * Get question answers.
+     *
+     * @param int $questionid Question ID.
+     * @param \context_module $context Context.
+     * @return array Answers.
+     */
+    private static function get_question_answers(int $questionid, \context_module $context): array {
+        global $DB;
+
+        $answers = [];
+        $answerrecords = $DB->get_records('question_answers', ['question' => $questionid], 'id');
+
+        foreach ($answerrecords as $answer) {
+            $answers[] = [
+                'id' => $answer->id,
+                'answer' => format_text($answer->answer, $answer->answerformat, ['context' => $context]),
+                'answerformat' => $answer->answerformat,
+                'fraction' => (float) $answer->fraction,
+                'feedback' => format_text($answer->feedback, $answer->feedbackformat, ['context' => $context]),
+            ];
+        }
+
+        return $answers;
+    }
+
+    /**
+     * Get match question subquestions.
+     *
+     * @param int $questionid Question ID.
+     * @param \context_module $context Context.
+     * @return array Subquestions.
+     */
+    private static function get_match_subquestions(int $questionid, \context_module $context): array {
+        global $DB;
+
+        $subquestions = [];
+        $records = $DB->get_records('qtype_match_subquestions', ['questionid' => $questionid], 'id');
+
+        foreach ($records as $sub) {
+            $subquestions[] = [
+                'id' => $sub->id,
+                'questiontext' => format_text($sub->questiontext, $sub->questiontextformat, ['context' => $context]),
+                'answertext' => $sub->answertext,
+            ];
+        }
+
+        return $subquestions;
+    }
+
+    /**
+     * Get user's quiz attempts.
+     *
+     * @param object $quiz Quiz record.
+     * @param int $userid User ID.
+     * @return array Attempts data.
+     */
+    private static function get_quiz_user_attempts(object $quiz, int $userid): array {
+        global $DB;
+
+        $attempts = [];
+        $attemptrecords = $DB->get_records('quiz_attempts', [
+            'quiz' => $quiz->id,
+            'userid' => $userid,
+        ], 'attempt DESC');
+
+        foreach ($attemptrecords as $attempt) {
+            $attempts[] = [
+                'id' => $attempt->id,
+                'attempt' => $attempt->attempt,
+                'state' => $attempt->state,
+                'timestart' => $attempt->timestart,
+                'timefinish' => $attempt->timefinish,
+                'timemodified' => $attempt->timemodified,
+                'sumgrades' => $attempt->sumgrades !== null ? (float) $attempt->sumgrades : null,
+            ];
+        }
+
+        return $attempts;
+    }
+
+    // ========================================
+    // ASSIGNMENT DATA - Enhanced with submission details
+    // ========================================
+
+    /**
+     * Get basic assignment data.
+     *
+     * @param int $assignid Assignment instance ID.
+     * @return array Assignment data.
+     */
+    private static function get_assignment_basic(int $assignid): array {
+        global $DB;
+
+        $assign = $DB->get_record('assign', ['id' => $assignid]);
+        if (!$assign) {
+            return [];
+        }
+
+        return [
+            'id' => $assign->id,
+            'name' => $assign->name,
+            'duedate' => $assign->duedate,
+            'allowsubmissionsfromdate' => $assign->allowsubmissionsfromdate,
+            'grade' => (float) $assign->grade,
+            'timemodified' => $assign->timemodified,
+            'cutoffdate' => $assign->cutoffdate ?? 0,
+            'gradingduedate' => $assign->gradingduedate ?? 0,
+        ];
+    }
+
+    /**
+     * Get comprehensive assignment data with submission details.
+     *
+     * @param int $assignid Assignment instance ID.
+     * @param \context_module $context Module context.
+     * @param int $userid User ID.
+     * @param bool $includeuserdata Include user submission.
+     * @return array Assignment data.
+     */
+    private static function get_assignment_data(int $assignid, \context_module $context, int $userid, bool $includeuserdata): array {
+        global $DB;
+
+        $assign = $DB->get_record('assign', ['id' => $assignid]);
+        if (!$assign) {
+            return [];
+        }
+
+        $data = [
+            'id' => $assign->id,
+            'name' => $assign->name,
+            'duedate' => $assign->duedate,
+            'allowsubmissionsfromdate' => $assign->allowsubmissionsfromdate,
+            'grade' => (float) $assign->grade,
+            'timemodified' => $assign->timemodified,
+            'cutoffdate' => $assign->cutoffdate ?? 0,
+            'gradingduedate' => $assign->gradingduedate ?? 0,
+            'submissiondrafts' => $assign->submissiondrafts ? true : false,
+            'requiresubmissionstatement' => $assign->requiresubmissionstatement ? true : false,
+            'teamsubmission' => $assign->teamsubmission ? true : false,
+            'maxattempts' => $assign->maxattempts,
+            'submissiontypes' => [],
+            'usersubmission' => null,
+            'usergrade' => null,
+        ];
+
+        // Get enabled submission types.
+        $plugins = $DB->get_records('assign_plugin_config', [
+            'assignment' => $assignid,
+            'subtype' => 'assignsubmission',
+            'name' => 'enabled',
+            'value' => '1',
+        ]);
+
+        foreach ($plugins as $plugin) {
+            $typeconfig = [];
+            $allconfigs = $DB->get_records('assign_plugin_config', [
+                'assignment' => $assignid,
+                'plugin' => $plugin->plugin,
+                'subtype' => 'assignsubmission',
+            ]);
+            foreach ($allconfigs as $config) {
+                $typeconfig[$config->name] = $config->value;
+            }
+
+            $data['submissiontypes'][] = [
+                'type' => $plugin->plugin,
+                'config' => $typeconfig,
+            ];
+        }
+
+        // Get user's submission.
+        if ($includeuserdata) {
+            $submission = $DB->get_record('assign_submission', [
+                'assignment' => $assignid,
+                'userid' => $userid,
+                'latest' => 1,
+            ]);
+
+            if ($submission) {
+                $data['usersubmission'] = [
+                    'id' => $submission->id,
+                    'status' => $submission->status,
+                    'attemptnumber' => $submission->attemptnumber,
+                    'timecreated' => $submission->timecreated,
+                    'timemodified' => $submission->timemodified,
+                    'plugins' => [],
+                ];
+
+                // Get submission plugin data.
+                // Online text.
+                $onlinetext = $DB->get_record('assignsubmission_onlinetext', ['submission' => $submission->id]);
+                if ($onlinetext) {
+                    $data['usersubmission']['plugins']['onlinetext'] = [
+                        'text' => $onlinetext->onlinetext,
+                        'format' => $onlinetext->onlineformat,
+                    ];
+                }
+
+                // File submissions.
+                $fs = get_file_storage();
+                $files = $fs->get_area_files($context->id, 'assignsubmission_file', 'submission_files', $submission->id, 'sortorder', false);
+                if (!empty($files)) {
+                    $data['usersubmission']['plugins']['file'] = [
+                        'files' => self::format_files_array($files),
+                    ];
+                }
+            }
+
+            // Get user's grade.
+            $grade = $DB->get_record('assign_grades', [
+                'assignment' => $assignid,
+                'userid' => $userid,
+            ], '*', IGNORE_MULTIPLE);
+
+            if ($grade) {
+                $data['usergrade'] = [
+                    'id' => $grade->id,
+                    'grade' => $grade->grade,
+                    'attemptnumber' => $grade->attemptnumber,
+                    'timecreated' => $grade->timecreated,
+                    'timemodified' => $grade->timemodified,
+                ];
+
+                // Get feedback.
+                $feedback = $DB->get_record('assignfeedback_comments', ['grade' => $grade->id]);
+                if ($feedback) {
+                    $data['usergrade']['feedbackcomment'] = $feedback->commenttext;
+                    $data['usergrade']['feedbackformat'] = $feedback->commentformat;
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    // ========================================
+    // LESSON DATA - Enhanced with pages and answers
+    // ========================================
+
+    /**
+     * Get basic lesson data.
+     *
+     * @param int $lessonid Lesson instance ID.
+     * @return array Lesson data.
+     */
+    private static function get_lesson_basic(int $lessonid): array {
+        global $DB;
+
+        $lesson = $DB->get_record('lesson', ['id' => $lessonid]);
+        if (!$lesson) {
+            return [];
+        }
+
+        $pagecount = $DB->count_records('lesson_pages', ['lessonid' => $lessonid]);
+
+        return [
+            'id' => $lesson->id,
+            'name' => $lesson->name,
+            'grade' => (float) $lesson->grade,
+            'timelimit' => $lesson->timelimit ?? 0,
+            'pagecount' => $pagecount,
+            'maxattempts' => $lesson->maxattempts ?? 0,
+            'timemodified' => $lesson->timemodified,
+        ];
+    }
+
+    /**
+     * Get comprehensive lesson data including all pages.
+     *
+     * @param int $lessonid Lesson instance ID.
+     * @param \context_module $context Module context.
+     * @param int $userid User ID.
+     * @param bool $includeuserdata Include user progress.
+     * @return array Lesson data.
+     */
+    private static function get_lesson_data(int $lessonid, \context_module $context, int $userid, bool $includeuserdata): array {
+        global $DB;
+
+        $lesson = $DB->get_record('lesson', ['id' => $lessonid]);
+        if (!$lesson) {
+            return [];
+        }
+
+        $data = [
+            'id' => $lesson->id,
+            'name' => $lesson->name,
+            'grade' => (float) $lesson->grade,
+            'timelimit' => $lesson->timelimit ?? 0,
+            'maxattempts' => $lesson->maxattempts ?? 0,
+            'retake' => $lesson->retake ?? 0,
+            'progressbar' => $lesson->progressbar ?? 0,
+            'ongoing' => $lesson->ongoing ?? 0,
+            'review' => $lesson->review ?? 0,
+            'timemodified' => $lesson->timemodified,
+            'pages' => [],
+            'userprogress' => null,
+        ];
+
+        // Get all lesson pages.
+        $pages = $DB->get_records('lesson_pages', ['lessonid' => $lessonid], 'prevpageid');
+
+        // Sort pages in order.
+        $orderedpages = [];
+        $currentid = 0;
+        foreach ($pages as $page) {
+            if ($page->prevpageid == 0) {
+                $currentid = $page->id;
+                break;
+            }
+        }
+
+        while ($currentid != 0 && isset($pages[$currentid])) {
+            $orderedpages[] = $pages[$currentid];
+            $currentid = $pages[$currentid]->nextpageid;
+        }
+
+        foreach ($orderedpages as $page) {
+            $pagedata = [
+                'id' => $page->id,
+                'title' => $page->title,
+                'contents' => format_text($page->contents, $page->contentsformat, ['context' => $context]),
+                'contentsformat' => $page->contentsformat,
+                'qtype' => $page->qtype,
+                'qoption' => $page->qoption,
+                'layout' => $page->layout,
+                'display' => $page->display,
+                'answers' => [],
+            ];
+
+            // Get answers for question pages.
+            $answers = $DB->get_records('lesson_answers', ['pageid' => $page->id], 'id');
+            foreach ($answers as $answer) {
+                $pagedata['answers'][] = [
+                    'id' => $answer->id,
+                    'answer' => format_text($answer->answer, $answer->answerformat, ['context' => $context]),
+                    'answerformat' => $answer->answerformat,
+                    'response' => format_text($answer->response, $answer->responseformat, ['context' => $context]),
+                    'responseformat' => $answer->responseformat,
+                    'jumpto' => $answer->jumpto,
+                    'score' => $answer->score,
+                ];
+            }
+
+            $data['pages'][] = $pagedata;
+        }
+
+        // Get user progress.
+        if ($includeuserdata) {
+            $data['userprogress'] = self::get_lesson_user_progress($lessonid, $userid);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get user's lesson progress.
+     *
+     * @param int $lessonid Lesson ID.
+     * @param int $userid User ID.
+     * @return array Progress data.
+     */
+    private static function get_lesson_user_progress(int $lessonid, int $userid): array {
+        global $DB;
+
+        // Get attempts.
+        $attempts = $DB->get_records('lesson_attempts', [
+            'lessonid' => $lessonid,
+            'userid' => $userid,
+        ], 'timeseen DESC');
+
+        $attemptdata = [];
+        foreach ($attempts as $attempt) {
+            $attemptdata[] = [
+                'id' => $attempt->id,
+                'pageid' => $attempt->pageid,
+                'answerid' => $attempt->answerid,
+                'retry' => $attempt->retry,
+                'correct' => $attempt->correct,
+                'timeseen' => $attempt->timeseen,
+            ];
+        }
+
+        // Get grades.
+        $grades = $DB->get_records('lesson_grades', [
+            'lessonid' => $lessonid,
+            'userid' => $userid,
+        ], 'completed DESC');
+
+        $gradedata = [];
+        foreach ($grades as $grade) {
+            $gradedata[] = [
+                'id' => $grade->id,
+                'grade' => (float) $grade->grade,
+                'completed' => $grade->completed,
+            ];
+        }
+
+        // Get timer (current attempt).
+        $timer = $DB->get_record('lesson_timer', [
+            'lessonid' => $lessonid,
+            'userid' => $userid,
+        ], '*', IGNORE_MULTIPLE);
+
+        return [
+            'attempts' => $attemptdata,
+            'grades' => $gradedata,
+            'timer' => $timer ? [
+                'starttime' => $timer->starttime,
+                'lessontime' => $timer->lessontime,
+                'completed' => $timer->completed,
+            ] : null,
+        ];
+    }
+
+    // ========================================
+    // FILE/RESOURCE HELPERS
+    // ========================================
 
     /**
      * Get resource files.
@@ -525,60 +1235,6 @@ class get_course_content extends external_api {
     }
 
     /**
-     * Get assignment data.
-     *
-     * @param int $assignid Assignment instance ID.
-     * @return array Assignment data.
-     */
-    private static function get_assignment_data(int $assignid): array {
-        global $DB;
-
-        $assign = $DB->get_record('assign', ['id' => $assignid]);
-        if (!$assign) {
-            return [];
-        }
-
-        return [
-            'id' => $assign->id,
-            'name' => $assign->name,
-            'duedate' => $assign->duedate,
-            'allowsubmissionsfromdate' => $assign->allowsubmissionsfromdate,
-            'grade' => (float) $assign->grade,
-            'timemodified' => $assign->timemodified,
-            'cutoffdate' => $assign->cutoffdate ?? 0,
-            'gradingduedate' => $assign->gradingduedate ?? 0,
-        ];
-    }
-
-    /**
-     * Get quiz data.
-     *
-     * @param int $quizid Quiz instance ID.
-     * @return array Quiz data.
-     */
-    private static function get_quiz_data(int $quizid): array {
-        global $DB;
-
-        $quiz = $DB->get_record('quiz', ['id' => $quizid]);
-        if (!$quiz) {
-            return [];
-        }
-
-        return [
-            'id' => $quiz->id,
-            'name' => $quiz->name,
-            'timeopen' => $quiz->timeopen,
-            'timeclose' => $quiz->timeclose,
-            'timelimit' => $quiz->timelimit,
-            'grade' => (float) $quiz->grade,
-            'attempts' => $quiz->attempts,
-            'grademethod' => $quiz->grademethod,
-            'sumgrades' => (float) ($quiz->sumgrades ?? 0),
-            'questionsperpage' => $quiz->questionsperpage ?? 0,
-        ];
-    }
-
-    /**
      * Get forum data.
      *
      * @param int $forumid Forum instance ID.
@@ -648,34 +1304,6 @@ class get_course_content extends external_api {
             'id' => $book->id,
             'name' => $book->name,
             'chapters' => $chaptersdata,
-        ];
-    }
-
-    /**
-     * Get lesson data.
-     *
-     * @param int $lessonid Lesson instance ID.
-     * @return array Lesson data.
-     */
-    private static function get_lesson_data(int $lessonid): array {
-        global $DB;
-
-        $lesson = $DB->get_record('lesson', ['id' => $lessonid]);
-        if (!$lesson) {
-            return [];
-        }
-
-        // Count pages.
-        $pagecount = $DB->count_records('lesson_pages', ['lessonid' => $lessonid]);
-
-        return [
-            'id' => $lesson->id,
-            'name' => $lesson->name,
-            'grade' => (float) $lesson->grade,
-            'timelimit' => $lesson->timelimit ?? 0,
-            'pagecount' => $pagecount,
-            'maxattempts' => $lesson->maxattempts ?? 0,
-            'timemodified' => $lesson->timemodified,
         ];
     }
 
@@ -765,119 +1393,7 @@ class get_course_content extends external_api {
                             'visible' => new external_value(PARAM_BOOL, 'Section visibility'),
                             'sectionnum' => new external_value(PARAM_INT, 'Section number'),
                             'modules' => new external_multiple_structure(
-                                new external_single_structure([
-                                    'id' => new external_value(PARAM_INT, 'Course module ID'),
-                                    'name' => new external_value(PARAM_TEXT, 'Module name'),
-                                    'modname' => new external_value(PARAM_ALPHANUMEXT, 'Module type (resource, scorm, page, etc.)'),
-                                    'instance' => new external_value(PARAM_INT, 'Module instance ID'),
-                                    'visible' => new external_value(PARAM_BOOL, 'Module visibility'),
-                                    'uservisible' => new external_value(PARAM_BOOL, 'User can see module'),
-                                    'description' => new external_value(PARAM_RAW, 'Module description/intro'),
-                                    'completion' => new external_value(PARAM_INT, 'Completion tracking type'),
-                                    'completionstate' => new external_value(PARAM_INT, 'User completion state'),
-                                    'url' => new external_value(PARAM_URL, 'Module URL', VALUE_OPTIONAL),
-                                    'contents' => new external_multiple_structure(
-                                        new external_single_structure([
-                                            'type' => new external_value(PARAM_ALPHA, 'Content type (file, url)'),
-                                            'filename' => new external_value(PARAM_FILE, 'File name'),
-                                            'filepath' => new external_value(PARAM_PATH, 'File path'),
-                                            'filesize' => new external_value(PARAM_INT, 'File size in bytes'),
-                                            'fileurl' => new external_value(PARAM_URL, 'File download URL'),
-                                            'mimetype' => new external_value(PARAM_RAW, 'MIME type'),
-                                            'timecreated' => new external_value(PARAM_INT, 'Time created'),
-                                            'timemodified' => new external_value(PARAM_INT, 'Time modified'),
-                                            'author' => new external_value(PARAM_RAW, 'Author'),
-                                            'license' => new external_value(PARAM_RAW, 'License', VALUE_OPTIONAL),
-                                        ]),
-                                        'Module contents/files',
-                                        VALUE_OPTIONAL
-                                    ),
-                                    'scorm' => new external_single_structure([
-                                        'id' => new external_value(PARAM_INT, 'SCORM ID'),
-                                        'name' => new external_value(PARAM_TEXT, 'SCORM name'),
-                                        'version' => new external_value(PARAM_RAW, 'SCORM version'),
-                                        'maxgrade' => new external_value(PARAM_FLOAT, 'Maximum grade'),
-                                        'grademethod' => new external_value(PARAM_INT, 'Grade method'),
-                                        'maxattempt' => new external_value(PARAM_INT, 'Maximum attempts'),
-                                        'whatgrade' => new external_value(PARAM_INT, 'What grade to use'),
-                                        'scormtype' => new external_value(PARAM_ALPHA, 'SCORM type (local, external)'),
-                                        'reference' => new external_value(PARAM_RAW, 'Reference/URL'),
-                                        'launch' => new external_value(PARAM_URL, 'Launch URL', VALUE_OPTIONAL),
-                                        'packageurl' => new external_value(PARAM_URL, 'Package file URL', VALUE_OPTIONAL),
-                                        'scos' => new external_multiple_structure(
-                                            new external_single_structure([
-                                                'id' => new external_value(PARAM_INT, 'SCO ID'),
-                                                'identifier' => new external_value(PARAM_RAW, 'SCO identifier'),
-                                                'title' => new external_value(PARAM_TEXT, 'SCO title'),
-                                                'organization' => new external_value(PARAM_RAW, 'Organization'),
-                                                'parent' => new external_value(PARAM_RAW, 'Parent SCO'),
-                                                'launch' => new external_value(PARAM_RAW, 'Launch file'),
-                                                'scormtype' => new external_value(PARAM_RAW, 'SCO type'),
-                                                'sortorder' => new external_value(PARAM_INT, 'Sort order'),
-                                            ]),
-                                            'SCORM SCOs',
-                                            VALUE_OPTIONAL
-                                        ),
-                                    ], 'SCORM data', VALUE_OPTIONAL),
-                                    'pagecontent' => new external_value(PARAM_RAW, 'Page HTML content', VALUE_OPTIONAL),
-                                    'pagecontentformat' => new external_value(PARAM_INT, 'Page content format', VALUE_OPTIONAL),
-                                    'externalurl' => new external_value(PARAM_URL, 'External URL', VALUE_OPTIONAL),
-                                    'assignment' => new external_single_structure([
-                                        'id' => new external_value(PARAM_INT, 'Assignment ID'),
-                                        'name' => new external_value(PARAM_TEXT, 'Assignment name'),
-                                        'duedate' => new external_value(PARAM_INT, 'Due date'),
-                                        'allowsubmissionsfromdate' => new external_value(PARAM_INT, 'Submissions open date'),
-                                        'grade' => new external_value(PARAM_FLOAT, 'Maximum grade'),
-                                        'timemodified' => new external_value(PARAM_INT, 'Time modified'),
-                                        'cutoffdate' => new external_value(PARAM_INT, 'Cut-off date'),
-                                        'gradingduedate' => new external_value(PARAM_INT, 'Grading due date'),
-                                    ], 'Assignment data', VALUE_OPTIONAL),
-                                    'quiz' => new external_single_structure([
-                                        'id' => new external_value(PARAM_INT, 'Quiz ID'),
-                                        'name' => new external_value(PARAM_TEXT, 'Quiz name'),
-                                        'timeopen' => new external_value(PARAM_INT, 'Time open'),
-                                        'timeclose' => new external_value(PARAM_INT, 'Time close'),
-                                        'timelimit' => new external_value(PARAM_INT, 'Time limit'),
-                                        'grade' => new external_value(PARAM_FLOAT, 'Maximum grade'),
-                                        'attempts' => new external_value(PARAM_INT, 'Allowed attempts'),
-                                        'grademethod' => new external_value(PARAM_INT, 'Grade method'),
-                                        'sumgrades' => new external_value(PARAM_FLOAT, 'Sum of grades'),
-                                        'questionsperpage' => new external_value(PARAM_INT, 'Questions per page'),
-                                    ], 'Quiz data', VALUE_OPTIONAL),
-                                    'forum' => new external_single_structure([
-                                        'id' => new external_value(PARAM_INT, 'Forum ID'),
-                                        'name' => new external_value(PARAM_TEXT, 'Forum name'),
-                                        'type' => new external_value(PARAM_ALPHA, 'Forum type'),
-                                        'discussioncount' => new external_value(PARAM_INT, 'Discussion count'),
-                                        'timemodified' => new external_value(PARAM_INT, 'Time modified'),
-                                    ], 'Forum data', VALUE_OPTIONAL),
-                                    'book' => new external_single_structure([
-                                        'id' => new external_value(PARAM_INT, 'Book ID'),
-                                        'name' => new external_value(PARAM_TEXT, 'Book name'),
-                                        'chapters' => new external_multiple_structure(
-                                            new external_single_structure([
-                                                'id' => new external_value(PARAM_INT, 'Chapter ID'),
-                                                'title' => new external_value(PARAM_TEXT, 'Chapter title'),
-                                                'content' => new external_value(PARAM_RAW, 'Chapter content'),
-                                                'contentformat' => new external_value(PARAM_INT, 'Content format'),
-                                                'pagenum' => new external_value(PARAM_INT, 'Page number'),
-                                                'subchapter' => new external_value(PARAM_BOOL, 'Is subchapter'),
-                                                'hidden' => new external_value(PARAM_BOOL, 'Is hidden'),
-                                            ]),
-                                            'Book chapters',
-                                            VALUE_OPTIONAL
-                                        ),
-                                    ], 'Book data', VALUE_OPTIONAL),
-                                    'lesson' => new external_single_structure([
-                                        'id' => new external_value(PARAM_INT, 'Lesson ID'),
-                                        'name' => new external_value(PARAM_TEXT, 'Lesson name'),
-                                        'grade' => new external_value(PARAM_FLOAT, 'Maximum grade'),
-                                        'timelimit' => new external_value(PARAM_INT, 'Time limit'),
-                                        'pagecount' => new external_value(PARAM_INT, 'Page count'),
-                                        'maxattempts' => new external_value(PARAM_INT, 'Maximum attempts'),
-                                        'timemodified' => new external_value(PARAM_INT, 'Time modified'),
-                                    ], 'Lesson data', VALUE_OPTIONAL),
-                                ])
+                                self::get_module_return_structure()
                             ),
                         ])
                     ),
@@ -893,6 +1409,51 @@ class get_course_content extends external_api {
                 'Warnings',
                 VALUE_OPTIONAL
             ),
+        ]);
+    }
+
+    /**
+     * Get the return structure for a module.
+     *
+     * @return external_single_structure
+     */
+    private static function get_module_return_structure(): external_single_structure {
+        return new external_single_structure([
+            'id' => new external_value(PARAM_INT, 'Course module ID'),
+            'name' => new external_value(PARAM_TEXT, 'Module name'),
+            'modname' => new external_value(PARAM_ALPHANUMEXT, 'Module type'),
+            'instance' => new external_value(PARAM_INT, 'Module instance ID'),
+            'visible' => new external_value(PARAM_BOOL, 'Module visibility'),
+            'uservisible' => new external_value(PARAM_BOOL, 'User can see module'),
+            'description' => new external_value(PARAM_RAW, 'Module description'),
+            'completion' => new external_value(PARAM_INT, 'Completion tracking type'),
+            'completionstate' => new external_value(PARAM_INT, 'User completion state'),
+            'url' => new external_value(PARAM_URL, 'Module URL', VALUE_OPTIONAL),
+            'contents' => new external_multiple_structure(
+                new external_single_structure([
+                    'type' => new external_value(PARAM_ALPHA, 'Content type'),
+                    'filename' => new external_value(PARAM_FILE, 'File name'),
+                    'filepath' => new external_value(PARAM_PATH, 'File path'),
+                    'filesize' => new external_value(PARAM_INT, 'File size'),
+                    'fileurl' => new external_value(PARAM_URL, 'File URL'),
+                    'mimetype' => new external_value(PARAM_RAW, 'MIME type'),
+                    'timecreated' => new external_value(PARAM_INT, 'Time created'),
+                    'timemodified' => new external_value(PARAM_INT, 'Time modified'),
+                    'author' => new external_value(PARAM_RAW, 'Author'),
+                    'license' => new external_value(PARAM_RAW, 'License', VALUE_OPTIONAL),
+                ]),
+                'Contents',
+                VALUE_OPTIONAL
+            ),
+            'scorm' => new external_value(PARAM_RAW, 'SCORM data as JSON', VALUE_OPTIONAL),
+            'pagecontent' => new external_value(PARAM_RAW, 'Page HTML content', VALUE_OPTIONAL),
+            'pagecontentformat' => new external_value(PARAM_INT, 'Page content format', VALUE_OPTIONAL),
+            'externalurl' => new external_value(PARAM_URL, 'External URL', VALUE_OPTIONAL),
+            'assignment' => new external_value(PARAM_RAW, 'Assignment data as JSON', VALUE_OPTIONAL),
+            'quiz' => new external_value(PARAM_RAW, 'Quiz data as JSON', VALUE_OPTIONAL),
+            'forum' => new external_value(PARAM_RAW, 'Forum data as JSON', VALUE_OPTIONAL),
+            'book' => new external_value(PARAM_RAW, 'Book data as JSON', VALUE_OPTIONAL),
+            'lesson' => new external_value(PARAM_RAW, 'Lesson data as JSON', VALUE_OPTIONAL),
         ]);
     }
 }
