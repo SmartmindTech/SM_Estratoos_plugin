@@ -533,20 +533,35 @@ class update_activity_grade extends external_api {
      * Update SCORM's internal grade storage.
      *
      * This ensures /mod/scorm/report.php and /mod/scorm/view.php show correct grade.
-     * Calls scorm_update_grades() which recalculates grade from tracks.
+     *
+     * CRITICAL: Before calling scorm_update_grades(), we must update the simplified
+     * 'score_raw' element to match the full 'cmi.core.score.raw' value. Otherwise,
+     * scorm_update_grades() will read the old score_raw value and overwrite our
+     * correct grade.
      *
      * @param object $scorm The SCORM activity record
      * @param int $userid User ID
      * @param array &$warnings Warnings array (passed by reference)
      */
     private static function update_scorm_internal_grade($scorm, int $userid, array &$warnings): void {
-        global $CFG;
+        global $CFG, $DB;
 
         try {
             require_once($CFG->dirroot . '/mod/scorm/lib.php');
 
-            // Call SCORM's native grade update function.
-            // This recalculates the grade from tracks and updates SCORM's internal storage.
+            // Get the raw score we calculated earlier.
+            $rawscore = self::get_scorm_score($scorm->id, $userid);
+
+            // =====================================================
+            // CRITICAL: Update the simplified 'score_raw' element
+            // to match the full 'cmi.core.score.raw' value.
+            // This ensures scorm_update_grades() uses the correct score.
+            // =====================================================
+            if ($rawscore !== null) {
+                self::sync_scorm_score_raw($scorm->id, $userid, $rawscore, $warnings);
+            }
+
+            // Now call SCORM's native grade update - it will read the updated score_raw.
             scorm_update_grades($scorm, $userid);
         } catch (\Exception $e) {
             $warnings[] = [
@@ -555,6 +570,148 @@ class update_activity_grade extends external_api {
                 'warningcode' => 'scorminternalgradeerror',
                 'message' => 'Failed to update SCORM internal grade: ' . $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Sync the simplified 'score_raw' element to match 'cmi.core.score.raw'.
+     *
+     * scorm_update_grades() reads from the simplified 'score_raw' element,
+     * not from 'cmi.core.score.raw'. If these are out of sync, the grade
+     * will be incorrect. This function updates 'score_raw' to match.
+     *
+     * Handles both old schema (scorm_scoes_track) and new schema
+     * (scorm_scoes_value + scorm_element + scorm_attempt).
+     *
+     * @param int $scormid SCORM instance ID
+     * @param int $userid User ID
+     * @param float $rawscore The correct raw score
+     * @param array &$warnings Warnings array (passed by reference)
+     */
+    private static function sync_scorm_score_raw(int $scormid, int $userid, float $rawscore, array &$warnings): void {
+        global $DB;
+
+        $dbman = $DB->get_manager();
+
+        // =====================================================
+        // TRY NEW SCHEMA (Moodle 4.x+, IOMAD)
+        // =====================================================
+        if ($dbman->table_exists('scorm_scoes_value') &&
+            $dbman->table_exists('scorm_element') &&
+            $dbman->table_exists('scorm_attempt')) {
+
+            try {
+                // Get the latest attempt for this user.
+                $attempt = $DB->get_record_sql(
+                    "SELECT a.id
+                     FROM {scorm_attempt} a
+                     WHERE a.scormid = :scormid AND a.userid = :userid
+                     ORDER BY a.attempt DESC",
+                    ['scormid' => $scormid, 'userid' => $userid],
+                    IGNORE_MULTIPLE
+                );
+
+                if ($attempt) {
+                    // Get or check if 'score_raw' element exists.
+                    $element = $DB->get_record('scorm_element', ['element' => 'score_raw']);
+
+                    if ($element) {
+                        // Check if value exists for this attempt.
+                        $existing = $DB->get_record('scorm_scoes_value', [
+                            'attemptid' => $attempt->id,
+                            'elementid' => $element->id,
+                        ]);
+
+                        if ($existing) {
+                            // Update existing value.
+                            $DB->set_field('scorm_scoes_value', 'value', strval($rawscore), ['id' => $existing->id]);
+                            $DB->set_field('scorm_scoes_value', 'timemodified', time(), ['id' => $existing->id]);
+                        } else {
+                            // Insert new value - need to get scoid from another value in same attempt.
+                            $scoid = $DB->get_field_sql(
+                                "SELECT scoid FROM {scorm_scoes_value} WHERE attemptid = :attemptid",
+                                ['attemptid' => $attempt->id],
+                                IGNORE_MULTIPLE
+                            );
+
+                            if ($scoid) {
+                                $record = new \stdClass();
+                                $record->scoid = $scoid;
+                                $record->attemptid = $attempt->id;
+                                $record->elementid = $element->id;
+                                $record->value = strval($rawscore);
+                                $record->timemodified = time();
+                                $DB->insert_record('scorm_scoes_value', $record);
+                            }
+                        }
+                        return; // Success with new schema.
+                    }
+                }
+            } catch (\Exception $e) {
+                $warnings[] = [
+                    'item' => 'scormscorerawsync',
+                    'itemid' => $scormid,
+                    'warningcode' => 'newschemaerror',
+                    'message' => 'Error syncing score_raw (new schema): ' . $e->getMessage(),
+                ];
+            }
+        }
+
+        // =====================================================
+        // TRY OLD SCHEMA (Moodle 3.x and some 4.x)
+        // =====================================================
+        if ($dbman->table_exists('scorm_scoes_track')) {
+            try {
+                // Get latest attempt number.
+                $attempt = $DB->get_field_sql(
+                    "SELECT MAX(attempt) FROM {scorm_scoes_track} WHERE scormid = :scormid AND userid = :userid",
+                    ['scormid' => $scormid, 'userid' => $userid]
+                );
+
+                if ($attempt) {
+                    // Get scoid from an existing track.
+                    $scoid = $DB->get_field_sql(
+                        "SELECT scoid FROM {scorm_scoes_track}
+                         WHERE scormid = :scormid AND userid = :userid AND attempt = :attempt",
+                        ['scormid' => $scormid, 'userid' => $userid, 'attempt' => $attempt],
+                        IGNORE_MULTIPLE
+                    );
+
+                    if ($scoid) {
+                        // Check if score_raw exists for this attempt.
+                        $existing = $DB->get_record('scorm_scoes_track', [
+                            'scormid' => $scormid,
+                            'userid' => $userid,
+                            'attempt' => $attempt,
+                            'element' => 'score_raw',
+                        ]);
+
+                        if ($existing) {
+                            // Update existing value.
+                            $DB->set_field('scorm_scoes_track', 'value', strval($rawscore), ['id' => $existing->id]);
+                            $DB->set_field('scorm_scoes_track', 'timemodified', time(), ['id' => $existing->id]);
+                        } else {
+                            // Insert new track record.
+                            $record = new \stdClass();
+                            $record->scormid = $scormid;
+                            $record->scoid = $scoid;
+                            $record->userid = $userid;
+                            $record->attempt = $attempt;
+                            $record->element = 'score_raw';
+                            $record->value = strval($rawscore);
+                            $record->timemodified = time();
+                            $DB->insert_record('scorm_scoes_track', $record);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                $warnings[] = [
+                    'item' => 'scormscorerawsync',
+                    'itemid' => $scormid,
+                    'warningcode' => 'oldschemaerror',
+                    'message' => 'Error syncing score_raw (old schema): ' . $e->getMessage(),
+                ];
+            }
         }
     }
 
