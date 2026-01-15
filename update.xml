@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011430</version>
+        <version>2025011431</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.30</release>
+        <release>1.4.31</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,20 +29,21 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.30/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.31/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.30</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.31</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.30</h3>
+            <h3>Version 1.4.31</h3>
             <ul>
-                <li>Fix: SCORM grade now reads directly from scorm_scoes_track table</li>
-                <li>Fix: Resolved issue where scorm_update_grades() returned old/incorrect score</li>
-                <li>Supports: cmi.core.score.raw, cmi.score.raw, and score_raw element formats</li>
-                <li>Uses grade_update() to directly update gradebook with correct score</li>
+                <li>New: Support for both old and new SCORM database schemas</li>
+                <li>Old Schema (Moodle 3.x): mdl_scorm_scoes_track</li>
+                <li>New Schema (Moodle 4.x+, IOMAD): mdl_scorm_scoes_value + mdl_scorm_element + mdl_scorm_attempt</li>
+                <li>Improved: Dedicated score retrieval for Quiz, Assignment, Lesson, H5P, and LTI</li>
+                <li>All grades now properly sync to central gradebook using grade_update()</li>
             </ul>
             ]]>
         </releasenotes>

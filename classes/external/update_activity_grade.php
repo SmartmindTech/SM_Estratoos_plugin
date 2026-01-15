@@ -26,8 +26,6 @@ use external_function_parameters;
 use external_single_structure;
 use external_value;
 use context_module;
-use grade_item;
-use grade_grade;
 use invalid_parameter_exception;
 use moodle_exception;
 
@@ -38,6 +36,10 @@ use moodle_exception;
  * activity data (mod_scorm_insert_scorm_tracks, mod_quiz_process_attempt, etc.)
  * do NOT trigger grade recalculation. Call this after saving tracking data
  * to force the grade to update.
+ *
+ * Supports both old and new SCORM table schemas:
+ * - Old Schema (Moodle 3.x): mdl_scorm_scoes_track
+ * - New Schema (Moodle 4.x+, IOMAD): mdl_scorm_scoes_value + mdl_scorm_element + mdl_scorm_attempt
  *
  * @package    local_sm_estratoos_plugin
  * @copyright  2025 SmartMind Technologies
@@ -65,6 +67,9 @@ class update_activity_grade extends external_api {
 
     /**
      * Force grade recalculation for a gradable activity.
+     *
+     * Reads score from activity-specific tables and updates the central gradebook.
+     * Handles both old and new SCORM table schemas automatically.
      *
      * @param string $modname Module name (scorm, quiz, assign, lesson, etc.)
      * @param int $instanceid Activity instance ID
@@ -110,6 +115,7 @@ class update_activity_grade extends external_api {
         // Get course module for context validation.
         $cm = get_coursemodule_from_instance($modname, $instanceid, 0, false, MUST_EXIST);
         $context = context_module::instance($cm->id);
+        $courseid = $cm->course;
 
         // Validate context.
         self::validate_context($context);
@@ -117,82 +123,115 @@ class update_activity_grade extends external_api {
         // Check capability - user needs to be able to view grades.
         require_capability('moodle/grade:view', $context);
 
-        // Include the module's lib file.
-        $libfile = $CFG->dirroot . '/mod/' . $modname . '/lib.php';
-        if (!file_exists($libfile)) {
-            throw new moodle_exception('Module lib file not found: ' . $libfile);
-        }
-        require_once($libfile);
+        // =====================================================
+        // STEP 1: Get the raw score from activity-specific tables
+        // =====================================================
+        $rawscore = null;
 
-        // Special handling for SCORM - read score directly from tracks table.
-        // Moodle's scorm_update_grades() may not read the score correctly from mdl_scorm_scoes_track.
-        if ($modname === 'scorm') {
-            $scormgrade = self::update_scorm_grade_directly($activity, $userid, $warnings);
-            if ($scormgrade !== null) {
-                return [
-                    'status' => true,
-                    'modname' => $modname,
-                    'instanceid' => $instanceid,
-                    'userid' => $userid,
-                    'grade' => $scormgrade['grade'],
-                    'grademax' => $scormgrade['grademax'],
-                    'grademin' => $scormgrade['grademin'],
-                    'warnings' => $warnings,
+        switch ($modname) {
+            case 'scorm':
+                $rawscore = self::get_scorm_score($instanceid, $userid);
+                break;
+            case 'quiz':
+                $rawscore = self::get_quiz_score($instanceid, $userid);
+                break;
+            case 'assign':
+                $rawscore = self::get_assign_score($instanceid, $userid);
+                break;
+            case 'lesson':
+                $rawscore = self::get_lesson_score($instanceid, $userid);
+                break;
+            case 'h5pactivity':
+                $rawscore = self::get_h5p_score($instanceid, $userid);
+                break;
+            case 'lti':
+                $rawscore = self::get_lti_score($instanceid, $userid);
+                break;
+            default:
+                // For other activities, we'll try the standard grade update function.
+                $rawscore = null;
+        }
+
+        // =====================================================
+        // STEP 2: Update the gradebook using grade_update()
+        // =====================================================
+        $gradeupdated = false;
+
+        if ($rawscore !== null) {
+            $grades = [];
+            $grades[$userid] = new \stdClass();
+            $grades[$userid]->userid = $userid;
+            $grades[$userid]->rawgrade = $rawscore;
+
+            $updateresult = grade_update(
+                'mod/' . $modname,
+                $courseid,
+                'mod',
+                $modname,
+                $instanceid,
+                0,
+                $grades
+            );
+
+            if ($updateresult === GRADE_UPDATE_OK) {
+                $gradeupdated = true;
+            } else {
+                $warnings[] = [
+                    'item' => 'gradeupdate',
+                    'itemid' => $instanceid,
+                    'warningcode' => 'gradeupdatefailed',
+                    'message' => 'grade_update() returned: ' . $updateresult,
                 ];
             }
-            // If direct update failed, fall through to standard grade update.
+        } else {
+            // No raw score found, try the standard module grade update function.
+            $libfile = $CFG->dirroot . '/mod/' . $modname . '/lib.php';
+            if (file_exists($libfile)) {
+                require_once($libfile);
+                $functionname = $modname . '_update_grades';
+                if (function_exists($functionname)) {
+                    try {
+                        $functionname($activity, $userid);
+                        $gradeupdated = true;
+                    } catch (\Exception $e) {
+                        $warnings[] = [
+                            'item' => 'gradeupdate',
+                            'itemid' => $instanceid,
+                            'warningcode' => 'standardgradeupdatefailed',
+                            'message' => 'Standard grade update threw exception: ' . $e->getMessage(),
+                        ];
+                    }
+                }
+            }
         }
 
-        // Build the grade update function name.
-        // Pattern: {modname}_update_grades($activity, $userid)
-        $functionname = $modname . '_update_grades';
-
-        if (!function_exists($functionname)) {
-            throw new moodle_exception(
-                'gradefunction',
-                'local_sm_estratoos_plugin',
-                '',
-                $functionname,
-                'Grade update function not found: ' . $functionname
-            );
-        }
-
-        // Call the grade update function.
-        try {
-            $functionname($activity, $userid);
-        } catch (\Exception $e) {
-            $warnings[] = [
-                'item' => 'gradeupdate',
-                'itemid' => $instanceid,
-                'warningcode' => 'gradeupdatefailed',
-                'message' => 'Grade update function threw an exception: ' . $e->getMessage(),
-            ];
-        }
-
-        // Get the updated grade to return.
+        // =====================================================
+        // STEP 3: Read back from gradebook to confirm
+        // =====================================================
         $grade = null;
         $grademax = null;
         $grademin = null;
 
         try {
-            $gradeitem = grade_item::fetch([
+            $gradeitem = $DB->get_record('grade_items', [
                 'itemtype' => 'mod',
                 'itemmodule' => $modname,
                 'iteminstance' => $instanceid,
+                'courseid' => $courseid,
             ]);
 
             if ($gradeitem) {
-                $grademax = $gradeitem->grademax;
-                $grademin = $gradeitem->grademin;
+                $grademax = floatval($gradeitem->grademax);
+                $grademin = floatval($gradeitem->grademin);
 
-                $grades = grade_grade::fetch_all([
+                $gradegrade = $DB->get_record('grade_grades', [
                     'itemid' => $gradeitem->id,
                     'userid' => $userid,
                 ]);
 
-                if ($grades) {
-                    $gradeobj = reset($grades);
-                    $grade = $gradeobj->finalgrade;
+                if ($gradegrade && $gradegrade->finalgrade !== null) {
+                    $grade = floatval($gradegrade->finalgrade);
+                    $gradeupdated = true;
                 }
             }
         } catch (\Exception $e) {
@@ -205,7 +244,7 @@ class update_activity_grade extends external_api {
         }
 
         return [
-            'status' => true,
+            'status' => $gradeupdated,
             'modname' => $modname,
             'instanceid' => $instanceid,
             'userid' => $userid,
@@ -217,97 +256,259 @@ class update_activity_grade extends external_api {
     }
 
     /**
-     * Update SCORM grade directly by reading from tracks table.
+     * Get SCORM score - handles BOTH old and new table schemas.
      *
-     * This bypasses scorm_update_grades() which may not correctly read the score
-     * when data is saved via mod_scorm_insert_scorm_tracks. We read the score
-     * directly from mdl_scorm_scoes_track and update the gradebook.
+     * New Schema (Moodle 4.x+, IOMAD):
+     *   - mdl_scorm_scoes_value
+     *   - mdl_scorm_element
+     *   - mdl_scorm_attempt
      *
-     * @param object $scorm The SCORM activity record
+     * Old Schema (Moodle 3.x and some 4.x):
+     *   - mdl_scorm_scoes_track
+     *
+     * @param int $scormid SCORM instance ID
      * @param int $userid User ID
-     * @param array &$warnings Warnings array (passed by reference)
-     * @return array|null Array with grade info, or null if no score found
+     * @return float|null Score or null if not found
      */
-    private static function update_scorm_grade_directly($scorm, int $userid, array &$warnings): ?array {
+    private static function get_scorm_score(int $scormid, int $userid): ?float {
         global $DB;
 
-        try {
-            // Get the latest score directly from tracks table.
-            // Try multiple element name formats that different SCORM versions use.
-            $sql = "SELECT t.value, t.attempt, t.timemodified
-                    FROM {scorm_scoes_track} t
-                    WHERE t.scormid = :scormid
-                      AND t.userid = :userid
-                      AND t.element IN ('cmi.core.score.raw', 'cmi.score.raw', 'score_raw')
-                    ORDER BY t.timemodified DESC, t.attempt DESC
-                    LIMIT 1";
+        $dbman = $DB->get_manager();
 
-            $scorerecord = $DB->get_record_sql($sql, [
-                'scormid' => $scorm->id,
+        // =====================================================
+        // TRY NEW SCHEMA FIRST (Moodle 4.x+, IOMAD)
+        // Tables: mdl_scorm_scoes_value + mdl_scorm_element + mdl_scorm_attempt
+        // =====================================================
+        if ($dbman->table_exists('scorm_scoes_value') &&
+            $dbman->table_exists('scorm_element') &&
+            $dbman->table_exists('scorm_attempt')) {
+
+            // Try cmi.core.score.raw (SCORM 1.2).
+            $sql = "SELECT sv.value
+                    FROM {scorm_scoes_value} sv
+                    JOIN {scorm_element} e ON sv.elementid = e.id
+                    JOIN {scorm_attempt} a ON sv.attemptid = a.id
+                    WHERE a.scormid = :scormid
+                      AND a.userid = :userid
+                      AND e.element = :element
+                    ORDER BY sv.timemodified DESC";
+
+            $score = $DB->get_field_sql($sql, [
+                'scormid' => $scormid,
                 'userid' => $userid,
-            ]);
+                'element' => 'cmi.core.score.raw',
+            ], IGNORE_MULTIPLE);
 
-            if (!$scorerecord || $scorerecord->value === null || $scorerecord->value === '') {
-                // No score found, let the caller fall back to standard grade update.
-                return null;
+            if ($score !== false && $score !== null && $score !== '') {
+                return floatval($score);
             }
 
-            $score = floatval($scorerecord->value);
+            // Try cmi.score.raw (SCORM 2004).
+            $score = $DB->get_field_sql($sql, [
+                'scormid' => $scormid,
+                'userid' => $userid,
+                'element' => 'cmi.score.raw',
+            ], IGNORE_MULTIPLE);
 
-            // Normalize the score based on SCORM max grade.
-            // If the SCORM has a max grade different from 100, we need to scale.
-            $maxgrade = floatval($scorm->maxgrade);
-            if ($maxgrade <= 0) {
-                $maxgrade = 100;
+            if ($score !== false && $score !== null && $score !== '') {
+                return floatval($score);
             }
+        }
 
-            // Check if we need to scale the score.
-            // SCORM scores are typically 0-100, but Moodle grade might be different.
-            // If maxgrade is 100, use score as-is. Otherwise, scale proportionally.
-            // Actually, SCORM packages can have their own max score, so we assume
-            // the raw score is already in the correct scale for the SCORM package.
-            // We should use the score as-is and let Moodle handle the scaling.
-
-            // Update grade directly in gradebook.
-            $grades = [];
-            $grades[$userid] = new \stdClass();
-            $grades[$userid]->userid = $userid;
-            $grades[$userid]->rawgrade = $score;
-
-            $result = grade_update(
-                'mod/scorm',
-                $scorm->course,
-                'mod',
-                'scorm',
-                $scorm->id,
-                0,
-                $grades
+        // =====================================================
+        // TRY OLD SCHEMA (Moodle 3.x and some 4.x)
+        // Table: mdl_scorm_scoes_track
+        // =====================================================
+        if ($dbman->table_exists('scorm_scoes_track')) {
+            // Get latest attempt number.
+            $attempt = $DB->get_field_sql(
+                "SELECT MAX(attempt) FROM {scorm_scoes_track} WHERE scormid = :scormid AND userid = :userid",
+                ['scormid' => $scormid, 'userid' => $userid]
             );
 
-            if ($result !== GRADE_UPDATE_OK) {
-                $warnings[] = [
-                    'item' => 'gradeupdate',
-                    'itemid' => $scorm->id,
-                    'warningcode' => 'directgradeupdatefailed',
-                    'message' => 'Direct grade update returned: ' . $result,
-                ];
+            if ($attempt) {
+                // Try cmi.core.score.raw (SCORM 1.2).
+                $score = $DB->get_field('scorm_scoes_track', 'value', [
+                    'scormid' => $scormid,
+                    'userid' => $userid,
+                    'attempt' => $attempt,
+                    'element' => 'cmi.core.score.raw',
+                ]);
+
+                if ($score !== false && $score !== null && $score !== '') {
+                    return floatval($score);
+                }
+
+                // Try cmi.score.raw (SCORM 2004).
+                $score = $DB->get_field('scorm_scoes_track', 'value', [
+                    'scormid' => $scormid,
+                    'userid' => $userid,
+                    'attempt' => $attempt,
+                    'element' => 'cmi.score.raw',
+                ]);
+
+                if ($score !== false && $score !== null && $score !== '') {
+                    return floatval($score);
+                }
             }
-
-            return [
-                'grade' => $score,
-                'grademax' => $maxgrade,
-                'grademin' => 0.0,
-            ];
-
-        } catch (\Exception $e) {
-            $warnings[] = [
-                'item' => 'scormgrade',
-                'itemid' => $scorm->id,
-                'warningcode' => 'directgradeerror',
-                'message' => 'Error reading SCORM score directly: ' . $e->getMessage(),
-            ];
-            return null;
         }
+
+        return null;
+    }
+
+    /**
+     * Get Quiz score from mdl_quiz_attempts.
+     *
+     * @param int $quizid Quiz instance ID
+     * @param int $userid User ID
+     * @return float|null Score or null if not found
+     */
+    private static function get_quiz_score(int $quizid, int $userid): ?float {
+        global $DB;
+
+        // Get the best/latest finished attempt.
+        $sql = "SELECT sumgrades
+                FROM {quiz_attempts}
+                WHERE quiz = :quizid
+                  AND userid = :userid
+                  AND state = 'finished'
+                ORDER BY sumgrades DESC, timemodified DESC";
+
+        $sumgrades = $DB->get_field_sql($sql, [
+            'quizid' => $quizid,
+            'userid' => $userid,
+        ], IGNORE_MULTIPLE);
+
+        if ($sumgrades !== false && $sumgrades !== null) {
+            // Get quiz settings to scale the grade.
+            $quiz = $DB->get_record('quiz', ['id' => $quizid], 'grade, sumgrades');
+            if ($quiz && $quiz->sumgrades > 0) {
+                // Scale to quiz grade.
+                return (floatval($sumgrades) / floatval($quiz->sumgrades)) * floatval($quiz->grade);
+            }
+            return floatval($sumgrades);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get Assignment score from mdl_assign_grades.
+     *
+     * @param int $assignid Assignment instance ID
+     * @param int $userid User ID
+     * @return float|null Score or null if not found
+     */
+    private static function get_assign_score(int $assignid, int $userid): ?float {
+        global $DB;
+
+        // Get the latest grade (there might be multiple for re-grading).
+        $sql = "SELECT grade
+                FROM {assign_grades}
+                WHERE assignment = :assignid
+                  AND userid = :userid
+                  AND grade >= 0
+                ORDER BY timemodified DESC";
+
+        $grade = $DB->get_field_sql($sql, [
+            'assignid' => $assignid,
+            'userid' => $userid,
+        ], IGNORE_MULTIPLE);
+
+        if ($grade !== false && $grade !== null) {
+            return floatval($grade);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get Lesson score from mdl_lesson_grades.
+     *
+     * @param int $lessonid Lesson instance ID
+     * @param int $userid User ID
+     * @return float|null Score or null if not found
+     */
+    private static function get_lesson_score(int $lessonid, int $userid): ?float {
+        global $DB;
+
+        // Get the latest/best grade.
+        $sql = "SELECT grade
+                FROM {lesson_grades}
+                WHERE lessonid = :lessonid
+                  AND userid = :userid
+                ORDER BY completed DESC";
+
+        $grade = $DB->get_field_sql($sql, [
+            'lessonid' => $lessonid,
+            'userid' => $userid,
+        ], IGNORE_MULTIPLE);
+
+        if ($grade !== false && $grade !== null) {
+            return floatval($grade);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get H5P score from mdl_h5pactivity_attempts.
+     *
+     * @param int $h5pid H5P activity instance ID
+     * @param int $userid User ID
+     * @return float|null Score or null if not found
+     */
+    private static function get_h5p_score(int $h5pid, int $userid): ?float {
+        global $DB;
+
+        // Get the best attempt (H5P stores scaled score 0-1).
+        $sql = "SELECT scaled
+                FROM {h5pactivity_attempts}
+                WHERE h5pactivityid = :h5pid
+                  AND userid = :userid
+                ORDER BY scaled DESC, timemodified DESC";
+
+        $scaled = $DB->get_field_sql($sql, [
+            'h5pid' => $h5pid,
+            'userid' => $userid,
+        ], IGNORE_MULTIPLE);
+
+        if ($scaled !== false && $scaled !== null) {
+            // H5P stores scaled score (0-1), convert to percentage.
+            return floatval($scaled) * 100;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get LTI score from mdl_lti_submission.
+     *
+     * @param int $ltiid LTI instance ID
+     * @param int $userid User ID
+     * @return float|null Score or null if not found
+     */
+    private static function get_lti_score(int $ltiid, int $userid): ?float {
+        global $DB;
+
+        // Get the latest submission grade.
+        $sql = "SELECT originalgrade
+                FROM {lti_submission}
+                WHERE ltiid = :ltiid
+                  AND userid = :userid
+                ORDER BY datesubmitted DESC";
+
+        $grade = $DB->get_field_sql($sql, [
+            'ltiid' => $ltiid,
+            'userid' => $userid,
+        ], IGNORE_MULTIPLE);
+
+        if ($grade !== false && $grade !== null) {
+            // LTI stores grade as 0-1, convert to percentage.
+            return floatval($grade) * 100;
+        }
+
+        return null;
     }
 
     /**
