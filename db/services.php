@@ -252,6 +252,23 @@ $functions = [
         'capabilities' => 'moodle/course:view',
         'loginrequired' => true,
     ],
+
+    // =========================================================================
+    // COMPLETION AND TRACKING FUNCTIONS
+    // =========================================================================
+
+    // Mark a course module as viewed and trigger completion.
+    'local_sm_estratoos_plugin_mark_module_viewed' => [
+        'classname' => 'local_sm_estratoos_plugin\external\mark_module_viewed',
+        'methodname' => 'execute',
+        'description' => 'Mark a course module as viewed and trigger completion tracking. ' .
+                        'Use this to track progress when playing content externally (SCORM, lessons, etc.). ' .
+                        'Replaces the non-existent core_completion_mark_course_module_viewed. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'moodle/course:view',
+        'loginrequired' => true,
+    ],
 ];
 
 // NOTE: The SmartMind - Estratoos Plugin service is created and managed in install.php,

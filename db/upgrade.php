@@ -476,5 +476,57 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011420, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.4.27: Add completion tracking function and ensure lesson/completion functions are available.
+    if ($oldversion < 2025011427) {
+        global $DB;
+
+        // Get the SmartMind service.
+        $service = $DB->get_record('external_services', ['shortname' => 'sm_estratoos_plugin']);
+        if ($service) {
+            // Functions to ensure are in the service.
+            $functions = [
+                // New custom completion function.
+                'local_sm_estratoos_plugin_mark_module_viewed',
+                // Moodle core completion functions.
+                'core_completion_update_activity_completion_status_manually',
+                'core_completion_get_activities_completion_status',
+                'core_completion_get_course_completion_status',
+                // Lesson view function.
+                'mod_lesson_view_lesson',
+                'mod_lesson_launch_attempt',
+                'mod_lesson_get_page_data',
+                'mod_lesson_process_page',
+                'mod_lesson_finish_attempt',
+            ];
+
+            foreach ($functions as $functionname) {
+                // Check if function exists in external_functions table.
+                $functionexists = $DB->record_exists('external_functions', ['name' => $functionname]);
+
+                if ($functionexists) {
+                    // Check if function is already in the service.
+                    $existing = $DB->get_record('external_services_functions', [
+                        'externalserviceid' => $service->id,
+                        'functionname' => $functionname,
+                    ]);
+
+                    if (!$existing) {
+                        // Add function to the service.
+                        try {
+                            $DB->insert_record('external_services_functions', [
+                                'externalserviceid' => $service->id,
+                                'functionname' => $functionname,
+                            ]);
+                        } catch (\Exception $e) {
+                            // Ignore if already exists.
+                        }
+                    }
+                }
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2025011427, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

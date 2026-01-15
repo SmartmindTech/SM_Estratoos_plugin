@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011426;  // YYYYMMDDXX format.
+$plugin->version = 2025011427;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.4.26';  // Fix quiz questions for Moodle 4.0+ question bank.
+$plugin->release = '1.4.27';  // Add completion tracking, lesson functions, fix search bar.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

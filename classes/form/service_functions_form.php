@@ -84,6 +84,49 @@ class service_functions_form extends \moodleform {
                     ['class' => 'text-muted']
                 )
             );
+
+            // Add JavaScript for search functionality.
+            $mform->addElement('html', '
+                <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    var searchInput = document.getElementById("id_search");
+                    var selectElement = document.getElementById("id_fids");
+
+                    if (searchInput && selectElement) {
+                        // Store original options.
+                        var allOptions = [];
+                        for (var i = 0; i < selectElement.options.length; i++) {
+                            allOptions.push({
+                                value: selectElement.options[i].value,
+                                text: selectElement.options[i].text
+                            });
+                        }
+
+                        // Filter function.
+                        searchInput.addEventListener("input", function() {
+                            var filter = this.value.toLowerCase();
+
+                            // Clear current options.
+                            selectElement.innerHTML = "";
+
+                            // Add matching options.
+                            allOptions.forEach(function(option) {
+                                if (option.text.toLowerCase().indexOf(filter) !== -1) {
+                                    var opt = document.createElement("option");
+                                    opt.value = option.value;
+                                    opt.text = option.text;
+                                    selectElement.appendChild(opt);
+                                }
+                            });
+                        });
+
+                        // Style the search input.
+                        searchInput.style.marginBottom = "10px";
+                        searchInput.style.width = "100%";
+                    }
+                });
+                </script>
+            ');
         }
 
         // Hidden service ID.

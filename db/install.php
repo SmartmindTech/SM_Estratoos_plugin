@@ -303,6 +303,8 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_get_conversations',
         // Course content functions.
         'local_sm_estratoos_plugin_get_course_content',
+        // Completion and tracking functions.
+        'local_sm_estratoos_plugin_mark_module_viewed',
     ];
 
     foreach ($pluginfunctions as $functionname) {
