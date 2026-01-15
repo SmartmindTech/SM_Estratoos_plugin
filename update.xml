@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011428</version>
+        <version>2025011429</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.28</release>
+        <release>1.4.29</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,19 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.28/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.29/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.28</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.29</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.28</h3>
+            <h3>Version 1.4.29</h3>
             <ul>
-                <li>New: local_sm_estratoos_plugin_update_activity_grade - Force grade recalculation for any gradable activity</li>
-                <li>Supports: SCORM, Quiz, Assignment, Lesson, H5P, LTI modules</li>
-                <li>Use case: Call after mod_scorm_insert_scorm_tracks to sync grades to Moodle gradebook</li>
+                <li>Fix: Ensure update_activity_grade function is properly added to SmartMind service</li>
+                <li>Fix: Resolved timing issue where upgrade step ran before function registration</li>
+                <li>Improved: Full service rebuild during upgrade to catch any missing functions</li>
             </ul>
             ]]>
         </releasenotes>
