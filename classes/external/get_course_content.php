@@ -671,7 +671,40 @@ class get_course_content extends external_api {
         $slots = $DB->get_records('quiz_slots', ['quizid' => $quiz->id], 'slot');
 
         foreach ($slots as $slot) {
-            $question = $DB->get_record('question', ['id' => $slot->questionid]);
+            $question = null;
+
+            // Try old method first (Moodle < 4.0) - direct questionid in slot.
+            if (!empty($slot->questionid)) {
+                $question = $DB->get_record('question', ['id' => $slot->questionid]);
+            }
+
+            // New method (Moodle 4.0+) - use question_references table.
+            if (!$question) {
+                // Get question reference for this slot.
+                $qref = $DB->get_record('question_references', [
+                    'component' => 'mod_quiz',
+                    'questionarea' => 'slot',
+                    'itemid' => $slot->id,
+                ]);
+
+                if ($qref) {
+                    // Get the question bank entry.
+                    $qbe = $DB->get_record('question_bank_entries', ['id' => $qref->questionbankentryid]);
+                    if ($qbe) {
+                        // Get the latest version of the question.
+                        $qversion = $DB->get_record_sql(
+                            "SELECT qv.* FROM {question_versions} qv
+                             WHERE qv.questionbankentryid = ?
+                             ORDER BY qv.version DESC LIMIT 1",
+                            [$qbe->id]
+                        );
+                        if ($qversion) {
+                            $question = $DB->get_record('question', ['id' => $qversion->questionid]);
+                        }
+                    }
+                }
+            }
+
             if (!$question) {
                 continue;
             }
