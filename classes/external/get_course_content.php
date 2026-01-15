@@ -491,25 +491,31 @@ class get_course_content extends external_api {
         global $DB;
 
         $tracks = [];
+        $attempt = 0;
 
-        // Get the latest attempt.
-        $attempt = $DB->get_field('scorm_scoes_track', 'MAX(attempt)', [
-            'scormid' => $scormid,
-            'userid' => $userid,
-            'scoid' => $scoid,
-        ]);
-
-        if ($attempt) {
-            $trackrecords = $DB->get_records('scorm_scoes_track', [
+        try {
+            // Get the latest attempt.
+            $attempt = $DB->get_field('scorm_scoes_track', 'MAX(attempt)', [
                 'scormid' => $scormid,
                 'userid' => $userid,
                 'scoid' => $scoid,
-                'attempt' => $attempt,
             ]);
 
-            foreach ($trackrecords as $track) {
-                $tracks[$track->element] = $track->value;
+            if ($attempt) {
+                $trackrecords = $DB->get_records('scorm_scoes_track', [
+                    'scormid' => $scormid,
+                    'userid' => $userid,
+                    'scoid' => $scoid,
+                    'attempt' => $attempt,
+                ]);
+
+                foreach ($trackrecords as $track) {
+                    $tracks[$track->element] = $track->value;
+                }
             }
+        } catch (\Exception $e) {
+            // Table may not exist if SCORM tracking not enabled.
+            $attempt = 0;
         }
 
         return [
@@ -528,20 +534,27 @@ class get_course_content extends external_api {
     private static function get_scorm_user_data(int $scormid, int $userid): array {
         global $DB;
 
-        // Get number of attempts.
-        $attemptcount = $DB->get_field_sql(
-            "SELECT MAX(attempt) FROM {scorm_scoes_track} WHERE scormid = ? AND userid = ?",
-            [$scormid, $userid]
-        );
+        $attemptcount = 0;
+        $grade = null;
 
-        // Get grades.
-        $grades = $DB->get_records('scorm_scoes_track', [
-            'scormid' => $scormid,
-            'userid' => $userid,
-            'element' => 'cmi.core.score.raw',
-        ], 'attempt DESC', '*', 0, 1);
+        try {
+            // Get number of attempts.
+            $attemptcount = $DB->get_field_sql(
+                "SELECT MAX(attempt) FROM {scorm_scoes_track} WHERE scormid = ? AND userid = ?",
+                [$scormid, $userid]
+            );
 
-        $grade = !empty($grades) ? reset($grades)->value : null;
+            // Get grades.
+            $grades = $DB->get_records('scorm_scoes_track', [
+                'scormid' => $scormid,
+                'userid' => $userid,
+                'element' => 'cmi.core.score.raw',
+            ], 'attempt DESC', '*', 0, 1);
+
+            $grade = !empty($grades) ? reset($grades)->value : null;
+        } catch (\Exception $e) {
+            // Table may not exist if SCORM tracking not enabled.
+        }
 
         return [
             'attemptcount' => (int) ($attemptcount ?? 0),

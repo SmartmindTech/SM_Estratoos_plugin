@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011423;  // YYYYMMDDXX format.
+$plugin->version = 2025011424;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.4.23';  // Enhanced course content with full quiz, assignment, lesson data for external use.
+$plugin->release = '1.4.24';  // Fix SCORM tracking table error handling.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
