@@ -206,7 +206,25 @@ class update_activity_grade extends external_api {
         }
 
         // =====================================================
-        // STEP 3: Read back from gradebook to confirm
+        // STEP 3: Update activity-specific grade storage
+        // This ensures internal activity views show correct grade
+        // (e.g., /mod/scorm/report.php, /mod/scorm/view.php)
+        // =====================================================
+        switch ($modname) {
+            case 'scorm':
+                self::update_scorm_internal_grade($activity, $userid, $warnings);
+                break;
+            case 'lesson':
+                self::update_lesson_internal_grade($activity, $userid, $warnings);
+                break;
+            case 'h5pactivity':
+                self::update_h5p_internal_grade($activity, $userid, $warnings);
+                break;
+            // Quiz and Assignment grades are auto-calculated from attempts, no extra step needed.
+        }
+
+        // =====================================================
+        // STEP 4: Read back from gradebook to confirm
         // =====================================================
         $grade = null;
         $grademax = null;
@@ -509,6 +527,93 @@ class update_activity_grade extends external_api {
         }
 
         return null;
+    }
+
+    /**
+     * Update SCORM's internal grade storage.
+     *
+     * This ensures /mod/scorm/report.php and /mod/scorm/view.php show correct grade.
+     * Calls scorm_update_grades() which recalculates grade from tracks.
+     *
+     * @param object $scorm The SCORM activity record
+     * @param int $userid User ID
+     * @param array &$warnings Warnings array (passed by reference)
+     */
+    private static function update_scorm_internal_grade($scorm, int $userid, array &$warnings): void {
+        global $CFG;
+
+        try {
+            require_once($CFG->dirroot . '/mod/scorm/lib.php');
+
+            // Call SCORM's native grade update function.
+            // This recalculates the grade from tracks and updates SCORM's internal storage.
+            scorm_update_grades($scorm, $userid);
+        } catch (\Exception $e) {
+            $warnings[] = [
+                'item' => 'scorminternalgrade',
+                'itemid' => $scorm->id,
+                'warningcode' => 'scorminternalgradeerror',
+                'message' => 'Failed to update SCORM internal grade: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Update Lesson's internal grade storage.
+     *
+     * This ensures /mod/lesson/report.php and /mod/lesson/view.php show correct grade.
+     * Calls lesson_update_grades() which recalculates grade from attempts.
+     *
+     * @param object $lesson The Lesson activity record
+     * @param int $userid User ID
+     * @param array &$warnings Warnings array (passed by reference)
+     */
+    private static function update_lesson_internal_grade($lesson, int $userid, array &$warnings): void {
+        global $CFG;
+
+        try {
+            require_once($CFG->dirroot . '/mod/lesson/lib.php');
+
+            // Call Lesson's native grade update function.
+            lesson_update_grades($lesson, $userid);
+        } catch (\Exception $e) {
+            $warnings[] = [
+                'item' => 'lessoninternalgrade',
+                'itemid' => $lesson->id,
+                'warningcode' => 'lessoninternalgradeerror',
+                'message' => 'Failed to update Lesson internal grade: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Update H5P's internal grade storage.
+     *
+     * This ensures /mod/h5pactivity/report.php and /mod/h5pactivity/view.php show correct grade.
+     * Calls h5pactivity_update_grades() which recalculates grade from attempts.
+     *
+     * @param object $h5pactivity The H5P activity record
+     * @param int $userid User ID
+     * @param array &$warnings Warnings array (passed by reference)
+     */
+    private static function update_h5p_internal_grade($h5pactivity, int $userid, array &$warnings): void {
+        global $CFG;
+
+        try {
+            require_once($CFG->dirroot . '/mod/h5pactivity/lib.php');
+
+            // Call H5P's native grade update function.
+            if (function_exists('h5pactivity_update_grades')) {
+                h5pactivity_update_grades($h5pactivity, $userid);
+            }
+        } catch (\Exception $e) {
+            $warnings[] = [
+                'item' => 'h5pinternalgrade',
+                'itemid' => $h5pactivity->id,
+                'warningcode' => 'h5pinternalgradeerror',
+                'message' => 'Failed to update H5P internal grade: ' . $e->getMessage(),
+            ];
+        }
     }
 
     /**

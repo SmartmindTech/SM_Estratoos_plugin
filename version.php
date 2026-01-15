@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011431;  // YYYYMMDDXX format.
+$plugin->version = 2025011432;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.4.31';  // Support both old and new SCORM schemas, improved grade updates.
+$plugin->release = '1.4.32';  // Fix SCORM internal grade display in report/view pages.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
