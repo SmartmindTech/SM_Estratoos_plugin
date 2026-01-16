@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011638</version>
+        <version>2025011639</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.38</release>
+        <release>1.4.39</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,20 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.38/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.39/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.38</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.39</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.38</h3>
-            <p><strong>Added upgrade step for Health Check API</strong></p>
+            <h3>Version 1.4.39</h3>
+            <p><strong>Fix upgrade step for Health Check API</strong></p>
             <ul>
-                <li>Added upgrade step to ensure existing installations get the health_check function</li>
-                <li>Added upgrade step to ensure existing installations get core_user_update_users function</li>
-                <li>Fixes issue where new functions were not added to SmartMind service on upgrade</li>
+                <li>Fixed upgrade step to properly add health_check function to SmartMind service</li>
+                <li>Added upgrade step for v1.4.38 to catch users who upgraded from v1.4.37</li>
+                <li>Ensures all existing installations get the new API functions</li>
             </ul>
             ]]>
         </releasenotes>

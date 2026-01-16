@@ -586,5 +586,16 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011637, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.4.39: Fix - Run service rebuild for users who had v1.4.37/v1.4.38 without proper upgrade step.
+    // The v1.4.37 release was missing the upgrade step, so this catches those installations.
+    if ($oldversion < 2025011639) {
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run the full service rebuild to add health_check and core_user_update_users functions.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011639, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
