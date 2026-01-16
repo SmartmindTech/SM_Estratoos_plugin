@@ -324,3 +324,11 @@ $string['apifunctiontag_desc'] = 'This function is provided by the SmartMind Est
 // Category-context function errors.
 $string['usernotincompany'] = 'The specified user is not in the token\'s company.';
 $string['categorynotincompany'] = 'The specified category is not in the company\'s category tree.';
+
+// Health Check API strings.
+$string['healthcheck'] = 'Health Check';
+$string['healthcheck_desc'] = 'Lightweight connectivity check for SmartLearning platform';
+$string['healthcheck_maintenance'] = 'Moodle is currently in maintenance mode. Please try again later.';
+$string['healthcheck_invalid_token'] = 'Your session has expired or the token is invalid. Please reconnect your Moodle account.';
+$string['healthcheck_user_suspended'] = 'Your user account has been suspended. Please contact your administrator.';
+$string['healthcheck_internal_error'] = 'An unexpected error occurred. Please try again later.';

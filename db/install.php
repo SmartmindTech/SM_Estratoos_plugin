@@ -308,6 +308,8 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_update_activity_grade',
         // Core Moodle functions needed by SmartLearning.
         'core_user_update_users',
+        // Health check for SmartLearning platform.
+        'local_sm_estratoos_plugin_health_check',
     ];
 
     foreach ($pluginfunctions as $functionname) {

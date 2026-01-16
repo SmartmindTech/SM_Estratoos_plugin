@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011436</version>
+        <version>2025011637</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.36</release>
+        <release>1.4.37</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,19 +29,22 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.36/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.37/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.36</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.37</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.36</h3>
-            <p><strong>Added core_user_update_users to service</strong></p>
+            <h3>Version 1.4.37</h3>
+            <p><strong>Added Health Check API for SmartLearning</strong></p>
             <ul>
-                <li>Added core_user_update_users Moodle API function to the SmartMind Estratoos Plugin service</li>
-                <li>Enables user profile updates via the SmartLearning platform</li>
+                <li>New ultra-lightweight health check endpoint: local_sm_estratoos_plugin_health_check</li>
+                <li>Designed for high-frequency polling (10-30 seconds) with minimal latency (10-50ms)</li>
+                <li>Returns clear status codes: ok, invalid_token, maintenance, user_suspended</li>
+                <li>Includes server timestamp for latency calculation</li>
+                <li>Returns user_id, username, moodle_version, and plugin_version</li>
             </ul>
             ]]>
         </releasenotes>

@@ -324,3 +324,11 @@ $string['apifunctiontag_desc'] = 'Esta función es proporcionada por el plugin S
 // Errores de funciones con contexto de categoría.
 $string['usernotincompany'] = 'El usuario especificado no pertenece a la empresa del token.';
 $string['categorynotincompany'] = 'La categoría especificada no está en el árbol de categorías de la empresa.';
+
+// Cadenas de la API Health Check.
+$string['healthcheck'] = 'Verificación de Estado';
+$string['healthcheck_desc'] = 'Verificación ligera de conectividad para la plataforma SmartLearning';
+$string['healthcheck_maintenance'] = 'Moodle está actualmente en modo de mantenimiento. Por favor, inténtelo más tarde.';
+$string['healthcheck_invalid_token'] = 'Tu sesión ha expirado o el token no es válido. Por favor, reconecta tu cuenta de Moodle.';
+$string['healthcheck_user_suspended'] = 'Tu cuenta de usuario ha sido suspendida. Por favor, contacta con tu administrador.';
+$string['healthcheck_internal_error'] = 'Ha ocurrido un error inesperado. Por favor, inténtelo más tarde.';

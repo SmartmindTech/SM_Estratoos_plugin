@@ -282,6 +282,19 @@ $functions = [
         'capabilities' => 'moodle/grade:view',
         'loginrequired' => true,
     ],
+
+    // Health check for SmartLearning platform - lightweight connectivity verification.
+    'local_sm_estratoos_plugin_health_check' => [
+        'classname' => 'local_sm_estratoos_plugin\external\health_check',
+        'methodname' => 'execute',
+        'description' => 'Lightweight health check for SmartLearning platform. Returns minimal response for fast ' .
+                        'connectivity verification. Designed for high-frequency polling (every 10-30 seconds). ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
 ];
 
 // NOTE: The SmartMind - Estratoos Plugin service is created and managed in install.php,
