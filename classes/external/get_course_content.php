@@ -45,6 +45,74 @@ use moodle_url;
 class get_course_content extends external_api {
 
     /**
+     * Lesson page type names mapping.
+     */
+    private const LESSON_PAGE_TYPES = [
+        0 => 'unknown',
+        1 => 'shortanswer',
+        2 => 'truefalse',
+        3 => 'multichoice',
+        5 => 'matching',
+        8 => 'numerical',
+        10 => 'essay',
+        20 => 'content',
+        21 => 'endofbranch',
+        30 => 'cluster',
+        31 => 'endofcluster',
+    ];
+
+    /**
+     * Calculate progress percentage (0-100) for a module based on its type and user data.
+     *
+     * @param string $modname Module type name.
+     * @param array $moduledata Module data array.
+     * @param int $completionstate Completion state from course_modules_completion.
+     * @return int Progress percentage (0-100).
+     */
+    private static function calculate_module_progress(string $modname, array $moduledata, int $completionstate): int {
+        switch ($modname) {
+            case 'scorm':
+                // Use score percentage if available.
+                if (!empty($moduledata['score']) && !empty($moduledata['maxgrade']) && $moduledata['maxgrade'] > 0) {
+                    return min(100, (int) round(($moduledata['score'] / $moduledata['maxgrade']) * 100));
+                }
+                // Fall back to completion state.
+                return $completionstate > 0 ? 100 : 0;
+
+            case 'quiz':
+                // Use best grade percentage.
+                if (!empty($moduledata['bestgrade']) && !empty($moduledata['grade']) && $moduledata['grade'] > 0) {
+                    return min(100, (int) round(($moduledata['bestgrade'] / $moduledata['grade']) * 100));
+                }
+                return $completionstate > 0 ? 100 : 0;
+
+            case 'assign':
+                // 100 if submitted, 0 if not.
+                return !empty($moduledata['submitted']) ? 100 : 0;
+
+            case 'lesson':
+                // Use pages viewed percentage.
+                if (!empty($moduledata['pagecount']) && $moduledata['pagecount'] > 0) {
+                    $pagesviewed = !empty($moduledata['pagesviewed']) ? count($moduledata['pagesviewed']) : 0;
+                    return min(100, (int) round(($pagesviewed / $moduledata['pagecount']) * 100));
+                }
+                return $completionstate > 0 ? 100 : 0;
+
+            case 'book':
+                // Use chapters viewed percentage.
+                $totalchapters = !empty($moduledata['chapters']) ? count($moduledata['chapters']) : 0;
+                if ($totalchapters > 0 && !empty($moduledata['chaptersviewed'])) {
+                    return min(100, (int) round((count($moduledata['chaptersviewed']) / $totalchapters) * 100));
+                }
+                return $completionstate > 0 ? 100 : 0;
+
+            default:
+                // For page, resource, URL, folder, etc. - use completion state.
+                return $completionstate > 0 ? 100 : 0;
+        }
+    }
+
+    /**
      * Define the parameters for the execute function.
      *
      * @return external_function_parameters
@@ -340,7 +408,7 @@ class get_course_content extends external_api {
 
             case 'book':
                 if ($options['includepagecontent']) {
-                    $moduledata['book'] = self::get_book_data($cm->instance, $modulecontext);
+                    $moduledata['book'] = self::get_book_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
                 }
                 break;
 
@@ -360,8 +428,18 @@ class get_course_content extends external_api {
                 break;
         }
 
-        // JSON encode complex module data fields (return structure expects PARAM_RAW strings).
+        // Calculate progress based on module type and data (before JSON encoding).
+        $progressdata = [];
         $jsonfields = ['scorm', 'quiz', 'assignment', 'forum', 'book', 'lesson'];
+        foreach ($jsonfields as $field) {
+            if (isset($moduledata[$field]) && is_array($moduledata[$field])) {
+                $progressdata = $moduledata[$field];
+                break;
+            }
+        }
+        $moduledata['progress'] = self::calculate_module_progress($cm->modname, $progressdata, $moduledata['completionstate']);
+
+        // JSON encode complex module data fields (return structure expects PARAM_RAW strings).
         foreach ($jsonfields as $field) {
             if (isset($moduledata[$field]) && is_array($moduledata[$field])) {
                 $moduledata[$field] = json_encode($moduledata[$field]);
@@ -395,6 +473,7 @@ class get_course_content extends external_api {
         $data = [
             'id' => $scorm->id,
             'name' => $scorm->name,
+            'intro' => format_text($scorm->intro ?? '', $scorm->introformat ?? FORMAT_HTML, ['context' => $context]),
             'version' => $scorm->version ?? '',
             'maxgrade' => (float) $scorm->maxgrade,
             'grademethod' => (int) $scorm->grademethod,
@@ -407,6 +486,11 @@ class get_course_content extends external_api {
             'packageurl' => '',
             'contentfiles' => [],
             'userdata' => [],
+            // Enhanced fields for SmartLearning.
+            'score' => null,
+            'attempts' => 0,
+            'slidescount' => 0,
+            'currentslide' => null,
         ];
 
         // Get launch URL (Moodle player).
@@ -453,6 +537,10 @@ class get_course_content extends external_api {
 
         // Get SCOs (Sharable Content Objects).
         $scos = $DB->get_records('scorm_scoes', ['scorm' => $scormid], 'sortorder, id');
+        $currentslide = null;
+        $bestscore = null;
+        $slidescount = 0;
+
         foreach ($scos as $sco) {
             $scodata = [
                 'id' => $sco->id,
@@ -465,6 +553,11 @@ class get_course_content extends external_api {
                 'sortorder' => $sco->sortorder ?? 0,
             ];
 
+            // Count launchable SCOs.
+            if (!empty($sco->scormtype) && $sco->scormtype === 'sco' && !empty($sco->launch)) {
+                $slidescount++;
+            }
+
             // Get additional SCO data.
             $scoextradata = $DB->get_records('scorm_scoes_data', ['scoid' => $sco->id]);
             foreach ($scoextradata as $extra) {
@@ -474,14 +567,43 @@ class get_course_content extends external_api {
             // Get user's tracking data for this SCO.
             if ($includeuserdata && !empty($sco->scormtype) && $sco->scormtype === 'sco') {
                 $scodata['usertrack'] = self::get_scorm_user_track($sco->id, $userid, $scormid);
+
+                // Extract score and current location from user track.
+                if (!empty($scodata['usertrack']['tracks'])) {
+                    $tracks = $scodata['usertrack']['tracks'];
+
+                    // Get score.
+                    foreach (['cmi.core.score.raw', 'cmi.score.raw'] as $scorekey) {
+                        if (isset($tracks[$scorekey]) && $tracks[$scorekey] !== '') {
+                            $scorevalue = (float) $tracks[$scorekey];
+                            if ($bestscore === null || $scorevalue > $bestscore) {
+                                $bestscore = $scorevalue;
+                            }
+                        }
+                    }
+
+                    // Get current slide/location.
+                    foreach (['cmi.core.lesson_location', 'cmi.location'] as $lockey) {
+                        if (isset($tracks[$lockey]) && $tracks[$lockey] !== '') {
+                            $currentslide = $sco->id;
+                            break;
+                        }
+                    }
+                }
             }
 
             $data['scos'][] = $scodata;
         }
 
+        // Set enhanced fields.
+        $data['slidescount'] = $slidescount;
+
         // Get overall user data.
         if ($includeuserdata) {
             $data['userdata'] = self::get_scorm_user_data($scormid, $userid);
+            $data['score'] = $bestscore ?? ($data['userdata']['grade'] ?? null);
+            $data['attempts'] = $data['userdata']['attemptcount'] ?? 0;
+            $data['currentslide'] = $currentslide;
         }
 
         return $data;
@@ -625,6 +747,7 @@ class get_course_content extends external_api {
         $data = [
             'id' => $quiz->id,
             'name' => $quiz->name,
+            'intro' => format_text($quiz->intro ?? '', $quiz->introformat ?? FORMAT_HTML, ['context' => $context]),
             'timeopen' => $quiz->timeopen,
             'timeclose' => $quiz->timeclose,
             'timelimit' => $quiz->timelimit,
@@ -637,6 +760,12 @@ class get_course_content extends external_api {
             'preferredbehaviour' => $quiz->preferredbehaviour ?? 'deferredfeedback',
             'questions' => [],
             'userattempts' => [],
+            // Enhanced fields for SmartLearning.
+            'bestgrade' => null,
+            'lastgrade' => null,
+            'gradepercent' => null,
+            'canreattempt' => true,
+            'attemptcount' => 0,
         ];
 
         // Get quiz questions.
@@ -647,9 +776,46 @@ class get_course_content extends external_api {
             $data['questionserror'] = $e->getMessage();
         }
 
-        // Get user attempts.
+        // Get user attempts and calculate enhanced fields.
         if ($includeuserdata) {
             $data['userattempts'] = self::get_quiz_user_attempts($quiz, $userid);
+
+            // Calculate best grade, last grade, and attempt count.
+            $attemptcount = count($data['userattempts']);
+            $data['attemptcount'] = $attemptcount;
+
+            if (!empty($data['userattempts'])) {
+                $bestgrade = null;
+                $lastgrade = null;
+
+                foreach ($data['userattempts'] as $attempt) {
+                    if ($attempt['state'] === 'finished' && $attempt['grade'] !== null) {
+                        // Best grade.
+                        if ($bestgrade === null || $attempt['grade'] > $bestgrade) {
+                            $bestgrade = $attempt['grade'];
+                        }
+                    }
+                }
+
+                // Last grade is from first attempt in list (already sorted by attempt DESC).
+                foreach ($data['userattempts'] as $attempt) {
+                    if ($attempt['state'] === 'finished' && $attempt['grade'] !== null) {
+                        $lastgrade = $attempt['grade'];
+                        break;
+                    }
+                }
+
+                $data['bestgrade'] = $bestgrade;
+                $data['lastgrade'] = $lastgrade;
+
+                // Calculate grade percent (using best grade).
+                if ($bestgrade !== null && $quiz->grade > 0) {
+                    $data['gradepercent'] = round(($bestgrade / $quiz->grade) * 100, 2);
+                }
+            }
+
+            // Can reattempt: unlimited (0) or less than max attempts.
+            $data['canreattempt'] = ($quiz->attempts == 0) || ($attemptcount < $quiz->attempts);
         }
 
         return $data;
@@ -828,6 +994,12 @@ class get_course_content extends external_api {
         ], 'attempt DESC');
 
         foreach ($attemptrecords as $attempt) {
+            // Calculate scaled grade.
+            $grade = null;
+            if ($attempt->sumgrades !== null && $quiz->sumgrades > 0) {
+                $grade = round(($attempt->sumgrades / $quiz->sumgrades) * $quiz->grade, 2);
+            }
+
             $attempts[] = [
                 'id' => $attempt->id,
                 'attempt' => $attempt->attempt,
@@ -836,6 +1008,7 @@ class get_course_content extends external_api {
                 'timefinish' => $attempt->timefinish,
                 'timemodified' => $attempt->timemodified,
                 'sumgrades' => $attempt->sumgrades !== null ? (float) $attempt->sumgrades : null,
+                'grade' => $grade,  // Scaled to quiz grade.
             ];
         }
 
@@ -892,6 +1065,7 @@ class get_course_content extends external_api {
         $data = [
             'id' => $assign->id,
             'name' => $assign->name,
+            'intro' => format_text($assign->intro ?? '', $assign->introformat ?? FORMAT_HTML, ['context' => $context]),
             'duedate' => $assign->duedate,
             'allowsubmissionsfromdate' => $assign->allowsubmissionsfromdate,
             'grade' => (float) $assign->grade,
@@ -905,6 +1079,14 @@ class get_course_content extends external_api {
             'submissiontypes' => [],
             'usersubmission' => null,
             'usergrade' => null,
+            // Enhanced fields for SmartLearning.
+            'maxfilesubmissions' => null,
+            'maxsubmissionsizebytes' => null,
+            'filetypeslist' => null,
+            'submitted' => false,
+            'submissionstatus' => 'new',
+            'graded' => false,
+            'gradepercent' => null,
         ];
 
         // Get enabled submission types.
@@ -930,6 +1112,13 @@ class get_course_content extends external_api {
                 'type' => $plugin->plugin,
                 'config' => $typeconfig,
             ];
+
+            // Extract file submission settings.
+            if ($plugin->plugin === 'file') {
+                $data['maxfilesubmissions'] = isset($typeconfig['maxfilesubmissions']) ? (int) $typeconfig['maxfilesubmissions'] : null;
+                $data['maxsubmissionsizebytes'] = isset($typeconfig['maxsubmissionsizebytes']) ? (int) $typeconfig['maxsubmissionsizebytes'] : null;
+                $data['filetypeslist'] = $typeconfig['filetypeslist'] ?? null;
+            }
         }
 
         // Get user's submission.
@@ -991,6 +1180,18 @@ class get_course_content extends external_api {
                     $data['usergrade']['feedbackcomment'] = $feedback->commenttext;
                     $data['usergrade']['feedbackformat'] = $feedback->commentformat;
                 }
+
+                // Enhanced fields: graded and gradepercent.
+                $data['graded'] = ($grade->grade !== null && $grade->grade >= 0);
+                if ($data['graded'] && $assign->grade > 0) {
+                    $data['gradepercent'] = round(($grade->grade / $assign->grade) * 100, 2);
+                }
+            }
+
+            // Enhanced fields: submitted and submissionstatus.
+            if ($submission) {
+                $data['submissionstatus'] = $submission->status;
+                $data['submitted'] = ($submission->status === 'submitted');
             }
         }
 
@@ -1045,9 +1246,16 @@ class get_course_content extends external_api {
             return [];
         }
 
+        // Count content pages (excluding cluster/endofcluster/endofbranch).
+        $pagecount = $DB->count_records_select('lesson_pages',
+            "lessonid = ? AND qtype NOT IN (21, 30, 31)",
+            [$lessonid]
+        );
+
         $data = [
             'id' => $lesson->id,
             'name' => $lesson->name,
+            'intro' => format_text($lesson->intro ?? '', $lesson->introformat ?? FORMAT_HTML, ['context' => $context]),
             'grade' => (float) $lesson->grade,
             'timelimit' => $lesson->timelimit ?? 0,
             'maxattempts' => $lesson->maxattempts ?? 0,
@@ -1056,8 +1264,16 @@ class get_course_content extends external_api {
             'ongoing' => $lesson->ongoing ?? 0,
             'review' => $lesson->review ?? 0,
             'timemodified' => $lesson->timemodified,
+            'pagecount' => $pagecount,
             'pages' => [],
             'userprogress' => null,
+            // Enhanced user progress fields (populated later if includeuserdata).
+            'completed' => false,
+            'currentpage' => null,
+            'pagesviewed' => [],
+            'bestgrade' => null,
+            'lastgrade' => null,
+            'timetaken' => null,
         ];
 
         // Get all lesson pages.
@@ -1085,9 +1301,12 @@ class get_course_content extends external_api {
                 'contents' => format_text($page->contents, $page->contentsformat, ['context' => $context]),
                 'contentsformat' => $page->contentsformat,
                 'qtype' => $page->qtype,
+                'qtypename' => self::LESSON_PAGE_TYPES[$page->qtype] ?? 'unknown',
                 'qoption' => $page->qoption,
                 'layout' => $page->layout,
                 'display' => $page->display,
+                'prevpageid' => $page->prevpageid,
+                'nextpageid' => $page->nextpageid,
                 'answers' => [],
             ];
 
@@ -1110,7 +1329,16 @@ class get_course_content extends external_api {
 
         // Get user progress.
         if ($includeuserdata) {
-            $data['userprogress'] = self::get_lesson_user_progress($lessonid, $userid);
+            $userprogress = self::get_lesson_user_progress($lessonid, $userid);
+            $data['userprogress'] = $userprogress;
+
+            // Populate enhanced user progress fields.
+            $data['completed'] = $userprogress['completed'] ?? false;
+            $data['currentpage'] = $userprogress['currentpage'] ?? null;
+            $data['pagesviewed'] = $userprogress['pagesviewed'] ?? [];
+            $data['bestgrade'] = $userprogress['bestgrade'] ?? null;
+            $data['lastgrade'] = $userprogress['lastgrade'] ?? null;
+            $data['timetaken'] = $userprogress['timetaken'] ?? null;
         }
 
         return $data;
@@ -1133,6 +1361,9 @@ class get_course_content extends external_api {
         ], 'timeseen DESC');
 
         $attemptdata = [];
+        $pagesviewed = [];
+        $currentpage = null;
+
         foreach ($attempts as $attempt) {
             $attemptdata[] = [
                 'id' => $attempt->id,
@@ -1142,6 +1373,16 @@ class get_course_content extends external_api {
                 'correct' => $attempt->correct,
                 'timeseen' => $attempt->timeseen,
             ];
+
+            // Track unique pages viewed.
+            if (!in_array($attempt->pageid, $pagesviewed)) {
+                $pagesviewed[] = $attempt->pageid;
+            }
+
+            // Track current page (most recent attempt).
+            if ($currentpage === null) {
+                $currentpage = $attempt->pageid;
+            }
         }
 
         // Get grades.
@@ -1151,12 +1392,25 @@ class get_course_content extends external_api {
         ], 'completed DESC');
 
         $gradedata = [];
+        $bestgrade = null;
+        $lastgrade = null;
+
         foreach ($grades as $grade) {
             $gradedata[] = [
                 'id' => $grade->id,
                 'grade' => (float) $grade->grade,
                 'completed' => $grade->completed,
             ];
+
+            // Track best grade.
+            if ($bestgrade === null || $grade->grade > $bestgrade) {
+                $bestgrade = (float) $grade->grade;
+            }
+
+            // Track last grade (first in list since sorted by completed DESC).
+            if ($lastgrade === null) {
+                $lastgrade = (float) $grade->grade;
+            }
         }
 
         // Get timer (current attempt).
@@ -1164,6 +1418,15 @@ class get_course_content extends external_api {
             'lessonid' => $lessonid,
             'userid' => $userid,
         ], '*', IGNORE_MULTIPLE);
+
+        // Calculate time taken from timer.
+        $timetaken = null;
+        if ($timer && $timer->lessontime > 0 && $timer->starttime > 0) {
+            $timetaken = $timer->lessontime - $timer->starttime;
+        }
+
+        // Determine if completed (has at least one grade or timer marked complete).
+        $completed = !empty($grades) || ($timer && $timer->completed);
 
         return [
             'attempts' => $attemptdata,
@@ -1173,6 +1436,13 @@ class get_course_content extends external_api {
                 'lessontime' => $timer->lessontime,
                 'completed' => $timer->completed,
             ] : null,
+            // Enhanced fields.
+            'completed' => $completed,
+            'currentpage' => $currentpage,
+            'pagesviewed' => $pagesviewed,
+            'bestgrade' => $bestgrade,
+            'lastgrade' => $lastgrade,
+            'timetaken' => $timetaken,
         ];
     }
 
@@ -1319,9 +1589,11 @@ class get_course_content extends external_api {
      *
      * @param int $bookid Book instance ID.
      * @param \context_module $context Module context.
+     * @param int $userid User ID.
+     * @param bool $includeuserdata Include user viewing data.
      * @return array Book data.
      */
-    private static function get_book_data(int $bookid, \context_module $context): array {
+    private static function get_book_data(int $bookid, \context_module $context, int $userid, bool $includeuserdata): array {
         global $DB;
 
         $book = $DB->get_record('book', ['id' => $bookid]);
@@ -1354,11 +1626,56 @@ class get_course_content extends external_api {
             ];
         }
 
-        return [
+        $data = [
             'id' => $book->id,
             'name' => $book->name,
+            'intro' => format_text($book->intro ?? '', $book->introformat ?? FORMAT_HTML, ['context' => $context]),
+            'numbering' => (int) ($book->numbering ?? 0),
             'chapters' => $chaptersdata,
+            // Enhanced user tracking fields.
+            'chaptersviewed' => [],
+            'lastchapter' => null,
         ];
+
+        // Get user viewing data from logs.
+        if ($includeuserdata) {
+            try {
+                // Query the log table for chapter_viewed events.
+                $logmanager = get_log_manager();
+                $readers = $logmanager->get_readers('\\core\\log\\sql_reader');
+
+                if (!empty($readers)) {
+                    $reader = reset($readers);
+                    $tablename = $reader->get_internal_log_table_name();
+
+                    // Get all chapter viewed events for this user and book.
+                    $sql = "SELECT DISTINCT objectid as chapterid, MAX(timecreated) as lastviewed
+                            FROM {{$tablename}}
+                            WHERE userid = ?
+                              AND component = 'mod_book'
+                              AND eventname = ?
+                              AND contextid = ?
+                            GROUP BY objectid
+                            ORDER BY lastviewed DESC";
+
+                    $viewedchapters = $DB->get_records_sql($sql, [
+                        $userid,
+                        '\\mod_book\\event\\chapter_viewed',
+                        $context->id,
+                    ]);
+
+                    if (!empty($viewedchapters)) {
+                        $data['chaptersviewed'] = array_keys($viewedchapters);
+                        // Last chapter is the most recently viewed.
+                        $data['lastchapter'] = (int) reset($viewedchapters)->chapterid;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Log table might not be available, ignore errors.
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -1482,6 +1799,7 @@ class get_course_content extends external_api {
             'description' => new external_value(PARAM_RAW, 'Module description'),
             'completion' => new external_value(PARAM_INT, 'Completion tracking type'),
             'completionstate' => new external_value(PARAM_INT, 'User completion state'),
+            'progress' => new external_value(PARAM_INT, 'User progress percentage (0-100)'),
             'url' => new external_value(PARAM_URL, 'Module URL', VALUE_OPTIONAL),
             'contents' => new external_multiple_structure(
                 new external_single_structure([

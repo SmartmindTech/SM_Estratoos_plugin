@@ -21,3 +21,6 @@ node_modules/
 
 # Package files (built distributions)
 *.zip
+
+# Development/planning files
+starry-fluttering-castle.md
