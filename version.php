@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011434;  // YYYYMMDDXX format.
+$plugin->version = 2025011435;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.4.34';  // Enhanced get_course_content API with progress and detailed module data.
+$plugin->release = '1.4.35';  // Fix: Service functions not added on fresh install via ZIP.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

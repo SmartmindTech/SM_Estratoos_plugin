@@ -309,12 +309,9 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
     ];
 
     foreach ($pluginfunctions as $functionname) {
-        // Check if function exists in external_functions.
-        $function = $DB->get_record('external_functions', ['name' => $functionname]);
-        if (!$function) {
-            // Function not registered yet, skip.
-            continue;
-        }
+        // Note: We do NOT check external_functions table here because during fresh install,
+        // Moodle populates that table AFTER install.php runs. The function will exist
+        // by the time it's called since we define it in services.php.
 
         // Check if function is already in the service.
         $existing = $DB->get_record('external_services_functions', [

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011434</version>
+        <version>2025011435</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.34</release>
+        <release>1.4.35</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,23 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.34/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.35/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.34</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.35</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.34</h3>
-            <p><strong>Enhanced get_course_content API for SmartLearning</strong></p>
+            <h3>Version 1.4.35</h3>
+            <p><strong>Fix: Service functions not added on fresh install</strong></p>
             <ul>
-                <li>Added progress field (0-100) for all modules based on type-specific calculations</li>
-                <li><strong>SCORM:</strong> Added intro, score, attempts, slidescount, currentslide fields</li>
-                <li><strong>Quiz:</strong> Added intro, bestgrade, lastgrade, gradepercent, canreattempt, attemptcount; added grade to each attempt</li>
-                <li><strong>Assignment:</strong> Added intro, maxfilesubmissions, maxsubmissionsizebytes, filetypeslist, submitted, submissionstatus, graded, gradepercent</li>
-                <li><strong>Lesson:</strong> Added intro, pagecount, qtypename/prevpageid/nextpageid per page, completed, currentpage, pagesviewed, bestgrade, lastgrade, timetaken</li>
-                <li><strong>Book:</strong> Added intro, numbering, chaptersviewed, lastchapter</li>
+                <li>Fixed critical bug where plugin functions were not added to the service when installing via ZIP download</li>
+                <li>Root cause: install.php checked external_functions table before Moodle populated it</li>
+                <li>Now properly adds all local_sm_estratoos_plugin_* functions to the service during fresh install</li>
             </ul>
             ]]>
         </releasenotes>
