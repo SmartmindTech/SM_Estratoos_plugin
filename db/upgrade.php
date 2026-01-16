@@ -575,5 +575,16 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011429, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.4.37: Add health_check function and core_user_update_users to service.
+    // This upgrade adds the new lightweight health check API for SmartLearning connectivity monitoring.
+    if ($oldversion < 2025011637) {
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run the full service rebuild to add health_check and core_user_update_users functions.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011637, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

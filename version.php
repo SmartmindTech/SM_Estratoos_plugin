@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011637;  // YYYYMMDDXX format.
+$plugin->version = 2025011638;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.4.37';  // Added health_check API for SmartLearning connectivity monitoring.
+$plugin->release = '1.4.38';  // Added upgrade step for health_check API.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

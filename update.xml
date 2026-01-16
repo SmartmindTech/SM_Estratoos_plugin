@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011637</version>
+        <version>2025011638</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.37</release>
+        <release>1.4.38</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,22 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.37/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.38/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.37</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.38</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.37</h3>
-            <p><strong>Added Health Check API for SmartLearning</strong></p>
+            <h3>Version 1.4.38</h3>
+            <p><strong>Added upgrade step for Health Check API</strong></p>
             <ul>
-                <li>New ultra-lightweight health check endpoint: local_sm_estratoos_plugin_health_check</li>
-                <li>Designed for high-frequency polling (10-30 seconds) with minimal latency (10-50ms)</li>
-                <li>Returns clear status codes: ok, invalid_token, maintenance, user_suspended</li>
-                <li>Includes server timestamp for latency calculation</li>
-                <li>Returns user_id, username, moodle_version, and plugin_version</li>
+                <li>Added upgrade step to ensure existing installations get the health_check function</li>
+                <li>Added upgrade step to ensure existing installations get core_user_update_users function</li>
+                <li>Fixes issue where new functions were not added to SmartMind service on upgrade</li>
             </ul>
             ]]>
         </releasenotes>
