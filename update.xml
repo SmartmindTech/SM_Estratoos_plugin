@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011435</version>
+        <version>2025011436</version>
 
         <!-- Human-readable release version -->
-        <release>1.4.35</release>
+        <release>1.4.36</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,20 +29,19 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.35/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.4.36/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.35</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.4.36</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.4.35</h3>
-            <p><strong>Fix: Service functions not added on fresh install</strong></p>
+            <h3>Version 1.4.36</h3>
+            <p><strong>Added core_user_update_users to service</strong></p>
             <ul>
-                <li>Fixed critical bug where plugin functions were not added to the service when installing via ZIP download</li>
-                <li>Root cause: install.php checked external_functions table before Moodle populated it</li>
-                <li>Now properly adds all local_sm_estratoos_plugin_* functions to the service during fresh install</li>
+                <li>Added core_user_update_users Moodle API function to the SmartMind Estratoos Plugin service</li>
+                <li>Enables user profile updates via the SmartLearning platform</li>
             </ul>
             ]]>
         </releasenotes>

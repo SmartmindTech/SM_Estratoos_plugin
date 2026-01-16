@@ -306,6 +306,8 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         // Completion and tracking functions.
         'local_sm_estratoos_plugin_mark_module_viewed',
         'local_sm_estratoos_plugin_update_activity_grade',
+        // Core Moodle functions needed by SmartLearning.
+        'core_user_update_users',
     ];
 
     foreach ($pluginfunctions as $functionname) {
