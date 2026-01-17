@@ -310,6 +310,12 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'core_user_update_users',
         // Health check for SmartLearning platform.
         'local_sm_estratoos_plugin_health_check',
+        // Bulk data optimization functions (v1.5.0).
+        'local_sm_estratoos_plugin_get_all_users_bulk',
+        'local_sm_estratoos_plugin_get_dashboard_summary',
+        'local_sm_estratoos_plugin_get_courses_with_progress_bulk',
+        'local_sm_estratoos_plugin_get_changes_since',
+        'local_sm_estratoos_plugin_health_check_extended',
     ];
 
     foreach ($pluginfunctions as $functionname) {

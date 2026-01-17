@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011639;  // YYYYMMDDXX format.
+$plugin->version = 2025011700;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.4.39';  // Fix upgrade step to add health_check function to service.
+$plugin->release = '1.5.0';  // Bulk data optimization functions - eliminate N+1 queries.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
