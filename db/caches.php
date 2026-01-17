@@ -96,4 +96,14 @@ $definitions = [
         'staticacceleration' => true,
         'staticaccelerationsize' => 50,
     ],
+
+    // v1.6.5: Dashboard stats cache for get_dashboard_stats function.
+    'dashboard_stats' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'simpledata' => true,
+        'ttl' => 60, // 1 minute.
+        'staticacceleration' => true,
+        'staticaccelerationsize' => 100,
+    ],
 ];

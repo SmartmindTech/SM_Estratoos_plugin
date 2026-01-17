@@ -322,6 +322,8 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_get_dashboard_complete',
         'local_sm_estratoos_plugin_get_course_completion_bulk',
         'local_sm_estratoos_plugin_get_course_stats_bulk',
+        // v1.6.5: Dashboard stats function.
+        'local_sm_estratoos_plugin_get_dashboard_stats',
     ];
 
     foreach ($pluginfunctions as $functionname) {

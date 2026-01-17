@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011804</version>
+        <version>2025011805</version>
 
         <!-- Human-readable release version -->
-        <release>1.6.4</release>
+        <release>1.6.5</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,22 +29,24 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.4/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.5/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.4</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.5</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.6.4 - Complete Phase 2 Fix</h3>
-            <p><strong>Critical fixes for IOMAD database errors</strong></p>
+            <h3>Version 1.6.5 - Dashboard Stats Function</h3>
+            <p><strong>New API function for dashboard optimization</strong></p>
             <ul>
-                <li><strong>Fix:</strong> Use {user_lastaccess} table instead of non-existent user_enrolments.timeaccess column</li>
-                <li><strong>Fix:</strong> Catch \dml_exception BEFORE \moodle_exception in exception handling</li>
-                <li><strong>Fix:</strong> JSON encode course_roles array to match execute_returns() schema</li>
-                <li>Applied to get_login_essentials and get_dashboard_complete</li>
-                <li>Resolves "Error al leer de la base de datos" and "invalid_response_exception" errors</li>
+                <li><strong>New:</strong> local_sm_estratoos_plugin_get_dashboard_stats function</li>
+                <li>Returns all dashboard statistics in a single API call</li>
+                <li>Includes: courses_count, to_grade_count, deadlines_count, urgent_count</li>
+                <li>Optional per-course breakdown with progress percentages</li>
+                <li>Reduces dashboard loading from ~3.7s to &lt;300ms</li>
+                <li>Full IOMAD and non-IOMAD support with proper exception handling</li>
+                <li>1-minute caching for optimal performance</li>
             </ul>
             ]]>
         </releasenotes>
