@@ -236,6 +236,19 @@ $functions = [
         'loginrequired' => true,
     ],
 
+    // Get messages from a conversation (category context version).
+    'local_sm_estratoos_plugin_get_conversation_messages' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_conversation_messages',
+        'methodname' => 'execute',
+        'description' => 'Get messages from a conversation. Works with category-scoped tokens (IOMAD) and system tokens. ' .
+                        'Supports pagination for bulk message retrieval (up to 1000 messages per request). ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
     // =========================================================================
     // COURSE CONTENT FUNCTIONS
     // =========================================================================

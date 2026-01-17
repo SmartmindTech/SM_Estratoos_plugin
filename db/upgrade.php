@@ -613,5 +613,18 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011700, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.5.1: Add get_conversation_messages function for messaging sync.
+    // This function wraps core_message_get_conversation_messages but works with category-scoped
+    // IOMAD tokens (context_coursecat) instead of requiring system context.
+    // Supports bulk retrieval with pagination for conversations with hundreds/thousands of messages.
+    if ($oldversion < 2025011701) {
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run the full service rebuild to add the new conversation messages function.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011701, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

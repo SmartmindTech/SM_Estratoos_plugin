@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011700;  // YYYYMMDDXX format.
+$plugin->version = 2025011701;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.5.0';  // Bulk data optimization functions - eliminate N+1 queries.
+$plugin->release = '1.5.1';  // Add get_conversation_messages for IOMAD messaging sync.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
