@@ -418,7 +418,7 @@ class get_dashboard_stats extends external_api {
                 ];
             }
 
-            $result[] = [
+            $coursedata = [
                 'id' => (int)$cid,
                 'fullname' => format_string($course->fullname),
                 'shortname' => $course->shortname,
@@ -426,8 +426,14 @@ class get_dashboard_stats extends external_api {
                 'to_grade_count' => 0, // Would need per-course teacher check.
                 'deadlines_count' => $deadlinecount,
                 'urgent_count' => $urgentcount,
-                'next_deadline' => $nextdeadline,
             ];
+
+            // Only include next_deadline if it exists (VALUE_OPTIONAL doesn't work with null).
+            if ($nextdeadline !== null) {
+                $coursedata['next_deadline'] = $nextdeadline;
+            }
+
+            $result[] = $coursedata;
         }
 
         return $result;

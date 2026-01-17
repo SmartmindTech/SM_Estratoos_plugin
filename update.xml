@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011805</version>
+        <version>2025011806</version>
 
         <!-- Human-readable release version -->
-        <release>1.6.5</release>
+        <release>1.6.6</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,24 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.5/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.6/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.5</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.6</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.6.5 - Dashboard Stats Function</h3>
-            <p><strong>New API function for dashboard optimization</strong></p>
+            <h3>Version 1.6.6 - Dashboard Stats Fix</h3>
+            <p><strong>Fix for get_dashboard_stats optional field handling</strong></p>
             <ul>
-                <li><strong>New:</strong> local_sm_estratoos_plugin_get_dashboard_stats function</li>
-                <li>Returns all dashboard statistics in a single API call</li>
-                <li>Includes: courses_count, to_grade_count, deadlines_count, urgent_count</li>
-                <li>Optional per-course breakdown with progress percentages</li>
-                <li>Reduces dashboard loading from ~3.7s to &lt;300ms</li>
-                <li>Full IOMAD and non-IOMAD support with proper exception handling</li>
-                <li>1-minute caching for optimal performance</li>
+                <li><strong>Fix:</strong> Handle VALUE_OPTIONAL correctly for next_deadline field</li>
+                <li>Don't include next_deadline key when there's no deadline (null causes validation error)</li>
+                <li>Moodle external API doesn't accept null for optional structures</li>
             </ul>
             ]]>
         </releasenotes>
