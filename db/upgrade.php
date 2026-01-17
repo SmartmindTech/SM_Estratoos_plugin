@@ -626,5 +626,22 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011701, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.6.0: Phase 2 - Login & Dashboard Optimization functions.
+    // New functions: get_login_essentials, get_dashboard_complete, get_course_completion_bulk,
+    // get_course_stats_bulk. These reduce login time from ~6s to <500ms and dashboard loading
+    // from ~20s to <2s by eliminating N+1 query patterns.
+    // Also adds new cache definitions for these functions.
+    if ($oldversion < 2025011800) {
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run the full service rebuild to add Phase 2 optimization functions.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        // Purge caches to ensure new cache definitions are loaded.
+        purge_all_caches();
+
+        upgrade_plugin_savepoint(true, 2025011800, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

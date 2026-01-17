@@ -62,4 +62,38 @@ $definitions = [
         'simpledata' => true,
         'ttl' => 300, // 5 minutes.
     ],
+
+    // Phase 2: Login & Dashboard Optimization caches.
+    'login_essentials' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'simpledata' => false,
+        'ttl' => 300, // 5 minutes.
+        'staticacceleration' => true,
+        'staticaccelerationsize' => 100,
+    ],
+    'dashboard_complete' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'simpledata' => false,
+        'ttl' => 120, // 2 minutes.
+        'staticacceleration' => true,
+        'staticaccelerationsize' => 100,
+    ],
+    'course_completion' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'simpledata' => false,
+        'ttl' => 60, // 1 minute.
+        'staticacceleration' => true,
+        'staticaccelerationsize' => 50,
+    ],
+    'course_stats' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'simpledata' => false,
+        'ttl' => 120, // 2 minutes.
+        'staticacceleration' => true,
+        'staticaccelerationsize' => 50,
+    ],
 ];

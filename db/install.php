@@ -317,6 +317,11 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_get_courses_with_progress_bulk',
         'local_sm_estratoos_plugin_get_changes_since',
         'local_sm_estratoos_plugin_health_check_extended',
+        // Phase 2: Login & Dashboard optimization functions (v1.6.0).
+        'local_sm_estratoos_plugin_get_login_essentials',
+        'local_sm_estratoos_plugin_get_dashboard_complete',
+        'local_sm_estratoos_plugin_get_course_completion_bulk',
+        'local_sm_estratoos_plugin_get_course_stats_bulk',
     ];
 
     foreach ($pluginfunctions as $functionname) {

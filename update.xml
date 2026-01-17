@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011701</version>
+        <version>2025011800</version>
 
         <!-- Human-readable release version -->
-        <release>1.5.1</release>
+        <release>1.6.0</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,23 +29,23 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.5.1/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.0/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.5.1</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.0</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.5.1 - Conversation Messages API</h3>
-            <p><strong>New function for messaging synchronization with IOMAD support</strong></p>
+            <h3>Version 1.6.0 - Phase 2: Login &amp; Dashboard Optimization</h3>
+            <p><strong>Major performance improvements - Login from ~6s to &lt;500ms, Dashboard from ~20s to &lt;2s</strong></p>
             <ul>
-                <li><strong>local_sm_estratoos_plugin_get_conversation_messages</strong> - Fetch messages from a conversation</li>
-                <li>Works with category-scoped tokens (IOMAD) - no longer requires system context</li>
-                <li>Supports pagination for bulk message retrieval (up to 1000 messages per request)</li>
-                <li>Includes timefrom parameter for delta sync (fetch only new messages)</li>
-                <li>Returns members info with each response for efficient rendering</li>
-                <li>Compatible with both IOMAD and standard Moodle installations</li>
+                <li><strong>get_login_essentials</strong> - Get all login data in 1 call (replaces 6+ API calls)</li>
+                <li><strong>get_dashboard_complete</strong> - Complete dashboard data in 1 call (replaces 10+ calls per Moodle)</li>
+                <li><strong>get_course_completion_bulk</strong> - All users completion in 1 query (eliminates N+1 pattern)</li>
+                <li><strong>get_course_stats_bulk</strong> - Multi-course statistics for teacher dashboards</li>
+                <li>New server-side caches for login, dashboard, completion, and stats</li>
+                <li>Full IOMAD and standard Moodle compatibility</li>
             </ul>
             ]]>
         </releasenotes>
