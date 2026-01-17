@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011801</version>
+        <version>2025011802</version>
 
         <!-- Human-readable release version -->
-        <release>1.6.1</release>
+        <release>1.6.2</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,22 +29,22 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.1/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.2/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.1</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.2</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.6.1 - Bug Fixes</h3>
-            <p><strong>Fixes for IOMAD database exceptions and query stability</strong></p>
+            <h3>Version 1.6.2 - IOMAD Stability Fix</h3>
+            <p><strong>Complete fix for dml_read_exception errors in all Phase 2 functions</strong></p>
             <ul>
-                <li><strong>Fix:</strong> IOMAD query exception in get_login_essentials - now handles database errors gracefully</li>
-                <li><strong>Fix:</strong> Query parameter mismatch in get_user_courses_with_progress - switched to named parameters</li>
-                <li><strong>Fix:</strong> Defensive error handling in get_token_restrictions - prevents exception propagation</li>
-                <li>Improved stability when IOMAD tables have schema mismatches</li>
-                <li>Better fallback to standard Moodle mode on database errors</li>
+                <li><strong>Fix:</strong> All Phase 2 functions now gracefully handle IOMAD database errors</li>
+                <li><strong>Fix:</strong> Removed MUST_EXIST from company table queries - uses null check instead</li>
+                <li><strong>Fix:</strong> Full try-catch coverage for get_login_essentials, get_dashboard_complete, get_course_completion_bulk, get_course_stats_bulk</li>
+                <li>Functions now fall back to standard Moodle mode when IOMAD tables are unavailable</li>
+                <li>Debug logging added for troubleshooting IOMAD issues</li>
             </ul>
             ]]>
         </releasenotes>

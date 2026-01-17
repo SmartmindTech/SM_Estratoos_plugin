@@ -76,41 +76,44 @@ class get_login_essentials extends external_api {
 
         // Determine context based on IOMAD or standard Moodle.
         $companyid = 0;
-        if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
-            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
-            if ($token) {
-                try {
+        $context = context_system::instance(); // Default to system context.
+
+        try {
+            if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
+                $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+                if ($token) {
                     $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
                     if ($restrictions && !empty($restrictions->companyid)) {
                         $companyid = $restrictions->companyid;
+
+                        // IOMAD: validate at category context.
+                        $company = $DB->get_record('company', ['id' => $companyid]);
+                        if ($company && !empty($company->category)) {
+                            $context = context_coursecat::instance($company->category);
+
+                            // Verify user is in the company.
+                            $isincompany = $DB->record_exists('company_users', [
+                                'companyid' => $companyid,
+                                'userid' => $params['userid'],
+                            ]);
+                            if (!$isincompany && $USER->id != $params['userid']) {
+                                throw new \moodle_exception('usernotincompany', 'local_sm_estratoos_plugin');
+                            }
+                        }
                     }
-                } catch (\dml_exception $e) {
-                    // Database error (e.g., missing table, schema mismatch) - continue without restrictions.
-                    debugging('get_login_essentials: IOMAD query failed - ' . $e->getMessage(), DEBUG_DEVELOPER);
-                    $companyid = 0;
                 }
             }
-        }
-
-        if ($companyid > 0) {
-            // IOMAD: validate at category context.
-            $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
-            $context = context_coursecat::instance($company->category);
-            self::validate_context($context);
-
-            // Verify user is in the company.
-            $isincompany = $DB->record_exists('company_users', [
-                'companyid' => $companyid,
-                'userid' => $params['userid'],
-            ]);
-            if (!$isincompany && $USER->id != $params['userid']) {
-                throw new \moodle_exception('usernotincompany', 'local_sm_estratoos_plugin');
-            }
-        } else {
-            // Standard Moodle: validate at system context.
+        } catch (\moodle_exception $e) {
+            // Re-throw moodle_exceptions (like usernotincompany) - these are intentional.
+            throw $e;
+        } catch (\Exception $e) {
+            // Database error - fall back to standard Moodle mode.
+            debugging('get_login_essentials: IOMAD query failed, falling back to standard mode - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            $companyid = 0;
             $context = context_system::instance();
-            self::validate_context($context);
         }
+
+        self::validate_context($context);
 
         // Check permission to view other users' data.
         if ($USER->id != $params['userid']) {

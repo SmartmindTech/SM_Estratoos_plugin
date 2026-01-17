@@ -84,14 +84,21 @@ class get_course_completion_bulk extends external_api {
 
         // Determine context and validate.
         $companyid = 0;
-        if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
-            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
-            if ($token) {
-                $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-                if ($restrictions && !empty($restrictions->companyid)) {
-                    $companyid = $restrictions->companyid;
+
+        try {
+            if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
+                $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+                if ($token) {
+                    $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
+                    if ($restrictions && !empty($restrictions->companyid)) {
+                        $companyid = $restrictions->companyid;
+                    }
                 }
             }
+        } catch (\Exception $e) {
+            // Database error - continue without company filtering.
+            debugging('get_course_completion_bulk: IOMAD query failed - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            $companyid = 0;
         }
 
         // Validate course context.

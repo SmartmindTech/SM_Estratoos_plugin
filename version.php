@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011801;  // YYYYMMDDXX format.
+$plugin->version = 2025011802;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.6.1';  // Fix IOMAD database exceptions and query parameter handling.
+$plugin->release = '1.6.2';  // Fix IOMAD database exceptions in all Phase 2 functions.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

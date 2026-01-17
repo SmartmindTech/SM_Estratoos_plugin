@@ -81,24 +81,32 @@ class get_dashboard_complete extends external_api {
 
         // Determine context based on IOMAD or standard Moodle.
         $companyid = 0;
-        if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
-            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
-            if ($token) {
-                $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-                if ($restrictions && !empty($restrictions->companyid)) {
-                    $companyid = $restrictions->companyid;
+        $context = context_system::instance(); // Default to system context.
+
+        try {
+            if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
+                $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+                if ($token) {
+                    $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
+                    if ($restrictions && !empty($restrictions->companyid)) {
+                        $companyid = $restrictions->companyid;
+
+                        // IOMAD: validate at category context.
+                        $company = $DB->get_record('company', ['id' => $companyid]);
+                        if ($company && !empty($company->category)) {
+                            $context = context_coursecat::instance($company->category);
+                        }
+                    }
                 }
             }
+        } catch (\Exception $e) {
+            // Database error - fall back to standard Moodle mode.
+            debugging('get_dashboard_complete: IOMAD query failed, falling back to standard mode - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            $companyid = 0;
+            $context = context_system::instance();
         }
 
-        if ($companyid > 0) {
-            $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
-            $context = context_coursecat::instance($company->category);
-            self::validate_context($context);
-        } else {
-            $context = context_system::instance();
-            self::validate_context($context);
-        }
+        self::validate_context($context);
 
         // Check permission.
         if ($USER->id != $params['userid']) {
