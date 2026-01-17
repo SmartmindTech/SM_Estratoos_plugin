@@ -79,9 +79,15 @@ class get_login_essentials extends external_api {
         if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
             $token = \local_sm_estratoos_plugin\util::get_current_request_token();
             if ($token) {
-                $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-                if ($restrictions && !empty($restrictions->companyid)) {
-                    $companyid = $restrictions->companyid;
+                try {
+                    $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
+                    if ($restrictions && !empty($restrictions->companyid)) {
+                        $companyid = $restrictions->companyid;
+                    }
+                } catch (\dml_exception $e) {
+                    // Database error (e.g., missing table, schema mismatch) - continue without restrictions.
+                    debugging('get_login_essentials: IOMAD query failed - ' . $e->getMessage(), DEBUG_DEVELOPER);
+                    $companyid = 0;
                 }
             }
         }
@@ -267,15 +273,19 @@ class get_login_essentials extends external_api {
     private static function get_user_courses_with_progress(int $userid, int $companyid = 0): array {
         global $DB;
 
-        // Build company filter if IOMAD.
+        // Build company filter if IOMAD (using named parameters for clarity).
         $companyjoin = '';
         $companywhere = '';
-        $params = [$userid, $userid];
+        $params = [
+            'userid1' => $userid,
+            'userid2' => $userid,
+            'userid3' => $userid,
+        ];
 
         if ($companyid > 0 && $DB->get_manager()->table_exists('company_course')) {
             $companyjoin = "JOIN {company_course} cc ON cc.courseid = c.id";
-            $companywhere = "AND cc.companyid = ?";
-            $params[] = $companyid;
+            $companywhere = "AND cc.companyid = :companyid";
+            $params['companyid'] = $companyid;
         }
 
         // Single query for courses + progress.
@@ -283,25 +293,20 @@ class get_login_essentials extends external_api {
                        c.startdate, c.enddate, c.visible,
                        (SELECT MAX(ue2.timeaccess) FROM {user_enrolments} ue2
                         JOIN {enrol} e2 ON e2.id = ue2.enrolid
-                        WHERE e2.courseid = c.id AND ue2.userid = ?) as lastaccess,
+                        WHERE e2.courseid = c.id AND ue2.userid = :userid1) as lastaccess,
                        (SELECT COUNT(*) FROM {course_modules} cm
                         WHERE cm.course = c.id AND cm.completion > 0 AND cm.deletioninprogress = 0) as total_activities,
                        (SELECT COUNT(*) FROM {course_modules_completion} cmc
                         JOIN {course_modules} cm ON cm.id = cmc.coursemoduleid
-                        WHERE cm.course = c.id AND cmc.userid = ? AND cmc.completionstate > 0
+                        WHERE cm.course = c.id AND cmc.userid = :userid2 AND cmc.completionstate > 0
                         AND cm.deletioninprogress = 0) as completed_activities
                 FROM {course} c
                 JOIN {enrol} e ON e.courseid = c.id
-                JOIN {user_enrolments} ue ON ue.enrolid = e.id AND ue.userid = ?
+                JOIN {user_enrolments} ue ON ue.enrolid = e.id AND ue.userid = :userid3
                 $companyjoin
                 WHERE c.id != 1 AND ue.status = 0
                 $companywhere
                 ORDER BY c.sortorder";
-
-        $params = [$userid, $userid, $userid];
-        if ($companyid > 0 && $DB->get_manager()->table_exists('company_course')) {
-            $params[] = $companyid;
-        }
 
         $courses = $DB->get_records_sql($sql, $params);
 

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011800</version>
+        <version>2025011801</version>
 
         <!-- Human-readable release version -->
-        <release>1.6.0</release>
+        <release>1.6.1</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,23 +29,22 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.0/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.1/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.0</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.1</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.6.0 - Phase 2: Login &amp; Dashboard Optimization</h3>
-            <p><strong>Major performance improvements - Login from ~6s to &lt;500ms, Dashboard from ~20s to &lt;2s</strong></p>
+            <h3>Version 1.6.1 - Bug Fixes</h3>
+            <p><strong>Fixes for IOMAD database exceptions and query stability</strong></p>
             <ul>
-                <li><strong>get_login_essentials</strong> - Get all login data in 1 call (replaces 6+ API calls)</li>
-                <li><strong>get_dashboard_complete</strong> - Complete dashboard data in 1 call (replaces 10+ calls per Moodle)</li>
-                <li><strong>get_course_completion_bulk</strong> - All users completion in 1 query (eliminates N+1 pattern)</li>
-                <li><strong>get_course_stats_bulk</strong> - Multi-course statistics for teacher dashboards</li>
-                <li>New server-side caches for login, dashboard, completion, and stats</li>
-                <li>Full IOMAD and standard Moodle compatibility</li>
+                <li><strong>Fix:</strong> IOMAD query exception in get_login_essentials - now handles database errors gracefully</li>
+                <li><strong>Fix:</strong> Query parameter mismatch in get_user_courses_with_progress - switched to named parameters</li>
+                <li><strong>Fix:</strong> Defensive error handling in get_token_restrictions - prevents exception propagation</li>
+                <li>Improved stability when IOMAD tables have schema mismatches</li>
+                <li>Better fallback to standard Moodle mode on database errors</li>
             </ul>
             ]]>
         </releasenotes>

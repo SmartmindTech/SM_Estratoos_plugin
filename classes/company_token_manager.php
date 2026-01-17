@@ -346,27 +346,33 @@ class company_token_manager {
     public static function get_token_restrictions(string $token): ?object {
         global $DB;
 
-        // Check if IOMAD is installed (company table exists).
-        $isiomad = util::is_iomad_installed();
+        try {
+            // Check if IOMAD is installed (company table exists).
+            $isiomad = util::is_iomad_installed();
 
-        if ($isiomad) {
-            $sql = "SELECT lit.*, c.name as companyname, c.shortname as companyshortname,
-                           c.category as companycategory, et.userid
-                    FROM {local_sm_estratoos_plugin} lit
-                    JOIN {external_tokens} et ON et.id = lit.tokenid
-                    LEFT JOIN {company} c ON c.id = lit.companyid
-                    WHERE et.token = :token";
-        } else {
-            // Standard Moodle - no company table.
-            $sql = "SELECT lit.*, '' as companyname, '' as companyshortname,
-                           0 as companycategory, et.userid
-                    FROM {local_sm_estratoos_plugin} lit
-                    JOIN {external_tokens} et ON et.id = lit.tokenid
-                    WHERE et.token = :token";
+            if ($isiomad) {
+                $sql = "SELECT lit.*, c.name as companyname, c.shortname as companyshortname,
+                               c.category as companycategory, et.userid
+                        FROM {local_sm_estratoos_plugin} lit
+                        JOIN {external_tokens} et ON et.id = lit.tokenid
+                        LEFT JOIN {company} c ON c.id = lit.companyid
+                        WHERE et.token = :token";
+            } else {
+                // Standard Moodle - no company table.
+                $sql = "SELECT lit.*, '' as companyname, '' as companyshortname,
+                               0 as companycategory, et.userid
+                        FROM {local_sm_estratoos_plugin} lit
+                        JOIN {external_tokens} et ON et.id = lit.tokenid
+                        WHERE et.token = :token";
+            }
+
+            $record = $DB->get_record_sql($sql, ['token' => $token]);
+            return $record ?: null;
+        } catch (\dml_exception $e) {
+            // Database error (e.g., missing table, schema mismatch) - return null gracefully.
+            debugging('get_token_restrictions: Database error - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return null;
         }
-
-        $record = $DB->get_record_sql($sql, ['token' => $token]);
-        return $record ?: null;
     }
 
     /**
