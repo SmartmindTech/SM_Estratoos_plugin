@@ -98,9 +98,14 @@ class get_course_stats_bulk extends external_api {
                     }
                 }
             }
+        } catch (\dml_exception $e) {
+            // Database error (dml_read_exception, etc.) - fall back to standard Moodle mode.
+            debugging('get_course_stats_bulk: IOMAD database error, falling back to standard mode - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            $companyid = 0;
+            $context = context_system::instance();
         } catch (\Exception $e) {
-            // Database error - fall back to standard Moodle mode.
-            debugging('get_course_stats_bulk: IOMAD query failed, falling back to standard mode - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            // Other errors - fall back to standard Moodle mode.
+            debugging('get_course_stats_bulk: IOMAD error, falling back to standard mode - ' . $e->getMessage(), DEBUG_DEVELOPER);
             $companyid = 0;
             $context = context_system::instance();
         }

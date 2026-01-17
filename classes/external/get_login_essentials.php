@@ -103,12 +103,18 @@ class get_login_essentials extends external_api {
                     }
                 }
             }
+        } catch (\dml_exception $e) {
+            // Database error (dml_read_exception, etc.) - fall back to standard Moodle mode.
+            // IMPORTANT: Catch this BEFORE moodle_exception since dml_exception extends moodle_exception.
+            debugging('get_login_essentials: IOMAD database error, falling back to standard mode - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            $companyid = 0;
+            $context = context_system::instance();
         } catch (\moodle_exception $e) {
-            // Re-throw moodle_exceptions (like usernotincompany) - these are intentional.
+            // Re-throw intentional moodle_exceptions (like usernotincompany).
             throw $e;
         } catch (\Exception $e) {
-            // Database error - fall back to standard Moodle mode.
-            debugging('get_login_essentials: IOMAD query failed, falling back to standard mode - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            // Other errors - fall back to standard Moodle mode.
+            debugging('get_login_essentials: IOMAD error, falling back to standard mode - ' . $e->getMessage(), DEBUG_DEVELOPER);
             $companyid = 0;
             $context = context_system::instance();
         }
@@ -292,11 +298,11 @@ class get_login_essentials extends external_api {
         }
 
         // Single query for courses + progress.
+        // Note: Use {user_lastaccess} for course access time (NOT user_enrolments.timeaccess which doesn't exist).
         $sql = "SELECT DISTINCT c.id, c.fullname, c.shortname, c.category,
                        c.startdate, c.enddate, c.visible,
-                       (SELECT MAX(ue2.timeaccess) FROM {user_enrolments} ue2
-                        JOIN {enrol} e2 ON e2.id = ue2.enrolid
-                        WHERE e2.courseid = c.id AND ue2.userid = :userid1) as lastaccess,
+                       (SELECT ula.timeaccess FROM {user_lastaccess} ula
+                        WHERE ula.courseid = c.id AND ula.userid = :userid1) as lastaccess,
                        (SELECT COUNT(*) FROM {course_modules} cm
                         WHERE cm.course = c.id AND cm.completion > 0 AND cm.deletioninprogress = 0) as total_activities,
                        (SELECT COUNT(*) FROM {course_modules_completion} cmc

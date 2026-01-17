@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011802;  // YYYYMMDDXX format.
+$plugin->version = 2025011803;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.6.2';  // Fix IOMAD database exceptions in all Phase 2 functions.
+$plugin->release = '1.6.3';  // Fix dml_read_exception: use user_lastaccess table + correct exception catch order.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

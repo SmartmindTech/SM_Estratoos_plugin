@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011802</version>
+        <version>2025011803</version>
 
         <!-- Human-readable release version -->
-        <release>1.6.2</release>
+        <release>1.6.3</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,22 +29,22 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.2/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.6.3/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.2</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.6.3</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.6.2 - IOMAD Stability Fix</h3>
-            <p><strong>Complete fix for dml_read_exception errors in all Phase 2 functions</strong></p>
+            <h3>Version 1.6.3 - Database Query Fix</h3>
+            <p><strong>Critical fix: Resolves "Unknown column 'ue2.timeaccess'" error</strong></p>
             <ul>
-                <li><strong>Fix:</strong> All Phase 2 functions now gracefully handle IOMAD database errors</li>
-                <li><strong>Fix:</strong> Removed MUST_EXIST from company table queries - uses null check instead</li>
-                <li><strong>Fix:</strong> Full try-catch coverage for get_login_essentials, get_dashboard_complete, get_course_completion_bulk, get_course_stats_bulk</li>
-                <li>Functions now fall back to standard Moodle mode when IOMAD tables are unavailable</li>
-                <li>Debug logging added for troubleshooting IOMAD issues</li>
+                <li><strong>Fix:</strong> Use {user_lastaccess} table instead of non-existent user_enrolments.timeaccess column</li>
+                <li><strong>Fix:</strong> Catch \dml_exception BEFORE \moodle_exception in exception handling</li>
+                <li><strong>Fix:</strong> Applied to get_login_essentials and get_dashboard_complete</li>
+                <li>Improved exception handling in all Phase 2 functions</li>
+                <li>Resolves "Error al leer de la base de datos" exceptions on IOMAD instances</li>
             </ul>
             ]]>
         </releasenotes>

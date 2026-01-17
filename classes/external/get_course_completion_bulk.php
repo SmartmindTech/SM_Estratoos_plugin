@@ -95,9 +95,13 @@ class get_course_completion_bulk extends external_api {
                     }
                 }
             }
+        } catch (\dml_exception $e) {
+            // Database error (dml_read_exception, etc.) - continue without company filtering.
+            debugging('get_course_completion_bulk: IOMAD database error - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            $companyid = 0;
         } catch (\Exception $e) {
-            // Database error - continue without company filtering.
-            debugging('get_course_completion_bulk: IOMAD query failed - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            // Other errors - continue without company filtering.
+            debugging('get_course_completion_bulk: IOMAD error - ' . $e->getMessage(), DEBUG_DEVELOPER);
             $companyid = 0;
         }
 
