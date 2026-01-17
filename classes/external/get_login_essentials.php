@@ -268,7 +268,7 @@ class get_login_essentials extends external_api {
             'is_admin' => $isadmin,
             'is_manager' => in_array('manager', $systemroles),
             'is_teacher' => $highest === 'editingteacher' || $highest === 'teacher',
-            'course_roles' => $courseroles,
+            'course_roles' => json_encode($courseroles),  // Must be JSON string per execute_returns() schema.
         ];
     }
 
