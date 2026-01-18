@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011914</version>
+        <version>2025011915</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.14</release>
+        <release>1.7.15</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,33 +29,36 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.14/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.15/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.14</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.15</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.14 - Redesign Company Access Page</h3>
-            <p><strong>Company access page now matches the user selection design from batch token creation</strong></p>
+            <h3>Version 1.7.15 - Fix Role Cleanup & Company Search</h3>
+            <p><strong>Critical fixes for system-level role cleanup and company search functionality</strong></p>
 
-            <h4>Changes:</h4>
+            <h4>Bug Fixes:</h4>
             <ul>
-                <li><strong>Circle Checkboxes:</strong> Same custom-checkbox style as user selection</li>
-                <li><strong>Quick Select Buttons:</strong> "Todos" and "Ninguno" buttons at the top</li>
-                <li><strong>Selection Counter:</strong> "X empresas seleccionadas" counter on the left</li>
-                <li><strong>Search Bar:</strong> Search bar aligned to the right</li>
-                <li><strong>Enabled Badges:</strong> Green "Enabled" badge for selected companies</li>
-                <li><strong>White Background Items:</strong> Each company has white background within gray container</li>
+                <li><strong>Role Cleanup:</strong> Fixed broken upgrade steps (v1.7.1/v1.7.3) that called non-existent function</li>
+                <li><strong>Aggressive Cleanup:</strong> Removes ALL system-level editingteacher and student roles</li>
+                <li><strong>Company Search:</strong> Fixed search bar using document-level event delegation (same as user search)</li>
             </ul>
 
             <h4>Technical Changes:</h4>
             <ul>
-                <li>company_access.php redesigned with same HTML structure as batch_token_form.php</li>
-                <li>companyaccess.js AMD module updated with dynamic badge management</li>
-                <li>Added language strings: companiesselected, enabled</li>
+                <li>Commented out broken function calls in db/upgrade.php (lines 742, 763)</li>
+                <li>Added v1.7.15 upgrade step with aggressive system-level role removal</li>
+                <li>companyaccess.js now uses $(document).on() pattern like userselection.js</li>
+                <li>All event handlers use document delegation for robust timing</li>
             </ul>
+
+            <h4>Why this matters:</h4>
+            <p>Previous versions had a bug where upgrade steps called a function that didn't exist,
+            causing upgrades to fail. This left system-level teacher/student roles assigned,
+            which breaks IOMAD's company context handling. This version fixes both issues.</p>
             ]]>
         </releasenotes>
     </update>

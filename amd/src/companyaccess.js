@@ -98,38 +98,36 @@ define(['jquery', 'core/str'], function($, Str) {
      */
     var init = function() {
         loadStrings().then(function() {
-            var $searchInput = $('#company-search');
-            var $companyItems = $('.company-item');
-
             // Debug: Log initialization.
             if (window.console && window.console.log) {
                 window.console.log('SM_ESTRATOOS: companyaccess module initialized');
-                window.console.log('SM_ESTRATOOS: Found ' + $companyItems.length + ' company items');
+                window.console.log('SM_ESTRATOOS: Found ' + $('.company-item').length + ' company items');
             }
 
-            // Search filter - use both 'input' and 'keyup' for maximum compatibility.
-            $searchInput.on('input keyup', function() {
+            // Search filter - use document delegation for robust event binding.
+            // This is the SAME PATTERN used by userselection.js (line 382).
+            $(document).on('input keyup', '#company-search', function() {
                 var filter = $(this).val().toLowerCase().trim();
                 filterCompanies(filter);
             });
 
-            // Select all visible companies.
-            $('#select-all-companies').on('click', function(e) {
+            // Select all visible companies - document delegation.
+            $(document).on('click', '#select-all-companies', function(e) {
                 e.preventDefault();
                 $('.company-checkbox:visible').prop('checked', true);
                 updateCount();
                 updateBadges();
             });
 
-            // Deselect all visible companies.
-            $('#deselect-all-companies').on('click', function(e) {
+            // Deselect all visible companies - document delegation.
+            $(document).on('click', '#deselect-all-companies', function(e) {
                 e.preventDefault();
                 $('.company-checkbox:visible').prop('checked', false);
                 updateCount();
                 updateBadges();
             });
 
-            // Update count and badges when any checkbox changes.
+            // Update count and badges when any checkbox changes - document delegation.
             $(document).on('change', '.company-checkbox', function() {
                 updateCount();
                 updateBadges();

@@ -738,8 +738,9 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         // Re-run webservice configuration to grant capabilities to admin/manager roles.
         xmldb_local_sm_estratoos_plugin_configure_webservices();
 
-        // Assign users to system-level roles based on their course/category roles.
-        xmldb_local_sm_estratoos_plugin_assign_system_roles();
+        // NOTE: This function call was removed in v1.7.15 because the function never existed
+        // and was causing upgrade failures. System-level role assignment is no longer done.
+        // xmldb_local_sm_estratoos_plugin_assign_system_roles();
 
         upgrade_plugin_savepoint(true, 2025011901, 'local', 'sm_estratoos_plugin');
     }
@@ -758,9 +759,10 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         // Purge caches to load the new event observer.
         purge_all_caches();
 
-        // Re-run role assignment for any users who may have been missed.
-        require_once(__DIR__ . '/install.php');
-        xmldb_local_sm_estratoos_plugin_assign_system_roles();
+        // NOTE: This function call was removed in v1.7.15 because the function never existed
+        // and was causing upgrade failures. System-level role assignment is no longer done.
+        // require_once(__DIR__ . '/install.php');
+        // xmldb_local_sm_estratoos_plugin_assign_system_roles();
 
         upgrade_plugin_savepoint(true, 2025011903, 'local', 'sm_estratoos_plugin');
     }
@@ -1126,6 +1128,79 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
 
         purge_all_caches();
         upgrade_plugin_savepoint(true, 2025011913, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v1.7.14: UI improvements for company access page (no DB changes).
+    if ($oldversion < 2025011914) {
+        upgrade_plugin_savepoint(true, 2025011914, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v1.7.15: Aggressive system-level role cleanup.
+    // Previous upgrade steps v1.7.1 and v1.7.3 called a non-existent function that caused
+    // upgrades to fail for some users. This step removes ALL system-level teacher/student roles
+    // to ensure clean state, regardless of how the user ended up with them.
+    if ($oldversion < 2025011915) {
+        $systemcontext = context_system::instance();
+        $cleanupcount = 0;
+
+        // Get role IDs.
+        $editingteacherroleid = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
+        $studentroleid = $DB->get_field('role', 'id', ['shortname' => 'student']);
+        $companymanagerroleid = $DB->get_field('role', 'id', ['shortname' => 'companymanager']);
+
+        // 1. Remove ALL editingteacher at system level.
+        // System-level teacher roles should NEVER exist - teachers are assigned at course level.
+        if ($editingteacherroleid) {
+            $assignments = $DB->get_records('role_assignments', [
+                'roleid' => $editingteacherroleid,
+                'contextid' => $systemcontext->id
+            ]);
+            foreach ($assignments as $assignment) {
+                role_unassign($editingteacherroleid, $assignment->userid, $systemcontext->id);
+                $cleanupcount++;
+            }
+        }
+
+        // 2. Remove ALL student at system level.
+        // System-level student roles should NEVER exist - students are assigned at course level.
+        if ($studentroleid) {
+            $assignments = $DB->get_records('role_assignments', [
+                'roleid' => $studentroleid,
+                'contextid' => $systemcontext->id
+            ]);
+            foreach ($assignments as $assignment) {
+                role_unassign($studentroleid, $assignment->userid, $systemcontext->id);
+                $cleanupcount++;
+            }
+        }
+
+        // 3. Remove companymanager at system level for non-IOMAD managers.
+        // Only actual IOMAD company managers (managertype > 0) should have this role.
+        if ($companymanagerroleid && $DB->get_manager()->table_exists('company_users')) {
+            $assignments = $DB->get_records('role_assignments', [
+                'roleid' => $companymanagerroleid,
+                'contextid' => $systemcontext->id
+            ]);
+            foreach ($assignments as $assignment) {
+                // Check if user is actually an IOMAD company manager.
+                $isrealmanager = $DB->record_exists_select(
+                    'company_users',
+                    'userid = ? AND managertype > 0',
+                    [$assignment->userid]
+                );
+                if (!$isrealmanager) {
+                    role_unassign($companymanagerroleid, $assignment->userid, $systemcontext->id);
+                    $cleanupcount++;
+                }
+            }
+        }
+
+        if ($cleanupcount > 0) {
+            purge_all_caches();
+            error_log("SM_ESTRATOOS_PLUGIN v1.7.15: Cleaned up $cleanupcount system-level role assignments");
+        }
+
+        upgrade_plugin_savepoint(true, 2025011915, 'local', 'sm_estratoos_plugin');
     }
 
     return true;
