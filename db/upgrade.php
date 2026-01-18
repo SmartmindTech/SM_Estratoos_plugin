@@ -765,5 +765,24 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011903, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.5: Add token_backup field and make tokenid nullable for proper token suspension.
+    // When a company is disabled, tokens are deleted from external_tokens (blocking API calls)
+    // and backed up to token_backup. When re-enabled, tokens are restored with same hash.
+    if ($oldversion < 2025011905) {
+        $table = new xmldb_table('local_sm_estratoos_plugin');
+
+        // Add token_backup field for storing suspended token data.
+        $field = new xmldb_field('token_backup', XMLDB_TYPE_TEXT, null, null, null, null, null, 'active');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Make tokenid nullable (needed for suspended tokens where external_tokens record is deleted).
+        $field = new xmldb_field('tokenid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'id');
+        $dbman->change_field_notnull($table, $field);
+
+        upgrade_plugin_savepoint(true, 2025011905, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

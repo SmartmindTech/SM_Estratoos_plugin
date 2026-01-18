@@ -100,10 +100,10 @@ echo ' / ' . $totalcount . ' ' . get_string('total');
 echo html_writer::end_div();
 
 // Row with buttons on left and search bar on right.
-echo html_writer::start_div('d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2');
+echo html_writer::start_div('d-flex align-items-center mb-3', ['style' => 'gap: 1rem;']);
 
 // Quick select buttons on the left.
-echo html_writer::start_div('btn-group');
+echo html_writer::start_div('btn-group flex-shrink-0');
 echo html_writer::tag('button', get_string('selectall'), [
     'type' => 'button',
     'class' => 'btn btn-sm btn-outline-secondary',
@@ -116,8 +116,8 @@ echo html_writer::tag('button', get_string('deselectall', 'local_sm_estratoos_pl
 ]);
 echo html_writer::end_div();
 
-// Search bar on the right.
-echo html_writer::start_div('', ['style' => 'min-width: 250px;']);
+// Search bar - takes remaining space, aligned right.
+echo html_writer::start_div('flex-grow-1', ['style' => 'max-width: 400px; margin-left: auto;']);
 echo html_writer::tag('label', get_string('searchcompanies', 'local_sm_estratoos_plugin'), [
     'for' => 'company-search',
     'class' => 'sr-only'
@@ -132,8 +132,8 @@ echo html_writer::end_div();
 
 echo html_writer::end_div(); // d-flex row
 
-// Company list with scrollbar.
-echo html_writer::start_div('company-list border rounded', ['style' => 'max-height: 400px; overflow-y: auto;']);
+// Company list with scrollbar and visible border.
+echo html_writer::start_div('company-list', ['style' => 'max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.25rem;']);
 
 if (empty($companies)) {
     echo html_writer::tag('p', get_string('nocompanies', 'local_sm_estratoos_plugin'), ['class' => 'text-muted']);
@@ -142,20 +142,21 @@ if (empty($companies)) {
         $checked = $company->enabled ? 'checked' : '';
         $id = 'company-' . $company->id;
 
-        echo html_writer::start_div('company-item custom-control custom-checkbox py-3 px-4 border-bottom', [
+        echo html_writer::start_div('company-item d-flex align-items-center py-3 px-4 border-bottom', [
             'data-name' => strtolower($company->name . ' ' . $company->shortname)
         ]);
 
         echo html_writer::empty_tag('input', [
             'type' => 'checkbox',
-            'class' => 'custom-control-input company-checkbox',
+            'class' => 'company-checkbox mr-3',
             'id' => $id,
             'name' => 'companies[]',
             'value' => $company->id,
-            'checked' => $company->enabled ? 'checked' : null
+            'checked' => $company->enabled ? 'checked' : null,
+            'style' => 'width: 18px; height: 18px; cursor: pointer;'
         ]);
 
-        echo html_writer::start_tag('label', ['class' => 'custom-control-label', 'for' => $id]);
+        echo html_writer::start_tag('label', ['for' => $id, 'style' => 'cursor: pointer; margin-bottom: 0;']);
         echo html_writer::tag('strong', $company->name);
         echo html_writer::tag('small', ' (' . $company->shortname . ')', ['class' => 'text-muted ml-2']);
         echo html_writer::end_tag('label');

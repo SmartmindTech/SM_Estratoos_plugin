@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011904</version>
+        <version>2025011905</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.4</release>
+        <release>1.7.5</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,20 +29,21 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.4/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.5/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.4</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.5</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.4 - JavaScript Fix</h3>
-            <p><strong>Fix for company access page JavaScript</strong></p>
+            <h3>Version 1.7.5 - Token Suspension Fix</h3>
+            <p><strong>Critical fix for company access control</strong></p>
             <ul>
-                <li><strong>Fix:</strong> Added missing AMD build file for companyaccess.js</li>
-                <li>Select all/Deselect all buttons now work correctly</li>
-                <li>Search filter for companies now works</li>
+                <li><strong>Fix:</strong> Token suspension now actually blocks API calls</li>
+                <li>Sets validuntil=1 (expired) in Moodle's external_tokens table when company is disabled</li>
+                <li>Sets validuntil=0 (never expires) when company is re-enabled</li>
+                <li>Improved company access page layout (search bar, checkboxes, border)</li>
             </ul>
             <h4>Included from v1.7.x:</h4>
             <ul>
@@ -50,7 +51,6 @@
                 <li>Grant webservice/rest:use and moodle/site:sendmessage to admin/manager roles</li>
                 <li>Multilingual role detection (English, Spanish, Portuguese)</li>
                 <li>Company access control for IOMAD multi-tenant</li>
-                <li>Token suspension mechanism with status column</li>
             </ul>
             ]]>
         </releasenotes>

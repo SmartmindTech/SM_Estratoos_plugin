@@ -4,7 +4,7 @@
     <TABLE NAME="local_sm_estratoos_plugin" COMMENT="Company-scoped token metadata linking external_tokens to companies">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="tokenid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Reference to external_tokens.id"/>
+        <FIELD NAME="tokenid" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Reference to external_tokens.id (null when suspended)"/>
         <FIELD NAME="companyid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Reference to company.id - the company scope"/>
         <FIELD NAME="batchid" TYPE="char" LENGTH="40" NOTNULL="false" COMMENT="UUID to group tokens created in same batch"/>
         <FIELD NAME="restricttocompany" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="1=filter results by company, 0=system-wide access"/>
@@ -16,6 +16,7 @@
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="notes" TYPE="text" NOTNULL="false" COMMENT="Admin notes about this token"/>
         <FIELD NAME="active" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="1=active, 0=suspended (company access disabled)"/>
+        <FIELD NAME="token_backup" TYPE="text" NOTNULL="false" COMMENT="JSON backup of external_tokens record when suspended"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

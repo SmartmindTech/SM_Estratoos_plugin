@@ -714,14 +714,51 @@ class util {
             $time = time();
         }
 
-        // Update all tokens for this company.
-        // Only affects tokens with companyid > 0 (not admin tokens).
-        $DB->execute(
-            "UPDATE {local_sm_estratoos_plugin}
-             SET active = ?, timemodified = ?
-             WHERE companyid = ?",
-            [$active ? 1 : 0, $time, $companyid]
-        );
+        // Get all plugin token records for this company.
+        $plugintokens = $DB->get_records('local_sm_estratoos_plugin', ['companyid' => $companyid]);
+
+        foreach ($plugintokens as $plugintoken) {
+            if ($active) {
+                // RE-ENABLING: Restore the token to external_tokens from backup.
+                if (!empty($plugintoken->token_backup)) {
+                    $backupdata = json_decode($plugintoken->token_backup, true);
+                    if ($backupdata && !empty($backupdata['token'])) {
+                        // Check if token already exists (shouldn't, but be safe).
+                        $existing = $DB->get_record('external_tokens', ['token' => $backupdata['token']]);
+                        if (!$existing) {
+                            // Restore the token record.
+                            unset($backupdata['id']); // Remove old ID, let DB assign new one.
+                            $newtokenid = $DB->insert_record('external_tokens', (object)$backupdata);
+
+                            // Update our reference to the new token ID.
+                            $plugintoken->tokenid = $newtokenid;
+                        }
+                        // Clear the backup.
+                        $plugintoken->token_backup = null;
+                    }
+                }
+                $plugintoken->active = 1;
+            } else {
+                // SUSPENDING: Backup the token data, then delete from external_tokens.
+                if ($plugintoken->tokenid) {
+                    $externaltoken = $DB->get_record('external_tokens', ['id' => $plugintoken->tokenid]);
+                    if ($externaltoken) {
+                        // Store full token record as JSON backup.
+                        $plugintoken->token_backup = json_encode((array)$externaltoken);
+
+                        // Set tokenid to NULL first (to avoid foreign key constraint).
+                        $plugintoken->tokenid = null;
+
+                        // Delete from external_tokens - this blocks ALL API calls immediately.
+                        $DB->delete_records('external_tokens', ['id' => $externaltoken->id]);
+                    }
+                }
+                $plugintoken->active = 0;
+            }
+
+            $plugintoken->timemodified = $time;
+            $DB->update_record('local_sm_estratoos_plugin', $plugintoken);
+        }
     }
 
     /**
