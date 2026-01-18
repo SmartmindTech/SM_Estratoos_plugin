@@ -74,7 +74,7 @@ class service_functions_form extends \moodleform {
             $select = $mform->addElement('select', 'fids',
                 get_string('functions', 'webservice'), $availablefunctions);
             $select->setMultiple(true);
-            $select->updateAttributes(['size' => '15', 'style' => 'height: auto; min-height: 300px;']);
+            $select->updateAttributes(['size' => '15', 'style' => 'height: auto; min-height: 300px; width: 100%;']);
             $mform->addRule('fids', get_string('required'), 'required', null, 'client');
 
             // Help text.

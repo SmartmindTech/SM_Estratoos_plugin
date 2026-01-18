@@ -178,11 +178,17 @@ class observer {
             }
 
             // Manager-like patterns (only if not already matched).
+            // For IOMAD, use companymanager role; fallback to manager if not available.
             if (!$systemrole) {
-                $managerpatterns = ['admin', 'manager', 'administrador', 'gerente', 'gestor'];
+                $managerpatterns = ['admin', 'manager', 'administrador', 'gerente', 'gestor', 'companymanager'];
                 foreach ($managerpatterns as $pattern) {
                     if (strpos($shortname, $pattern) !== false) {
-                        $systemrole = $DB->get_record('role', ['shortname' => 'manager']);
+                        // Try IOMAD's companymanager role first.
+                        $systemrole = $DB->get_record('role', ['shortname' => 'companymanager']);
+                        if (!$systemrole) {
+                            // Fallback to generic manager if companymanager doesn't exist.
+                            $systemrole = $DB->get_record('role', ['shortname' => 'manager']);
+                        }
                         break;
                     }
                 }

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011907</version>
+        <version>2025011908</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.7</release>
+        <release>1.7.8</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,28 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.7/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.8/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.7</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.8</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.7 - Bug Fixes</h3>
-            <p><strong>Critical fixes for token management UI</strong></p>
+            <h3>Version 1.7.8 - Company Manager Role Fix</h3>
+            <p><strong>Proper IOMAD company manager role support</strong></p>
             <ul>
-                <li><strong>Fix:</strong> Suspended tokens now appear in the token list (was hidden due to INNER JOIN)</li>
-                <li><strong>Fix:</strong> Functions selection box now has fixed size (300px height)</li>
-                <li><strong>Fix:</strong> Suspended tokens show user info from backup data</li>
-                <li><strong>Fix:</strong> Token linking when re-enabling companies with existing tokens</li>
-                <li>Cache purge on upgrade to ensure AMD modules reload</li>
+                <li><strong>Fix:</strong> Use IOMAD's companymanager role instead of generic manager</li>
+                <li><strong>Fix:</strong> Enable companymanager role at system level by default</li>
+                <li><strong>Fix:</strong> Functions selection box maintains consistent width (100%)</li>
+                <li><strong>Fix:</strong> Company search bar cache invalidation</li>
+                <li><strong>Debug:</strong> Added diagnostic output for manager access issues (enable DEBUG_DEVELOPER)</li>
             </ul>
-            <h4>Included from v1.7.x:</h4>
+            <h4>Token Isolation (Confirmed Working):</h4>
             <ul>
-                <li>Token suspension backup/restore with same hash (v1.7.5-1.7.6)</li>
-                <li>Automatic system-level role assignment for new users</li>
-                <li>Company access control for IOMAD multi-tenant</li>
+                <li>Managers only see tokens from their own company</li>
+                <li>Multi-tenant data isolation is properly enforced</li>
             </ul>
             ]]>
         </releasenotes>

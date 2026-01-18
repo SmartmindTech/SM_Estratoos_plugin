@@ -253,6 +253,7 @@ class util {
         try {
             // Check for roles at system level or any category context.
             // Include multilingual keywords for admin/manager roles.
+            // Also explicitly include IOMAD's companymanager role.
             $sql = "SELECT DISTINCT r.id, r.shortname
                     FROM {role_assignments} ra
                     JOIN {role} r ON r.id = ra.roleid
@@ -260,8 +261,10 @@ class util {
                     WHERE ra.userid = :userid
                       AND ctx.contextlevel IN (:systemlevel, :categorylevel)
                       AND (
+                          -- IOMAD specific role
+                          r.shortname = 'companymanager'
                           -- English keywords
-                          LOWER(r.shortname) LIKE '%admin%'
+                          OR LOWER(r.shortname) LIKE '%admin%'
                           OR LOWER(r.shortname) LIKE '%manager%'
                           -- Spanish/Portuguese keywords
                           OR LOWER(r.shortname) LIKE '%administrador%'
@@ -290,7 +293,7 @@ class util {
      * @return bool True if user can administer tokens.
      */
     public static function is_token_admin(int $userid = null): bool {
-        global $DB, $USER;
+        global $DB, $USER, $CFG;
 
         if ($userid === null) {
             $userid = $USER->id;
@@ -311,7 +314,15 @@ class util {
                         WHERE cu.userid = :userid";
                 $usercompanies = $DB->get_records_sql($sql, ['userid' => $userid]);
 
+                // DEBUG: Log what we found.
+                if (!empty($CFG->debug) && $CFG->debug >= DEBUG_DEVELOPER) {
+                    debugging("SM_ESTRATOOS DEBUG: User $userid companies: " . json_encode($usercompanies), DEBUG_DEVELOPER);
+                }
+
                 if (empty($usercompanies)) {
+                    if (!empty($CFG->debug) && $CFG->debug >= DEBUG_DEVELOPER) {
+                        debugging("SM_ESTRATOOS DEBUG: User $userid not found in any company", DEBUG_DEVELOPER);
+                    }
                     return false;
                 }
 
@@ -321,17 +332,26 @@ class util {
                 // Check each company the user belongs to.
                 foreach ($usercompanies as $uc) {
                     // User qualifies if: (managertype > 0 OR has admin/manager role).
-                    if ($uc->managertype > 0 || $hasadminrole) {
-                        // AND company must be enabled.
-                        if (self::is_company_enabled($uc->companyid)) {
-                            return true;
-                        }
+                    $qualifies = ($uc->managertype > 0 || $hasadminrole);
+                    $enabled = self::is_company_enabled($uc->companyid);
+
+                    if (!empty($CFG->debug) && $CFG->debug >= DEBUG_DEVELOPER) {
+                        debugging("SM_ESTRATOOS DEBUG: Company {$uc->companyid}: managertype={$uc->managertype}, " .
+                                  "hasadminrole=" . ($hasadminrole ? '1' : '0') . ", qualifies=" . ($qualifies ? '1' : '0') .
+                                  ", enabled=" . ($enabled ? '1' : '0'), DEBUG_DEVELOPER);
+                    }
+
+                    if ($qualifies && $enabled) {
+                        return true;
                     }
                 }
 
                 // User is in companies but none are enabled or user has no qualifying role.
                 return false;
             } catch (\Exception $e) {
+                if (!empty($CFG->debug) && $CFG->debug >= DEBUG_DEVELOPER) {
+                    debugging("SM_ESTRATOOS DEBUG: Exception in is_token_admin: " . $e->getMessage(), DEBUG_DEVELOPER);
+                }
                 return false;
             }
         } else {
@@ -594,7 +614,7 @@ class util {
      * @return bool True if company is enabled.
      */
     public static function is_company_enabled(int $companyid): bool {
-        global $DB;
+        global $DB, $CFG;
 
         if (!self::is_iomad_installed()) {
             return false;
@@ -605,7 +625,15 @@ class util {
                 'companyid' => $companyid,
                 'enabled' => 1,
             ]);
-            return !empty($record);
+            $result = !empty($record);
+
+            // DEBUG: Log the check result.
+            if (!empty($CFG->debug) && $CFG->debug >= DEBUG_DEVELOPER) {
+                debugging("SM_ESTRATOOS DEBUG: is_company_enabled($companyid) = " . ($result ? '1' : '0') .
+                          ", record: " . ($record ? json_encode($record) : 'null'), DEBUG_DEVELOPER);
+            }
+
+            return $result;
         } catch (\Exception $e) {
             return false;
         }

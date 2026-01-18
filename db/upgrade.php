@@ -801,5 +801,30 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011907, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.8: Use companymanager role, enable at system level, add debugging.
+    if ($oldversion < 2025011908) {
+        // Enable companymanager role for system context assignment.
+        // This allows IOMAD company managers to be assigned the role at system level.
+        $companymanagerrole = $DB->get_record('role', ['shortname' => 'companymanager']);
+        if ($companymanagerrole) {
+            // Check if already assignable at system level.
+            $existing = $DB->get_record('role_context_levels', [
+                'roleid' => $companymanagerrole->id,
+                'contextlevel' => CONTEXT_SYSTEM,
+            ]);
+            if (!$existing) {
+                $DB->insert_record('role_context_levels', [
+                    'roleid' => $companymanagerrole->id,
+                    'contextlevel' => CONTEXT_SYSTEM,
+                ]);
+            }
+        }
+
+        // Purge caches to ensure AMD modules and permissions are refreshed.
+        purge_all_caches();
+
+        upgrade_plugin_savepoint(true, 2025011908, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
