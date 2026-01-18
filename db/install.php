@@ -45,8 +45,9 @@ function xmldb_local_sm_estratoos_plugin_install() {
     // Add plugin functions to Moodle mobile web service.
     xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
 
-    // Assign users to system-level roles based on their course/category roles.
-    xmldb_local_sm_estratoos_plugin_assign_system_roles();
+    // NOTE: We do NOT assign system-level roles automatically.
+    // This was removed in v1.7.12 because it breaks IOMAD's company context handling.
+    // Users should be assigned roles through IOMAD's UI or Moodle's role assignment interface.
 
     return true;
 }
@@ -76,10 +77,12 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
 
     // 4 & 5. Configure roles for web service access.
     // We need to grant webservice/rest:use to roles so users can use API tokens.
-    // Configure teacher and student roles (not 'user' - authenticated users don't need system role).
-    $rolestoconfig = ['editingteacher', 'teacher', 'student'];
+    // NOTE: We only configure admin/manager roles, NOT teacher/student roles.
+    // Teacher and student should NOT have system-level access.
+    $rolestoconfig = [];
 
-    // Also add admin/manager roles dynamically (multilingual support).
+    // Add admin/manager roles dynamically (multilingual support).
+    // These are the only roles that should have system-level web service access.
     $adminmanagerroles = $DB->get_records_sql(
         "SELECT id, shortname FROM {role}
          WHERE LOWER(shortname) LIKE '%admin%'
@@ -150,145 +153,6 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
 
     // Purge caches to ensure changes take effect.
     purge_all_caches();
-}
-
-/**
- * Assign users to system-level roles based on their course/category role names.
- *
- * This function finds users who have teacher-like, student-like, or manager-like roles at
- * course or category level and assigns them the corresponding system-level role.
- *
- * Teacher-like patterns: teacher, professor, tutor, profesor, maestro, docente, formador
- * Student-like patterns: student, alumno, estudiante, aluno, aprendiz
- * Manager-like patterns: admin, manager, administrador, gerente, gestor
- */
-function xmldb_local_sm_estratoos_plugin_assign_system_roles() {
-    global $DB;
-
-    $systemcontext = context_system::instance();
-
-    // Get target system roles.
-    $teacherrole = $DB->get_record('role', ['shortname' => 'editingteacher']);
-    $studentrole = $DB->get_record('role', ['shortname' => 'student']);
-    $managerrole = $DB->get_record('role', ['shortname' => 'manager']);
-
-    // Assign teacher-like users to editingteacher system role.
-    if ($teacherrole) {
-        $teachersql = "SELECT DISTINCT ra.userid
-                       FROM {role_assignments} ra
-                       JOIN {role} r ON r.id = ra.roleid
-                       JOIN {context} ctx ON ctx.id = ra.contextid
-                       WHERE ctx.contextlevel IN (:courselevel, :categorylevel)
-                         AND (
-                             LOWER(r.shortname) LIKE '%teacher%'
-                             OR LOWER(r.shortname) LIKE '%professor%'
-                             OR LOWER(r.shortname) LIKE '%tutor%'
-                             OR LOWER(r.shortname) LIKE '%profesor%'
-                             OR LOWER(r.shortname) LIKE '%maestro%'
-                             OR LOWER(r.shortname) LIKE '%docente%'
-                             OR LOWER(r.shortname) LIKE '%formador%'
-                         )
-                         AND ra.userid NOT IN (
-                             SELECT ra2.userid
-                             FROM {role_assignments} ra2
-                             JOIN {context} ctx2 ON ctx2.id = ra2.contextid
-                             WHERE ra2.roleid = :teacheroleid
-                               AND ctx2.contextlevel = :systemlevel
-                         )";
-
-        $teacherusers = $DB->get_records_sql($teachersql, [
-            'courselevel' => CONTEXT_COURSE,
-            'categorylevel' => CONTEXT_COURSECAT,
-            'teacheroleid' => $teacherrole->id,
-            'systemlevel' => CONTEXT_SYSTEM,
-        ]);
-
-        foreach ($teacherusers as $user) {
-            role_assign($teacherrole->id, $user->userid, $systemcontext->id);
-        }
-        $teachercount = count($teacherusers);
-    } else {
-        $teachercount = 0;
-    }
-
-    // Assign student-like users to student system role.
-    if ($studentrole) {
-        $studentsql = "SELECT DISTINCT ra.userid
-                       FROM {role_assignments} ra
-                       JOIN {role} r ON r.id = ra.roleid
-                       JOIN {context} ctx ON ctx.id = ra.contextid
-                       WHERE ctx.contextlevel IN (:courselevel, :categorylevel)
-                         AND (
-                             LOWER(r.shortname) LIKE '%student%'
-                             OR LOWER(r.shortname) LIKE '%alumno%'
-                             OR LOWER(r.shortname) LIKE '%estudiante%'
-                             OR LOWER(r.shortname) LIKE '%aluno%'
-                             OR LOWER(r.shortname) LIKE '%aprendiz%'
-                         )
-                         AND ra.userid NOT IN (
-                             SELECT ra2.userid
-                             FROM {role_assignments} ra2
-                             JOIN {context} ctx2 ON ctx2.id = ra2.contextid
-                             WHERE ra2.roleid = :studentroleid
-                               AND ctx2.contextlevel = :systemlevel
-                         )";
-
-        $studentusers = $DB->get_records_sql($studentsql, [
-            'courselevel' => CONTEXT_COURSE,
-            'categorylevel' => CONTEXT_COURSECAT,
-            'studentroleid' => $studentrole->id,
-            'systemlevel' => CONTEXT_SYSTEM,
-        ]);
-
-        foreach ($studentusers as $user) {
-            role_assign($studentrole->id, $user->userid, $systemcontext->id);
-        }
-        $studentcount = count($studentusers);
-    } else {
-        $studentcount = 0;
-    }
-
-    // Assign manager-like users to manager system role.
-    if ($managerrole) {
-        $managersql = "SELECT DISTINCT ra.userid
-                       FROM {role_assignments} ra
-                       JOIN {role} r ON r.id = ra.roleid
-                       JOIN {context} ctx ON ctx.id = ra.contextid
-                       WHERE ctx.contextlevel IN (:courselevel, :categorylevel)
-                         AND (
-                             LOWER(r.shortname) LIKE '%admin%'
-                             OR LOWER(r.shortname) LIKE '%manager%'
-                             OR LOWER(r.shortname) LIKE '%administrador%'
-                             OR LOWER(r.shortname) LIKE '%gerente%'
-                             OR LOWER(r.shortname) LIKE '%gestor%'
-                         )
-                         AND ra.userid NOT IN (
-                             SELECT ra2.userid
-                             FROM {role_assignments} ra2
-                             JOIN {context} ctx2 ON ctx2.id = ra2.contextid
-                             WHERE ra2.roleid = :managerroleid
-                               AND ctx2.contextlevel = :systemlevel
-                         )";
-
-        $managerusers = $DB->get_records_sql($managersql, [
-            'courselevel' => CONTEXT_COURSE,
-            'categorylevel' => CONTEXT_COURSECAT,
-            'managerroleid' => $managerrole->id,
-            'systemlevel' => CONTEXT_SYSTEM,
-        ]);
-
-        foreach ($managerusers as $user) {
-            role_assign($managerrole->id, $user->userid, $systemcontext->id);
-        }
-        $managercount = count($managerusers);
-    } else {
-        $managercount = 0;
-    }
-
-    // Log the assignments.
-    if ($teachercount > 0 || $studentcount > 0 || $managercount > 0) {
-        error_log("SM_ESTRATOOS_PLUGIN: Assigned $teachercount users to editingteacher, $studentcount users to student, and $managercount users to manager at system level");
-    }
 }
 
 /**

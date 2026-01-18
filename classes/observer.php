@@ -116,126 +116,18 @@ class observer {
     }
 
     /**
-     * Role assigned - automatically assign system-level role if appropriate.
+     * Role assigned - invalidate caches when role changes.
      *
-     * When a user is assigned a teacher-like, student-like, or manager-like role
-     * at course or category level, this observer automatically assigns the
-     * corresponding system-level role (editingteacher, student, or manager).
-     *
-     * For IOMAD installations, this only happens if the user's company is enabled.
+     * NOTE: This observer NO LONGER assigns system-level roles because doing so
+     * breaks IOMAD's company context handling. Instead, the plugin now checks
+     * for manager-like roles at course/category level directly in the
+     * has_admin_or_manager_role() function.
      *
      * @param \core\event\role_assigned $event
      */
     public static function role_assigned(\core\event\role_assigned $event): void {
-        global $DB;
-
-        try {
-            $data = $event->get_data();
-            $userid = $data['relateduserid'];
-            $roleid = $data['objectid'];
-            $contextid = $data['contextid'];
-
-            // Get the context to check the level.
-            $context = \context::instance_by_id($contextid, IGNORE_MISSING);
-            if (!$context) {
-                return;
-            }
-
-            // Only process course and category level assignments.
-            if ($context->contextlevel != CONTEXT_COURSE && $context->contextlevel != CONTEXT_COURSECAT) {
-                return;
-            }
-
-            // Get the role that was assigned.
-            $role = $DB->get_record('role', ['id' => $roleid], 'id, shortname');
-            if (!$role) {
-                return;
-            }
-
-            $shortname = strtolower($role->shortname);
-
-            // Determine which system role to assign based on the role pattern.
-            $systemrole = null;
-
-            // Teacher-like patterns.
-            $teacherpatterns = ['teacher', 'professor', 'tutor', 'profesor', 'maestro', 'docente', 'formador'];
-            foreach ($teacherpatterns as $pattern) {
-                if (strpos($shortname, $pattern) !== false) {
-                    $systemrole = $DB->get_record('role', ['shortname' => 'editingteacher']);
-                    break;
-                }
-            }
-
-            // Student-like patterns (only if not already matched as teacher).
-            if (!$systemrole) {
-                $studentpatterns = ['student', 'alumno', 'estudiante', 'aluno', 'aprendiz'];
-                foreach ($studentpatterns as $pattern) {
-                    if (strpos($shortname, $pattern) !== false) {
-                        $systemrole = $DB->get_record('role', ['shortname' => 'student']);
-                        break;
-                    }
-                }
-            }
-
-            // Manager-like patterns (only if not already matched).
-            // For IOMAD, use companymanager role; fallback to manager if not available.
-            if (!$systemrole) {
-                $managerpatterns = ['admin', 'manager', 'administrador', 'gerente', 'gestor', 'companymanager'];
-                foreach ($managerpatterns as $pattern) {
-                    if (strpos($shortname, $pattern) !== false) {
-                        // Try IOMAD's companymanager role first.
-                        $systemrole = $DB->get_record('role', ['shortname' => 'companymanager']);
-                        if (!$systemrole) {
-                            // Fallback to generic manager if companymanager doesn't exist.
-                            $systemrole = $DB->get_record('role', ['shortname' => 'manager']);
-                        }
-                        break;
-                    }
-                }
-            }
-
-            // No matching pattern found.
-            if (!$systemrole) {
-                return;
-            }
-
-            // Check if user already has this system role.
-            $systemcontext = \context_system::instance();
-            $hasrole = $DB->record_exists('role_assignments', [
-                'roleid' => $systemrole->id,
-                'contextid' => $systemcontext->id,
-                'userid' => $userid,
-            ]);
-
-            if ($hasrole) {
-                return; // User already has the system role.
-            }
-
-            // For IOMAD: Check if user's company is enabled.
-            if (util::is_iomad_installed()) {
-                $companyuser = $DB->get_record('company_users', ['userid' => $userid], 'companyid');
-                if ($companyuser) {
-                    // Check if company has access to the plugin.
-                    $access = $DB->get_record('local_sm_estratoos_plugin_access', [
-                        'companyid' => $companyuser->companyid
-                    ]);
-                    // If no record exists or company is disabled, don't assign role.
-                    if (!$access || !$access->enabled) {
-                        return;
-                    }
-                }
-            }
-
-            // Assign the system role.
-            role_assign($systemrole->id, $userid, $systemcontext->id);
-
-            // Log the assignment.
-            debugging("SM_ESTRATOOS_PLUGIN: Auto-assigned user $userid to system role {$systemrole->shortname} " .
-                      "based on course/category role {$role->shortname}", DEBUG_DEVELOPER);
-
-        } catch (\Exception $e) {
-            // Log error but don't break the role assignment process.
-            debugging("SM_ESTRATOOS_PLUGIN: Error in role_assigned observer - " . $e->getMessage(), DEBUG_DEVELOPER);
-        }
+        // Just invalidate caches when role assignments change.
+        // This ensures the plugin picks up new manager role assignments immediately.
+        cache_helper::invalidate_company_users();
     }
 }

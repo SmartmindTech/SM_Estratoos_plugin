@@ -187,8 +187,9 @@ echo '
 (function() {
     function init() {
         var searchInput = document.getElementById("company-search");
-        var companyItems = document.querySelectorAll(".company-item");
-        var checkboxes = document.querySelectorAll(".company-checkbox");
+        // Convert NodeList to Array for better browser compatibility
+        var companyItems = Array.prototype.slice.call(document.querySelectorAll(".company-item"));
+        var checkboxes = Array.prototype.slice.call(document.querySelectorAll(".company-checkbox"));
         var selectAllBtn = document.getElementById("select-all-companies");
         var deselectAllBtn = document.getElementById("deselect-all-companies");
         var countDisplay = document.querySelector("#enabled-count + strong");
@@ -200,6 +201,11 @@ echo '
 
         console.log("SM_ESTRATOOS: Company search initialized, found " + companyItems.length + " items");
 
+        // Debug: Log the data-name attributes
+        companyItems.forEach(function(item, index) {
+            console.log("SM_ESTRATOOS: Item " + index + " data-name: " + item.getAttribute("data-name"));
+        });
+
         function updateCount() {
             var count = document.querySelectorAll(".company-checkbox:checked").length;
             if (countDisplay) {
@@ -207,12 +213,35 @@ echo '
             }
         }
 
-        searchInput.addEventListener("input", function() {
-            var filter = this.value.toLowerCase();
+        // Bind the input event
+        searchInput.addEventListener("input", function(e) {
+            var filter = this.value.toLowerCase().trim();
+            console.log("SM_ESTRATOOS: Filtering with: \"" + filter + "\"");
+
+            var visible = 0;
+            var hidden = 0;
+
             companyItems.forEach(function(item) {
                 var name = item.getAttribute("data-name") || "";
-                item.style.display = (filter === "" || name.indexOf(filter) !== -1) ? "" : "none";
+                var matches = (filter === "" || name.indexOf(filter) !== -1);
+
+                if (matches) {
+                    item.style.display = "";
+                    visible++;
+                } else {
+                    item.style.display = "none";
+                    hidden++;
+                }
             });
+
+            console.log("SM_ESTRATOOS: Filter result - visible: " + visible + ", hidden: " + hidden);
+        });
+
+        // Also bind keyup for extra compatibility
+        searchInput.addEventListener("keyup", function(e) {
+            // Trigger the input event handler
+            var inputEvent = new Event("input", { bubbles: true });
+            this.dispatchEvent(inputEvent);
         });
 
         if (selectAllBtn) {
@@ -242,6 +271,8 @@ echo '
         checkboxes.forEach(function(cb) {
             cb.addEventListener("change", updateCount);
         });
+
+        console.log("SM_ESTRATOOS: All event listeners attached");
     }
 
     // Handle both cases: DOM already ready or still loading

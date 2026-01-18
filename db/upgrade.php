@@ -881,52 +881,138 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
     }
 
     // v1.7.11: Fix company search timing, assign companymanager to course/category-level managers.
+    // NOTE: This was a MISTAKE - assigning companymanager at system level breaks IOMAD.
+    // v1.7.12 will undo this.
     if ($oldversion < 2025011911) {
-        // Get companymanager role (or fallback to manager).
-        $companymanagerrole = $DB->get_record('role', ['shortname' => 'companymanager']);
-        if (!$companymanagerrole) {
-            $companymanagerrole = $DB->get_record('role', ['shortname' => 'manager']);
-        }
+        // Skip - the role assignment was removed in v1.7.12.
+        // Just purge caches for any users who ran this version.
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011911, 'local', 'sm_estratoos_plugin');
+    }
 
-        if ($companymanagerrole) {
-            $systemcontext = context_system::instance();
+    // v1.7.12: CRITICAL FIX - Remove system-level role assignments that broke IOMAD.
+    // Previous versions incorrectly assigned companymanager, editingteacher, and student
+    // roles at system level, which breaks IOMAD's company context handling.
+    // This upgrade removes those incorrect assignments.
+    if ($oldversion < 2025011912) {
+        $systemcontext = context_system::instance();
 
-            // Find users with manager-like roles at course or category level.
+        // 1. Remove editingteacher at system level for users who have teacher-like roles
+        // at course/category level (these were assigned by our plugin).
+        $teacherrole = $DB->get_record('role', ['shortname' => 'editingteacher']);
+        if ($teacherrole) {
             $sql = "SELECT DISTINCT ra.userid
                     FROM {role_assignments} ra
-                    JOIN {role} r ON r.id = ra.roleid
                     JOIN {context} ctx ON ctx.id = ra.contextid
-                    WHERE ctx.contextlevel IN (:courselevel, :categorylevel)
-                      AND (
-                          r.shortname = 'companymanager'
-                          OR LOWER(r.shortname) LIKE '%manager%'
-                          OR LOWER(r.shortname) LIKE '%admin%'
-                          OR LOWER(r.shortname) LIKE '%administrador%'
-                          OR LOWER(r.shortname) LIKE '%gerente%'
-                          OR LOWER(r.shortname) LIKE '%gestor%'
+                    WHERE ra.roleid = :roleid
+                      AND ctx.contextlevel = :systemlevel
+                      AND ra.userid IN (
+                          SELECT DISTINCT ra2.userid
+                          FROM {role_assignments} ra2
+                          JOIN {role} r2 ON r2.id = ra2.roleid
+                          JOIN {context} ctx2 ON ctx2.id = ra2.contextid
+                          WHERE ctx2.contextlevel IN (:courselevel, :categorylevel)
+                            AND (
+                                LOWER(r2.shortname) LIKE '%teacher%'
+                                OR LOWER(r2.shortname) LIKE '%professor%'
+                                OR LOWER(r2.shortname) LIKE '%tutor%'
+                                OR LOWER(r2.shortname) LIKE '%profesor%'
+                                OR LOWER(r2.shortname) LIKE '%maestro%'
+                                OR LOWER(r2.shortname) LIKE '%docente%'
+                                OR LOWER(r2.shortname) LIKE '%formador%'
+                            )
                       )";
 
-            $coursemanagers = $DB->get_records_sql($sql, [
+            $users = $DB->get_records_sql($sql, [
+                'roleid' => $teacherrole->id,
+                'systemlevel' => CONTEXT_SYSTEM,
                 'courselevel' => CONTEXT_COURSE,
                 'categorylevel' => CONTEXT_COURSECAT,
             ]);
 
-            foreach ($coursemanagers as $manager) {
-                // Check if user already has companymanager role at system level.
-                $hasrole = $DB->record_exists('role_assignments', [
-                    'roleid' => $companymanagerrole->id,
-                    'contextid' => $systemcontext->id,
-                    'userid' => $manager->userid,
-                ]);
-
-                if (!$hasrole) {
-                    role_assign($companymanagerrole->id, $manager->userid, $systemcontext->id);
-                }
+            foreach ($users as $user) {
+                role_unassign($teacherrole->id, $user->userid, $systemcontext->id);
             }
+            $teachercount = count($users);
+        } else {
+            $teachercount = 0;
+        }
+
+        // 2. Remove student at system level for users who have student-like roles
+        // at course/category level (these were assigned by our plugin).
+        $studentrole = $DB->get_record('role', ['shortname' => 'student']);
+        if ($studentrole) {
+            $sql = "SELECT DISTINCT ra.userid
+                    FROM {role_assignments} ra
+                    JOIN {context} ctx ON ctx.id = ra.contextid
+                    WHERE ra.roleid = :roleid
+                      AND ctx.contextlevel = :systemlevel
+                      AND ra.userid IN (
+                          SELECT DISTINCT ra2.userid
+                          FROM {role_assignments} ra2
+                          JOIN {role} r2 ON r2.id = ra2.roleid
+                          JOIN {context} ctx2 ON ctx2.id = ra2.contextid
+                          WHERE ctx2.contextlevel IN (:courselevel, :categorylevel)
+                            AND (
+                                LOWER(r2.shortname) LIKE '%student%'
+                                OR LOWER(r2.shortname) LIKE '%alumno%'
+                                OR LOWER(r2.shortname) LIKE '%estudiante%'
+                                OR LOWER(r2.shortname) LIKE '%aluno%'
+                                OR LOWER(r2.shortname) LIKE '%aprendiz%'
+                            )
+                      )";
+
+            $users = $DB->get_records_sql($sql, [
+                'roleid' => $studentrole->id,
+                'systemlevel' => CONTEXT_SYSTEM,
+                'courselevel' => CONTEXT_COURSE,
+                'categorylevel' => CONTEXT_COURSECAT,
+            ]);
+
+            foreach ($users as $user) {
+                role_unassign($studentrole->id, $user->userid, $systemcontext->id);
+            }
+            $studentcount = count($users);
+        } else {
+            $studentcount = 0;
+        }
+
+        // 3. Remove companymanager at system level for users who are NOT actual IOMAD managers.
+        // Actual IOMAD managers have managertype > 0 in company_users table.
+        // Users who were wrongly assigned by our plugin don't have this.
+        $companymanagerrole = $DB->get_record('role', ['shortname' => 'companymanager']);
+        $managercount = 0;
+        if ($companymanagerrole && $dbman->table_exists('company_users')) {
+            $sql = "SELECT DISTINCT ra.userid
+                    FROM {role_assignments} ra
+                    JOIN {context} ctx ON ctx.id = ra.contextid
+                    WHERE ra.roleid = :cmroleid
+                      AND ctx.contextlevel = :systemlevel
+                      AND ra.userid NOT IN (
+                          SELECT DISTINCT cu.userid
+                          FROM {company_users} cu
+                          WHERE cu.managertype > 0
+                      )";
+
+            $users = $DB->get_records_sql($sql, [
+                'cmroleid' => $companymanagerrole->id,
+                'systemlevel' => CONTEXT_SYSTEM,
+            ]);
+
+            foreach ($users as $user) {
+                role_unassign($companymanagerrole->id, $user->userid, $systemcontext->id);
+            }
+            $managercount = count($users);
+        }
+
+        // Log what we did.
+        if ($teachercount > 0 || $studentcount > 0 || $managercount > 0) {
+            error_log("SM_ESTRATOOS_PLUGIN v1.7.12: Removed system-level role assignments - " .
+                      "editingteacher: $teachercount, student: $studentcount, companymanager: $managercount");
         }
 
         purge_all_caches();
-        upgrade_plugin_savepoint(true, 2025011911, 'local', 'sm_estratoos_plugin');
+        upgrade_plugin_savepoint(true, 2025011912, 'local', 'sm_estratoos_plugin');
     }
 
     return true;
