@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011912</version>
+        <version>2025011913</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.12</release>
+        <release>1.7.13</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,45 +29,30 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.12/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.13/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.12</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.13</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.12 - CRITICAL: Fix IOMAD Error &amp; Restrict Plugin Access</h3>
-            <p><strong>Fixes critical IOMAD error and properly restricts plugin access</strong></p>
+            <h3>Version 1.7.13 - Fix Company Search, Teacher Detection, Role Cleanup</h3>
+            <p><strong>Three important fixes for company access and user role display</strong></p>
 
-            <h4>Who Can Access the Plugin:</h4>
+            <h4>Fixes:</h4>
             <ul>
-                <li><strong>Site Administrators:</strong> Full access</li>
-                <li><strong>IOMAD Company Managers:</strong> System-level companymanager (assigned via IOMAD UI)</li>
-                <li><strong>Category Managers:</strong> Manager roles at category level</li>
-            </ul>
-
-            <h4>Who NO LONGER Has Access:</h4>
-            <ul>
-                <li>Course-level managers</li>
-                <li>Teachers (editingteacher)</li>
-                <li>Students</li>
-            </ul>
-
-            <h4>What This Upgrade Does:</h4>
-            <ul>
-                <li><strong>Unassigns</strong> editingteacher role at system level (for users with teacher roles at course/category)</li>
-                <li><strong>Unassigns</strong> student role at system level (for users with student roles at course/category)</li>
-                <li><strong>Unassigns</strong> companymanager role at system level (for users who are NOT actual IOMAD managers)</li>
-                <li>Removes the function that assigned system-level roles on install/upgrade</li>
+                <li><strong>Company Search Bar:</strong> Now uses AMD module (companyaccess.js) for reliable search functionality</li>
+                <li><strong>Teacher Detection:</strong> Teachers assigned at course level now show as "Teacher" instead of "Student"</li>
+                <li><strong>Role Cleanup:</strong> Re-runs cleanup of system-level teacher/student/companymanager roles</li>
             </ul>
 
             <h4>Technical Changes:</h4>
             <ul>
-                <li>has_admin_or_manager_role() now only checks SYSTEM and CATEGORY contexts (not COURSE)</li>
-                <li>Removed xmldb_local_sm_estratoos_plugin_assign_system_roles() function</li>
-                <li>configure_webservices() no longer adds capabilities to teacher/student roles</li>
-                <li>Observer only invalidates caches, does not assign roles</li>
+                <li>company_access.php now loads AMD module instead of inline JavaScript</li>
+                <li>get_user_company_roles() queries ALL role assignments (any context) to detect teachers</li>
+                <li>Added multilingual teacher role detection (teacher, profesor, tutor, docente, formador, maestro)</li>
+                <li>Upgrade script re-runs role cleanup for older installations</li>
             </ul>
             ]]>
         </releasenotes>

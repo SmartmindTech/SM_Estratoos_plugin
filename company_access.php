@@ -43,6 +43,9 @@ $PAGE->set_title(get_string('managecompanyaccess', 'local_sm_estratoos_plugin'))
 $PAGE->set_heading(get_string('managecompanyaccess', 'local_sm_estratoos_plugin'));
 $PAGE->set_pagelayout('admin');
 
+// Load AMD module for company search functionality.
+$PAGE->requires->js_call_amd('local_sm_estratoos_plugin/companyaccess', 'init');
+
 // Add navigation.
 $PAGE->navbar->add(get_string('pluginname', 'local_sm_estratoos_plugin'),
     new moodle_url('/local/sm_estratoos_plugin/index.php'));
@@ -179,110 +182,5 @@ echo html_writer::link(
 echo html_writer::end_div();
 
 echo html_writer::end_tag('form');
-
-// Inline JavaScript for search functionality.
-// Uses IIFE with readyState check to handle cases where DOM is already ready.
-echo '
-<script>
-(function() {
-    function init() {
-        var searchInput = document.getElementById("company-search");
-        // Convert NodeList to Array for better browser compatibility
-        var companyItems = Array.prototype.slice.call(document.querySelectorAll(".company-item"));
-        var checkboxes = Array.prototype.slice.call(document.querySelectorAll(".company-checkbox"));
-        var selectAllBtn = document.getElementById("select-all-companies");
-        var deselectAllBtn = document.getElementById("deselect-all-companies");
-        var countDisplay = document.querySelector("#enabled-count + strong");
-
-        if (!searchInput) {
-            console.error("SM_ESTRATOOS: company-search input not found");
-            return;
-        }
-
-        console.log("SM_ESTRATOOS: Company search initialized, found " + companyItems.length + " items");
-
-        // Debug: Log the data-name attributes
-        companyItems.forEach(function(item, index) {
-            console.log("SM_ESTRATOOS: Item " + index + " data-name: " + item.getAttribute("data-name"));
-        });
-
-        function updateCount() {
-            var count = document.querySelectorAll(".company-checkbox:checked").length;
-            if (countDisplay) {
-                countDisplay.textContent = count;
-            }
-        }
-
-        // Bind the input event
-        searchInput.addEventListener("input", function(e) {
-            var filter = this.value.toLowerCase().trim();
-            console.log("SM_ESTRATOOS: Filtering with: \"" + filter + "\"");
-
-            var visible = 0;
-            var hidden = 0;
-
-            companyItems.forEach(function(item) {
-                var name = item.getAttribute("data-name") || "";
-                var matches = (filter === "" || name.indexOf(filter) !== -1);
-
-                if (matches) {
-                    item.style.display = "";
-                    visible++;
-                } else {
-                    item.style.display = "none";
-                    hidden++;
-                }
-            });
-
-            console.log("SM_ESTRATOOS: Filter result - visible: " + visible + ", hidden: " + hidden);
-        });
-
-        // Also bind keyup for extra compatibility
-        searchInput.addEventListener("keyup", function(e) {
-            // Trigger the input event handler
-            var inputEvent = new Event("input", { bubbles: true });
-            this.dispatchEvent(inputEvent);
-        });
-
-        if (selectAllBtn) {
-            selectAllBtn.addEventListener("click", function() {
-                companyItems.forEach(function(item) {
-                    if (item.style.display !== "none") {
-                        var cb = item.querySelector(".company-checkbox");
-                        if (cb) cb.checked = true;
-                    }
-                });
-                updateCount();
-            });
-        }
-
-        if (deselectAllBtn) {
-            deselectAllBtn.addEventListener("click", function() {
-                companyItems.forEach(function(item) {
-                    if (item.style.display !== "none") {
-                        var cb = item.querySelector(".company-checkbox");
-                        if (cb) cb.checked = false;
-                    }
-                });
-                updateCount();
-            });
-        }
-
-        checkboxes.forEach(function(cb) {
-            cb.addEventListener("change", updateCount);
-        });
-
-        console.log("SM_ESTRATOOS: All event listeners attached");
-    }
-
-    // Handle both cases: DOM already ready or still loading
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", init);
-    } else {
-        init();
-    }
-})();
-</script>
-';
 
 echo $OUTPUT->footer();

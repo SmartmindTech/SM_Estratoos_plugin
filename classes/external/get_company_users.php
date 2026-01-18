@@ -194,6 +194,21 @@ class get_company_users extends external_api {
             }
         }
 
+        // NEW v1.7.13: Get ALL role assignments for this user (any context) to properly detect teachers.
+        // Teachers are often assigned at course level, not system/category level.
+        $allroleassignments = $DB->get_records_sql(
+            "SELECT DISTINCT r.shortname
+             FROM {role_assignments} ra
+             JOIN {role} r ON r.id = ra.roleid
+             WHERE ra.userid = ?",
+            [$userid]
+        );
+        foreach ($allroleassignments as $ra) {
+            if (!in_array($ra->shortname, $allroles)) {
+                $allroles[] = $ra->shortname;
+            }
+        }
+
         // Also check company_users table for IOMAD-specific manager roles.
         $companyuser = $DB->get_record('company_users', ['userid' => $userid]);
         if ($companyuser && !empty($companyuser->managertype) && $companyuser->managertype > 0) {
@@ -228,6 +243,42 @@ class get_company_users extends external_api {
                     'id' => 0,
                     'shortname' => 'manager',
                     'name' => get_string('manager', 'role'),
+                ];
+            }
+        }
+
+        // NEW v1.7.13: Check if user has teacher role in any context.
+        $hasteacher = false;
+        foreach ($allroles as $rolename) {
+            $ln = strtolower($rolename);
+            if (strpos($ln, 'teacher') !== false ||
+                $ln === 'profesor' || $ln === 'professor' ||
+                $ln === 'tutor' || $ln === 'docente' ||
+                $ln === 'formador' || $ln === 'maestro') {
+                $hasteacher = true;
+                break;
+            }
+        }
+
+        // Add teacher role if found and not already present.
+        if ($hasteacher) {
+            $hasteacherbadge = false;
+            foreach ($roles as $r) {
+                $ln = strtolower($r['shortname']);
+                if (strpos($ln, 'teacher') !== false ||
+                    $ln === 'profesor' || $ln === 'professor' ||
+                    $ln === 'tutor' || $ln === 'docente' ||
+                    $ln === 'formador' || $ln === 'maestro') {
+                    $hasteacherbadge = true;
+                    break;
+                }
+            }
+            if (!$hasteacherbadge) {
+                $teacherroleid = $DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
+                $roles[] = [
+                    'id' => $teacherroleid ?: 0,
+                    'shortname' => 'teacher',
+                    'name' => get_string('teacher'),
                 ];
             }
         }

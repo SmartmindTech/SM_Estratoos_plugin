@@ -1015,5 +1015,118 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011912, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.13: Re-run system-level role cleanup for older installations.
+    // Also fixes company search bar (AMD module loading) and teacher role detection.
+    if ($oldversion < 2025011913) {
+        $systemcontext = context_system::instance();
+        $cleanupcount = 0;
+
+        // 1. Remove editingteacher at system level for users who have teacher roles at course/category.
+        $teacherrole = $DB->get_record('role', ['shortname' => 'editingteacher']);
+        if ($teacherrole) {
+            $sql = "SELECT DISTINCT ra.userid
+                    FROM {role_assignments} ra
+                    JOIN {context} ctx ON ctx.id = ra.contextid
+                    WHERE ra.roleid = :roleid
+                      AND ctx.contextlevel = :systemlevel
+                      AND ra.userid IN (
+                          SELECT DISTINCT ra2.userid
+                          FROM {role_assignments} ra2
+                          JOIN {role} r2 ON r2.id = ra2.roleid
+                          JOIN {context} ctx2 ON ctx2.id = ra2.contextid
+                          WHERE ctx2.contextlevel IN (:courselevel, :categorylevel)
+                            AND (
+                                LOWER(r2.shortname) LIKE '%teacher%'
+                                OR LOWER(r2.shortname) LIKE '%professor%'
+                                OR LOWER(r2.shortname) LIKE '%tutor%'
+                                OR LOWER(r2.shortname) LIKE '%profesor%'
+                                OR LOWER(r2.shortname) LIKE '%maestro%'
+                                OR LOWER(r2.shortname) LIKE '%docente%'
+                                OR LOWER(r2.shortname) LIKE '%formador%'
+                            )
+                      )";
+
+            $users = $DB->get_records_sql($sql, [
+                'roleid' => $teacherrole->id,
+                'systemlevel' => CONTEXT_SYSTEM,
+                'courselevel' => CONTEXT_COURSE,
+                'categorylevel' => CONTEXT_COURSECAT,
+            ]);
+
+            foreach ($users as $user) {
+                role_unassign($teacherrole->id, $user->userid, $systemcontext->id);
+                $cleanupcount++;
+            }
+        }
+
+        // 2. Remove student at system level for users who have student roles at course/category.
+        $studentrole = $DB->get_record('role', ['shortname' => 'student']);
+        if ($studentrole) {
+            $sql = "SELECT DISTINCT ra.userid
+                    FROM {role_assignments} ra
+                    JOIN {context} ctx ON ctx.id = ra.contextid
+                    WHERE ra.roleid = :roleid
+                      AND ctx.contextlevel = :systemlevel
+                      AND ra.userid IN (
+                          SELECT DISTINCT ra2.userid
+                          FROM {role_assignments} ra2
+                          JOIN {role} r2 ON r2.id = ra2.roleid
+                          JOIN {context} ctx2 ON ctx2.id = ra2.contextid
+                          WHERE ctx2.contextlevel IN (:courselevel, :categorylevel)
+                            AND (
+                                LOWER(r2.shortname) LIKE '%student%'
+                                OR LOWER(r2.shortname) LIKE '%alumno%'
+                                OR LOWER(r2.shortname) LIKE '%estudiante%'
+                                OR LOWER(r2.shortname) LIKE '%aluno%'
+                                OR LOWER(r2.shortname) LIKE '%aprendiz%'
+                            )
+                      )";
+
+            $users = $DB->get_records_sql($sql, [
+                'roleid' => $studentrole->id,
+                'systemlevel' => CONTEXT_SYSTEM,
+                'courselevel' => CONTEXT_COURSE,
+                'categorylevel' => CONTEXT_COURSECAT,
+            ]);
+
+            foreach ($users as $user) {
+                role_unassign($studentrole->id, $user->userid, $systemcontext->id);
+                $cleanupcount++;
+            }
+        }
+
+        // 3. Remove companymanager at system level for users who are NOT actual IOMAD managers.
+        $companymanagerrole = $DB->get_record('role', ['shortname' => 'companymanager']);
+        if ($companymanagerrole && $dbman->table_exists('company_users')) {
+            $sql = "SELECT DISTINCT ra.userid
+                    FROM {role_assignments} ra
+                    JOIN {context} ctx ON ctx.id = ra.contextid
+                    WHERE ra.roleid = :cmroleid
+                      AND ctx.contextlevel = :systemlevel
+                      AND ra.userid NOT IN (
+                          SELECT DISTINCT cu.userid
+                          FROM {company_users} cu
+                          WHERE cu.managertype > 0
+                      )";
+
+            $users = $DB->get_records_sql($sql, [
+                'cmroleid' => $companymanagerrole->id,
+                'systemlevel' => CONTEXT_SYSTEM,
+            ]);
+
+            foreach ($users as $user) {
+                role_unassign($companymanagerrole->id, $user->userid, $systemcontext->id);
+                $cleanupcount++;
+            }
+        }
+
+        if ($cleanupcount > 0) {
+            error_log("SM_ESTRATOOS_PLUGIN v1.7.13: Cleaned up $cleanupcount system-level role assignments");
+        }
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011913, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
