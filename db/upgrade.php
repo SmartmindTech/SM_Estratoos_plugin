@@ -778,8 +778,17 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         }
 
         // Make tokenid nullable (needed for suspended tokens where external_tokens record is deleted).
+        // First, drop the unique key/index on tokenid.
+        $key = new xmldb_key('tokenid_fk', XMLDB_KEY_FOREIGN_UNIQUE, ['tokenid'], 'external_tokens', ['id']);
+        $dbman->drop_key($table, $key);
+
+        // Now change the field to be nullable.
         $field = new xmldb_field('tokenid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'id');
         $dbman->change_field_notnull($table, $field);
+
+        // Re-add the key as a regular foreign key (not unique, since nulls are allowed).
+        $key = new xmldb_key('tokenid_fk', XMLDB_KEY_FOREIGN, ['tokenid'], 'external_tokens', ['id']);
+        $dbman->add_key($table, $key);
 
         upgrade_plugin_savepoint(true, 2025011905, 'local', 'sm_estratoos_plugin');
     }

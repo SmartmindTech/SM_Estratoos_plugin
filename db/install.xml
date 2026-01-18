@@ -20,7 +20,7 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="tokenid_fk" TYPE="foreign-unique" FIELDS="tokenid" REFTABLE="external_tokens" REFFIELDS="id"/>
+        <KEY NAME="tokenid_fk" TYPE="foreign" FIELDS="tokenid" REFTABLE="external_tokens" REFFIELDS="id"/>
         <KEY NAME="companyid_fk" TYPE="foreign" FIELDS="companyid" REFTABLE="company" REFFIELDS="id"/>
         <KEY NAME="createdby_fk" TYPE="foreign" FIELDS="createdby" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
