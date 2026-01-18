@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011901</version>
+        <version>2025011902</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.1</release>
+        <release>1.7.2</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,23 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.1/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.2/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.1</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.2</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.1 - System-Level Role Assignment</h3>
-            <p><strong>Admin/Manager role capabilities and automatic role assignment</strong></p>
+            <h3>Version 1.7.2 - XMLDB Fix</h3>
+            <p><strong>Fix for database table creation during upgrade</strong></p>
             <ul>
-                <li><strong>New:</strong> Grant webservice/rest:use and moodle/site:sendmessage to admin/manager roles</li>
-                <li><strong>New:</strong> Auto-assign users to system-level roles based on course/category roles</li>
-                <li><strong>New:</strong> Multilingual role detection (English, Spanish, Portuguese)</li>
-                <li><strong>New:</strong> Company access control for IOMAD multi-tenant (v1.7.0)</li>
-                <li><strong>New:</strong> Token suspension mechanism with status column</li>
-                <li><strong>Fix:</strong> Search bar in web service API functions page</li>
+                <li><strong>Fix:</strong> XMLDB key/index collision for company access table</li>
+                <li>Changed companyid_fk from foreign to foreign-unique to combine foreign key and unique constraint</li>
+            </ul>
+            <h4>Included from v1.7.1:</h4>
+            <ul>
+                <li>Grant webservice/rest:use and moodle/site:sendmessage to admin/manager roles</li>
+                <li>Auto-assign users to system-level roles based on course/category roles</li>
+                <li>Multilingual role detection (English, Spanish, Portuguese)</li>
+                <li>Company access control for IOMAD multi-tenant</li>
+                <li>Token suspension mechanism with status column</li>
             </ul>
             ]]>
         </releasenotes>

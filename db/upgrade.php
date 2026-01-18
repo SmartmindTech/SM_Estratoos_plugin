@@ -676,11 +676,11 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
 
         // Adding keys.
         $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
-        $table->add_key('companyid_fk', XMLDB_KEY_FOREIGN, ['companyid'], 'company', ['id']);
+        // Use FOREIGN_UNIQUE to combine foreign key and unique constraint (avoids collision).
+        $table->add_key('companyid_fk', XMLDB_KEY_FOREIGN_UNIQUE, ['companyid'], 'company', ['id']);
         $table->add_key('enabledby_fk', XMLDB_KEY_FOREIGN, ['enabledby'], 'user', ['id']);
 
         // Adding indexes.
-        $table->add_index('companyid_unique', XMLDB_INDEX_UNIQUE, ['companyid']);
         $table->add_index('enabled_idx', XMLDB_INDEX_NOTUNIQUE, ['enabled']);
 
         // Create the table if it doesn't exist.
