@@ -91,81 +91,91 @@ echo html_writer::start_tag('form', [
 ]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
-// Status badge (admonition) - at the top.
-echo html_writer::start_div('alert alert-info mb-3');
-echo html_writer::tag('span', '', ['id' => 'enabled-count', 'data-initial' => $enabledcount]);
-echo html_writer::tag('strong', $enabledcount);
-echo ' ' . get_string('companiesenabled', 'local_sm_estratoos_plugin');
-echo ' / ' . $totalcount . ' ' . get_string('total');
-echo html_writer::end_div();
-
-// Row with buttons on left and search bar on right.
-echo html_writer::start_div('d-flex align-items-center mb-3', ['style' => 'gap: 1rem;']);
-
-// Quick select buttons on the left.
-echo html_writer::start_div('btn-group flex-shrink-0');
-echo html_writer::tag('button', get_string('selectall'), [
+// Quick select buttons - same style as user selection.
+echo html_writer::start_div('company-quick-select mb-2');
+echo html_writer::tag('label', get_string('quickselect', 'local_sm_estratoos_plugin') . ':', ['class' => 'font-weight-bold']);
+echo html_writer::start_div('btn-group ml-2', ['role' => 'group']);
+echo html_writer::tag('button', get_string('selectallusers', 'local_sm_estratoos_plugin'), [
     'type' => 'button',
     'class' => 'btn btn-sm btn-outline-secondary',
     'id' => 'select-all-companies'
 ]);
-echo html_writer::tag('button', get_string('deselectall', 'local_sm_estratoos_plugin'), [
+echo html_writer::tag('button', get_string('selectnone', 'local_sm_estratoos_plugin'), [
     'type' => 'button',
     'class' => 'btn btn-sm btn-outline-secondary',
     'id' => 'deselect-all-companies'
 ]);
 echo html_writer::end_div();
+echo html_writer::end_div();
 
-// Search bar - takes remaining space, aligned right.
-echo html_writer::start_div('flex-grow-1', ['style' => 'max-width: 400px; margin-left: auto;']);
-echo html_writer::tag('label', get_string('searchcompanies', 'local_sm_estratoos_plugin'), [
-    'for' => 'company-search',
-    'class' => 'sr-only'
+// Header row with counter on left and search bar on right - same style as user selection.
+echo html_writer::start_div('company-list-header d-flex justify-content-between align-items-center mb-2');
+echo html_writer::tag('span', $enabledcount . ' ' . get_string('companiesselected', 'local_sm_estratoos_plugin'), [
+    'id' => 'selected-count',
+    'data-initial' => $enabledcount
 ]);
 echo html_writer::empty_tag('input', [
     'type' => 'text',
     'id' => 'company-search',
-    'class' => 'form-control',
+    'class' => 'form-control form-control-sm',
+    'style' => 'width: 250px;',
     'placeholder' => get_string('searchcompanies', 'local_sm_estratoos_plugin')
 ]);
 echo html_writer::end_div();
 
-echo html_writer::end_div(); // d-flex row
-
-// Company list with scrollbar and visible border.
-echo html_writer::start_div('company-list', ['style' => 'max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.25rem;']);
+// Company list with scrollbar - same style as user selection.
+echo html_writer::start_div('company-list-wrapper border rounded', [
+    'id' => 'company-list-wrapper',
+    'style' => 'max-height: 400px; overflow-y: auto; background: #fafafa;'
+]);
 
 if (empty($companies)) {
-    echo html_writer::tag('p', get_string('nocompanies', 'local_sm_estratoos_plugin'), ['class' => 'text-muted']);
+    echo html_writer::tag('div', get_string('nocompanies', 'local_sm_estratoos_plugin'), [
+        'class' => 'alert alert-info m-2'
+    ]);
 } else {
+    echo html_writer::start_div('company-items', ['style' => 'padding: 0.5rem;']);
     foreach ($companies as $company) {
-        $checked = $company->enabled ? 'checked' : '';
         $id = 'company-' . $company->id;
 
-        echo html_writer::start_div('company-item d-flex align-items-center py-3 px-4 border-bottom', [
-            'data-name' => strtolower($company->name . ' ' . $company->shortname)
+        // Company item - same style as user item.
+        echo html_writer::start_div('company-item d-flex align-items-center py-2 px-2 border-bottom', [
+            'data-name' => strtolower($company->name . ' ' . $company->shortname),
+            'style' => 'background: #fff; margin-bottom: 1px;'
         ]);
 
+        // Custom checkbox - same style as user selection.
+        echo html_writer::start_div('custom-control custom-checkbox');
         echo html_writer::empty_tag('input', [
             'type' => 'checkbox',
-            'class' => 'company-checkbox mr-3',
+            'class' => 'custom-control-input company-checkbox',
             'id' => $id,
             'name' => 'companies[]',
             'value' => $company->id,
-            'checked' => $company->enabled ? 'checked' : null,
-            'style' => 'width: 18px; height: 18px; cursor: pointer;'
+            'checked' => $company->enabled ? 'checked' : null
         ]);
-
-        echo html_writer::start_tag('label', ['for' => $id, 'style' => 'cursor: pointer; margin-bottom: 0;']);
+        echo html_writer::start_tag('label', [
+            'class' => 'custom-control-label',
+            'for' => $id,
+            'style' => 'cursor: pointer;'
+        ]);
         echo html_writer::tag('strong', $company->name);
         echo html_writer::tag('small', ' (' . $company->shortname . ')', ['class' => 'text-muted ml-2']);
+        // Status badge.
+        if ($company->enabled) {
+            echo html_writer::tag('span', get_string('enabled', 'local_sm_estratoos_plugin'), [
+                'class' => 'badge badge-success ml-2 company-status-badge'
+            ]);
+        }
         echo html_writer::end_tag('label');
+        echo html_writer::end_div(); // custom-control
 
-        echo html_writer::end_div();
+        echo html_writer::end_div(); // company-item
     }
+    echo html_writer::end_div(); // company-items
 }
 
-echo html_writer::end_div(); // company-list
+echo html_writer::end_div(); // company-list-wrapper
 
 // Submit button.
 echo html_writer::start_div('mt-4');

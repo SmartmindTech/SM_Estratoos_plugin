@@ -24,15 +24,55 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery'], function($) {
+define(['jquery', 'core/str'], function($, Str) {
     'use strict';
 
+    var strings = {};
+
     /**
-     * Update the enabled count display.
+     * Load language strings.
+     * @returns {Promise}
+     */
+    var loadStrings = function() {
+        return Str.get_strings([
+            {key: 'companiesselected', component: 'local_sm_estratoos_plugin'},
+            {key: 'enabled', component: 'local_sm_estratoos_plugin'}
+        ]).then(function(strs) {
+            strings.companiesselected = strs[0];
+            strings.enabled = strs[1];
+            return true;
+        });
+    };
+
+    /**
+     * Update the selected count display.
      */
     var updateCount = function() {
         var count = $('.company-checkbox:checked').length;
-        $('#enabled-count').next('strong').text(count);
+        $('#selected-count').text(count + ' ' + strings.companiesselected);
+    };
+
+    /**
+     * Update status badges based on checkbox states.
+     */
+    var updateBadges = function() {
+        $('.company-checkbox').each(function() {
+            var $checkbox = $(this);
+            var $item = $checkbox.closest('.company-item');
+            var $badge = $item.find('.company-status-badge');
+
+            if ($checkbox.is(':checked')) {
+                // Add badge if not exists.
+                if ($badge.length === 0) {
+                    var $label = $item.find('.custom-control-label');
+                    $label.append('<span class="badge badge-success ml-2 company-status-badge">' +
+                        strings.enabled + '</span>');
+                }
+            } else {
+                // Remove badge.
+                $badge.remove();
+            }
+        });
     };
 
     /**
@@ -41,7 +81,6 @@ define(['jquery'], function($) {
      */
     var filterCompanies = function(filter) {
         $('.company-item').each(function() {
-            // Use attr() instead of data() for more reliable attribute reading.
             var name = $(this).attr('data-name');
             if (!name) {
                 name = '';
@@ -58,41 +97,53 @@ define(['jquery'], function($) {
      * Initialize the module.
      */
     var init = function() {
-        var $searchInput = $('#company-search');
-        var $companyItems = $('.company-item');
+        loadStrings().then(function() {
+            var $searchInput = $('#company-search');
+            var $companyItems = $('.company-item');
 
-        // Debug: Log initialization.
-        if (window.console && window.console.log) {
-            window.console.log('SM_ESTRATOOS: companyaccess module initialized');
-            window.console.log('SM_ESTRATOOS: Found ' + $companyItems.length + ' company items');
-            window.console.log('SM_ESTRATOOS: Search input found: ' + ($searchInput.length > 0));
-        }
+            // Debug: Log initialization.
+            if (window.console && window.console.log) {
+                window.console.log('SM_ESTRATOOS: companyaccess module initialized');
+                window.console.log('SM_ESTRATOOS: Found ' + $companyItems.length + ' company items');
+            }
 
-        // Search filter - use both 'input' and 'keyup' for maximum compatibility.
-        $searchInput.on('input keyup', function() {
-            var filter = $(this).val().toLowerCase().trim();
-            filterCompanies(filter);
-        });
+            // Search filter - use both 'input' and 'keyup' for maximum compatibility.
+            $searchInput.on('input keyup', function() {
+                var filter = $(this).val().toLowerCase().trim();
+                filterCompanies(filter);
+            });
 
-        // Select all visible companies.
-        $('#select-all-companies').on('click', function() {
-            $('.company-checkbox:visible').prop('checked', true);
+            // Select all visible companies.
+            $('#select-all-companies').on('click', function(e) {
+                e.preventDefault();
+                $('.company-checkbox:visible').prop('checked', true);
+                updateCount();
+                updateBadges();
+            });
+
+            // Deselect all visible companies.
+            $('#deselect-all-companies').on('click', function(e) {
+                e.preventDefault();
+                $('.company-checkbox:visible').prop('checked', false);
+                updateCount();
+                updateBadges();
+            });
+
+            // Update count and badges when any checkbox changes.
+            $(document).on('change', '.company-checkbox', function() {
+                updateCount();
+                updateBadges();
+            });
+
+            // Initial count update.
             updateCount();
-        });
 
-        // Deselect all visible companies.
-        $('#deselect-all-companies').on('click', function() {
-            $('.company-checkbox:visible').prop('checked', false);
-            updateCount();
+            return true;
+        }).catch(function(err) {
+            if (window.console && window.console.error) {
+                window.console.error('SM_ESTRATOOS: Error loading strings', err);
+            }
         });
-
-        // Update count when any checkbox changes.
-        $(document).on('change', '.company-checkbox', function() {
-            updateCount();
-        });
-
-        // Initial count (already set from PHP, but refresh just in case).
-        updateCount();
     };
 
     return {

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011913</version>
+        <version>2025011914</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.13</release>
+        <release>1.7.14</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,32 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.13/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.14/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.13</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.14</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.13 - Fix Company Search, Teacher Detection, Role Cleanup</h3>
-            <p><strong>Three important fixes for company access and user role display</strong></p>
+            <h3>Version 1.7.14 - Redesign Company Access Page</h3>
+            <p><strong>Company access page now matches the user selection design from batch token creation</strong></p>
 
-            <h4>Fixes:</h4>
+            <h4>Changes:</h4>
             <ul>
-                <li><strong>Company Search Bar:</strong> Now uses AMD module (companyaccess.js) for reliable search functionality</li>
-                <li><strong>Teacher Detection:</strong> Teachers assigned at course level now show as "Teacher" instead of "Student"</li>
-                <li><strong>Role Cleanup:</strong> Re-runs cleanup of system-level teacher/student/companymanager roles</li>
+                <li><strong>Circle Checkboxes:</strong> Same custom-checkbox style as user selection</li>
+                <li><strong>Quick Select Buttons:</strong> "Todos" and "Ninguno" buttons at the top</li>
+                <li><strong>Selection Counter:</strong> "X empresas seleccionadas" counter on the left</li>
+                <li><strong>Search Bar:</strong> Search bar aligned to the right</li>
+                <li><strong>Enabled Badges:</strong> Green "Enabled" badge for selected companies</li>
+                <li><strong>White Background Items:</strong> Each company has white background within gray container</li>
             </ul>
 
             <h4>Technical Changes:</h4>
             <ul>
-                <li>company_access.php now loads AMD module instead of inline JavaScript</li>
-                <li>get_user_company_roles() queries ALL role assignments (any context) to detect teachers</li>
-                <li>Added multilingual teacher role detection (teacher, profesor, tutor, docente, formador, maestro)</li>
-                <li>Upgrade script re-runs role cleanup for older installations</li>
+                <li>company_access.php redesigned with same HTML structure as batch_token_form.php</li>
+                <li>companyaccess.js AMD module updated with dynamic badge management</li>
+                <li>Added language strings: companiesselected, enabled</li>
             </ul>
             ]]>
         </releasenotes>
