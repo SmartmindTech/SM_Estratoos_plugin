@@ -732,11 +732,17 @@ class util {
 
                             // Update our reference to the new token ID.
                             $plugintoken->tokenid = $newtokenid;
+                        } else {
+                            // Token already exists - link to it.
+                            $plugintoken->tokenid = $existing->id;
                         }
                         // Clear the backup.
                         $plugintoken->token_backup = null;
                     }
                 }
+                // Note: If token_backup is empty and tokenid is NULL, we can't restore.
+                // This happens for tokens created before v1.7.5 that were suspended without backup.
+                // The token is lost and admin needs to create a new one.
                 $plugintoken->active = 1;
             } else {
                 // SUSPENDING: Backup the token data, then delete from external_tokens.

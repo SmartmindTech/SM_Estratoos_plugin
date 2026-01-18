@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011906;  // YYYYMMDDXX format.
+$plugin->version = 2025011907;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.6';  // Fix upgrade script for tokenid nullable change.
+$plugin->release = '1.7.7';  // Fix suspended tokens display, functions box size, cache purge.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

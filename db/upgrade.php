@@ -793,5 +793,13 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011905, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.7: Bug fixes - LEFT JOIN for suspended tokens, functions box size, cache purge.
+    if ($oldversion < 2025011907) {
+        // Purge caches to ensure AMD modules and CSS are reloaded.
+        purge_all_caches();
+
+        upgrade_plugin_savepoint(true, 2025011907, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

@@ -262,26 +262,41 @@ class company_token_manager {
         $isiomad = util::is_iomad_installed();
 
         if ($isiomad) {
-            $sql = "SELECT lit.*, et.token, et.lastaccess, et.creatorid,
-                           u.id as userid, u.username, u.email, u.firstname, u.lastname,
+            // Use LEFT JOINs to include suspended tokens (tokenid = NULL).
+            $sql = "SELECT lit.*,
+                           COALESCE(et.token, '') as token,
+                           et.lastaccess, et.creatorid,
+                           COALESCE(et.userid, 0) as userid,
+                           COALESCE(u.username, '') as username,
+                           COALESCE(u.email, '') as email,
+                           COALESCE(u.firstname, '') as firstname,
+                           COALESCE(u.lastname, '') as lastname,
                            c.name as companyname, c.shortname as companyshortname,
-                           es.name as servicename
+                           COALESCE(es.name, '') as servicename,
+                           et.externalserviceid
                     FROM {local_sm_estratoos_plugin} lit
-                    JOIN {external_tokens} et ON et.id = lit.tokenid
-                    JOIN {user} u ON u.id = et.userid
+                    LEFT JOIN {external_tokens} et ON et.id = lit.tokenid
+                    LEFT JOIN {user} u ON u.id = et.userid
                     LEFT JOIN {company} c ON c.id = lit.companyid
-                    JOIN {external_services} es ON es.id = et.externalserviceid
+                    LEFT JOIN {external_services} es ON es.id = et.externalserviceid
                     WHERE 1=1";
         } else {
-            // Standard Moodle - no company table.
-            $sql = "SELECT lit.*, et.token, et.lastaccess, et.creatorid,
-                           u.id as userid, u.username, u.email, u.firstname, u.lastname,
+            // Standard Moodle - no company table. Use LEFT JOINs for suspended tokens.
+            $sql = "SELECT lit.*,
+                           COALESCE(et.token, '') as token,
+                           et.lastaccess, et.creatorid,
+                           COALESCE(et.userid, 0) as userid,
+                           COALESCE(u.username, '') as username,
+                           COALESCE(u.email, '') as email,
+                           COALESCE(u.firstname, '') as firstname,
+                           COALESCE(u.lastname, '') as lastname,
                            '' as companyname, '' as companyshortname,
-                           es.name as servicename
+                           COALESCE(es.name, '') as servicename,
+                           et.externalserviceid
                     FROM {local_sm_estratoos_plugin} lit
-                    JOIN {external_tokens} et ON et.id = lit.tokenid
-                    JOIN {user} u ON u.id = et.userid
-                    JOIN {external_services} es ON es.id = et.externalserviceid
+                    LEFT JOIN {external_tokens} et ON et.id = lit.tokenid
+                    LEFT JOIN {user} u ON u.id = et.userid
+                    LEFT JOIN {external_services} es ON es.id = et.externalserviceid
                     WHERE 1=1";
         }
 

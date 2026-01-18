@@ -188,6 +188,31 @@ $tokens = \local_sm_estratoos_plugin\company_token_manager::get_company_tokens(
     $filters
 );
 
+// Enrich suspended tokens with user info from backup.
+foreach ($tokens as $token) {
+    if (empty($token->active) && !empty($token->token_backup)) {
+        $backup = json_decode($token->token_backup);
+        if ($backup && isset($backup->userid)) {
+            // Get user from backup's userid.
+            $backupuser = $DB->get_record('user', ['id' => $backup->userid], 'id, username, email, firstname, lastname');
+            if ($backupuser) {
+                $token->userid = $backupuser->id;
+                $token->username = $backupuser->username;
+                $token->email = $backupuser->email;
+                $token->firstname = $backupuser->firstname;
+                $token->lastname = $backupuser->lastname;
+            }
+            // Get service name from backup.
+            if (isset($backup->externalserviceid)) {
+                $service = $DB->get_record('external_services', ['id' => $backup->externalserviceid], 'name');
+                if ($service) {
+                    $token->servicename = $service->name . ' (' . get_string('tokenstatussuspended', 'local_sm_estratoos_plugin') . ')';
+                }
+            }
+        }
+    }
+}
+
 if (empty($tokens)) {
     echo $OUTPUT->notification(get_string('notokens', 'local_sm_estratoos_plugin'), 'info');
 } else {

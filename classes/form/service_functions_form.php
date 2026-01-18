@@ -70,11 +70,11 @@ class service_functions_form extends \moodleform {
                 ['placeholder' => get_string('searchfunctions', 'local_sm_estratoos_plugin')]);
             $mform->setType('search', PARAM_TEXT);
 
-            // Function selection.
+            // Function selection with fixed size.
             $select = $mform->addElement('select', 'fids',
-                get_string('functions', 'webservice'), $availablefunctions,
-                ['size' => 15]);
+                get_string('functions', 'webservice'), $availablefunctions);
             $select->setMultiple(true);
+            $select->updateAttributes(['size' => '15', 'style' => 'height: auto; min-height: 300px;']);
             $mform->addRule('fids', get_string('required'), 'required', null, 'client');
 
             // Help text.
