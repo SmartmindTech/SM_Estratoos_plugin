@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011910</version>
+        <version>2025011911</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.10</release>
+        <release>1.7.11</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,26 +29,26 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.10/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.11/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.10</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.11</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.10 - Company Search &amp; Existing Managers Fix</h3>
-            <p><strong>Fixed company search bar and existing IOMAD manager role assignment</strong></p>
+            <h3>Version 1.7.11 - Company Search &amp; Course-Level Managers Fix</h3>
+            <p><strong>Fixed company search timing and course-level manager role assignment</strong></p>
             <ul>
-                <li><strong>Fix:</strong> Company search bar now works reliably using inline JavaScript (like functions search)</li>
-                <li><strong>Fix:</strong> Existing IOMAD managers (managertype > 0) are automatically assigned companymanager role at system level on upgrade</li>
-                <li><strong>Improvement:</strong> Removed dependency on AMD module caching for company search</li>
+                <li><strong>Fix:</strong> Company search bar now works reliably (uses IIFE with readyState check)</li>
+                <li><strong>Fix:</strong> Course/category-level managers are now assigned companymanager role at system level</li>
+                <li><strong>Improvement:</strong> Script executes immediately if DOM ready, or waits if still loading</li>
             </ul>
             <h4>What This Upgrade Does:</h4>
             <ul>
-                <li>Assigns companymanager system role to ALL existing IOMAD company managers</li>
-                <li>Enables the companymanager role at system level if not already enabled</li>
-                <li>Company search bar works immediately without cache purge</li>
+                <li>Assigns companymanager system role to users with manager-like roles at course or category level</li>
+                <li>Company search bar initializes properly regardless of DOM state</li>
+                <li>Console logging for debugging: "SM_ESTRATOOS: Company search initialized"</li>
             </ul>
             ]]>
         </releasenotes>

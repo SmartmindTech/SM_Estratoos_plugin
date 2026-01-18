@@ -880,5 +880,54 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011910, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.11: Fix company search timing, assign companymanager to course/category-level managers.
+    if ($oldversion < 2025011911) {
+        // Get companymanager role (or fallback to manager).
+        $companymanagerrole = $DB->get_record('role', ['shortname' => 'companymanager']);
+        if (!$companymanagerrole) {
+            $companymanagerrole = $DB->get_record('role', ['shortname' => 'manager']);
+        }
+
+        if ($companymanagerrole) {
+            $systemcontext = context_system::instance();
+
+            // Find users with manager-like roles at course or category level.
+            $sql = "SELECT DISTINCT ra.userid
+                    FROM {role_assignments} ra
+                    JOIN {role} r ON r.id = ra.roleid
+                    JOIN {context} ctx ON ctx.id = ra.contextid
+                    WHERE ctx.contextlevel IN (:courselevel, :categorylevel)
+                      AND (
+                          r.shortname = 'companymanager'
+                          OR LOWER(r.shortname) LIKE '%manager%'
+                          OR LOWER(r.shortname) LIKE '%admin%'
+                          OR LOWER(r.shortname) LIKE '%administrador%'
+                          OR LOWER(r.shortname) LIKE '%gerente%'
+                          OR LOWER(r.shortname) LIKE '%gestor%'
+                      )";
+
+            $coursemanagers = $DB->get_records_sql($sql, [
+                'courselevel' => CONTEXT_COURSE,
+                'categorylevel' => CONTEXT_COURSECAT,
+            ]);
+
+            foreach ($coursemanagers as $manager) {
+                // Check if user already has companymanager role at system level.
+                $hasrole = $DB->record_exists('role_assignments', [
+                    'roleid' => $companymanagerrole->id,
+                    'contextid' => $systemcontext->id,
+                    'userid' => $manager->userid,
+                ]);
+
+                if (!$hasrole) {
+                    role_assign($companymanagerrole->id, $manager->userid, $systemcontext->id);
+                }
+            }
+        }
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011911, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

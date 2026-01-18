@@ -180,76 +180,77 @@ echo html_writer::end_div();
 
 echo html_writer::end_tag('form');
 
-// Inline JavaScript for search functionality (more reliable than AMD modules).
+// Inline JavaScript for search functionality.
+// Uses IIFE with readyState check to handle cases where DOM is already ready.
 echo '
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    var searchInput = document.getElementById("company-search");
-    var companyItems = document.querySelectorAll(".company-item");
-    var checkboxes = document.querySelectorAll(".company-checkbox");
-    var selectAllBtn = document.getElementById("select-all-companies");
-    var deselectAllBtn = document.getElementById("deselect-all-companies");
-    var countDisplay = document.querySelector("#enabled-count + strong");
+(function() {
+    function init() {
+        var searchInput = document.getElementById("company-search");
+        var companyItems = document.querySelectorAll(".company-item");
+        var checkboxes = document.querySelectorAll(".company-checkbox");
+        var selectAllBtn = document.getElementById("select-all-companies");
+        var deselectAllBtn = document.getElementById("deselect-all-companies");
+        var countDisplay = document.querySelector("#enabled-count + strong");
 
-    // Update enabled count.
-    function updateCount() {
-        var count = document.querySelectorAll(".company-checkbox:checked").length;
-        if (countDisplay) {
-            countDisplay.textContent = count;
+        if (!searchInput) {
+            console.error("SM_ESTRATOOS: company-search input not found");
+            return;
         }
-    }
 
-    // Search filter - filter companies as user types.
-    if (searchInput) {
+        console.log("SM_ESTRATOOS: Company search initialized, found " + companyItems.length + " items");
+
+        function updateCount() {
+            var count = document.querySelectorAll(".company-checkbox:checked").length;
+            if (countDisplay) {
+                countDisplay.textContent = count;
+            }
+        }
+
         searchInput.addEventListener("input", function() {
             var filter = this.value.toLowerCase();
-
             companyItems.forEach(function(item) {
                 var name = item.getAttribute("data-name") || "";
-                if (filter === "" || name.indexOf(filter) !== -1) {
-                    item.style.display = "";
-                } else {
-                    item.style.display = "none";
-                }
+                item.style.display = (filter === "" || name.indexOf(filter) !== -1) ? "" : "none";
             });
         });
-    }
 
-    // Select all visible companies.
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener("click", function() {
-            companyItems.forEach(function(item) {
-                if (item.style.display !== "none") {
-                    var checkbox = item.querySelector(".company-checkbox");
-                    if (checkbox) {
-                        checkbox.checked = true;
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener("click", function() {
+                companyItems.forEach(function(item) {
+                    if (item.style.display !== "none") {
+                        var cb = item.querySelector(".company-checkbox");
+                        if (cb) cb.checked = true;
                     }
-                }
+                });
+                updateCount();
             });
-            updateCount();
-        });
-    }
+        }
 
-    // Deselect all visible companies.
-    if (deselectAllBtn) {
-        deselectAllBtn.addEventListener("click", function() {
-            companyItems.forEach(function(item) {
-                if (item.style.display !== "none") {
-                    var checkbox = item.querySelector(".company-checkbox");
-                    if (checkbox) {
-                        checkbox.checked = false;
+        if (deselectAllBtn) {
+            deselectAllBtn.addEventListener("click", function() {
+                companyItems.forEach(function(item) {
+                    if (item.style.display !== "none") {
+                        var cb = item.querySelector(".company-checkbox");
+                        if (cb) cb.checked = false;
                     }
-                }
+                });
+                updateCount();
             });
-            updateCount();
+        }
+
+        checkboxes.forEach(function(cb) {
+            cb.addEventListener("change", updateCount);
         });
     }
 
-    // Update count when any checkbox changes.
-    checkboxes.forEach(function(checkbox) {
-        checkbox.addEventListener("change", updateCount);
-    });
-});
+    // Handle both cases: DOM already ready or still loading
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+    } else {
+        init();
+    }
+})();
 </script>
 ';
 
