@@ -66,9 +66,6 @@ $companies = \local_sm_estratoos_plugin\util::get_companies_with_access_status()
 $enabledcount = count(array_filter($companies, function($c) { return $c->enabled; }));
 $totalcount = count($companies);
 
-// Load AMD module for JavaScript functionality.
-$PAGE->requires->js_call_amd('local_sm_estratoos_plugin/companyaccess', 'init');
-
 echo $OUTPUT->header();
 
 echo $OUTPUT->heading(get_string('managecompanyaccess', 'local_sm_estratoos_plugin'));
@@ -182,5 +179,78 @@ echo html_writer::link(
 echo html_writer::end_div();
 
 echo html_writer::end_tag('form');
+
+// Inline JavaScript for search functionality (more reliable than AMD modules).
+echo '
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var searchInput = document.getElementById("company-search");
+    var companyItems = document.querySelectorAll(".company-item");
+    var checkboxes = document.querySelectorAll(".company-checkbox");
+    var selectAllBtn = document.getElementById("select-all-companies");
+    var deselectAllBtn = document.getElementById("deselect-all-companies");
+    var countDisplay = document.querySelector("#enabled-count + strong");
+
+    // Update enabled count.
+    function updateCount() {
+        var count = document.querySelectorAll(".company-checkbox:checked").length;
+        if (countDisplay) {
+            countDisplay.textContent = count;
+        }
+    }
+
+    // Search filter - filter companies as user types.
+    if (searchInput) {
+        searchInput.addEventListener("input", function() {
+            var filter = this.value.toLowerCase();
+
+            companyItems.forEach(function(item) {
+                var name = item.getAttribute("data-name") || "";
+                if (filter === "" || name.indexOf(filter) !== -1) {
+                    item.style.display = "";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        });
+    }
+
+    // Select all visible companies.
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener("click", function() {
+            companyItems.forEach(function(item) {
+                if (item.style.display !== "none") {
+                    var checkbox = item.querySelector(".company-checkbox");
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                }
+            });
+            updateCount();
+        });
+    }
+
+    // Deselect all visible companies.
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener("click", function() {
+            companyItems.forEach(function(item) {
+                if (item.style.display !== "none") {
+                    var checkbox = item.querySelector(".company-checkbox");
+                    if (checkbox) {
+                        checkbox.checked = false;
+                    }
+                }
+            });
+            updateCount();
+        });
+    }
+
+    // Update count when any checkbox changes.
+    checkboxes.forEach(function(checkbox) {
+        checkbox.addEventListener("change", updateCount);
+    });
+});
+</script>
+';
 
 echo $OUTPUT->footer();

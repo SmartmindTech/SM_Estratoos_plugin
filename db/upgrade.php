@@ -835,5 +835,50 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011909, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.10: Fixed company search (inline JS), assign companymanager to existing IOMAD managers.
+    if ($oldversion < 2025011910) {
+        // Assign companymanager role at system level to all existing IOMAD managers
+        // who don't already have a system-level admin/manager role.
+        $dbman = $DB->get_manager();
+
+        // Check if IOMAD tables exist.
+        if ($dbman->table_exists('company_users') && $dbman->table_exists('company')) {
+            // Get companymanager role (or fallback to manager).
+            $companymanagerrole = $DB->get_record('role', ['shortname' => 'companymanager']);
+            if (!$companymanagerrole) {
+                $companymanagerrole = $DB->get_record('role', ['shortname' => 'manager']);
+            }
+
+            if ($companymanagerrole) {
+                $systemcontext = context_system::instance();
+
+                // Find all IOMAD company managers (managertype > 0).
+                $sql = "SELECT DISTINCT cu.userid
+                        FROM {company_users} cu
+                        WHERE cu.managertype > 0";
+                $iomadmanagers = $DB->get_records_sql($sql);
+
+                foreach ($iomadmanagers as $manager) {
+                    // Check if user already has this role at system level.
+                    $hasrole = $DB->record_exists('role_assignments', [
+                        'roleid' => $companymanagerrole->id,
+                        'contextid' => $systemcontext->id,
+                        'userid' => $manager->userid,
+                    ]);
+
+                    if (!$hasrole) {
+                        // Assign the role.
+                        role_assign($companymanagerrole->id, $manager->userid, $systemcontext->id);
+                    }
+                }
+            }
+        }
+
+        // Purge caches.
+        purge_all_caches();
+
+        upgrade_plugin_savepoint(true, 2025011910, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
