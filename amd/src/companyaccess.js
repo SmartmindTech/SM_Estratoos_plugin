@@ -36,21 +36,42 @@ define(['jquery'], function($) {
     };
 
     /**
+     * Filter companies based on search term.
+     * @param {string} filter - The search term (lowercase).
+     */
+    var filterCompanies = function(filter) {
+        $('.company-item').each(function() {
+            // Use attr() instead of data() for more reliable attribute reading.
+            var name = $(this).attr('data-name');
+            if (!name) {
+                name = '';
+            }
+            if (filter === '' || name.indexOf(filter) !== -1) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    };
+
+    /**
      * Initialize the module.
      */
     var init = function() {
-        // Search filter - filter companies as user types.
-        $('#company-search').on('keyup', function() {
-            var filter = $(this).val().toLowerCase();
+        var $searchInput = $('#company-search');
+        var $companyItems = $('.company-item');
 
-            $('.company-item').each(function() {
-                var name = $(this).data('name');
-                if (name && name.indexOf(filter) !== -1) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
+        // Debug: Log initialization.
+        if (window.console && window.console.log) {
+            window.console.log('SM_ESTRATOOS: companyaccess module initialized');
+            window.console.log('SM_ESTRATOOS: Found ' + $companyItems.length + ' company items');
+            window.console.log('SM_ESTRATOOS: Search input found: ' + ($searchInput.length > 0));
+        }
+
+        // Search filter - use both 'input' and 'keyup' for maximum compatibility.
+        $searchInput.on('input keyup', function() {
+            var filter = $(this).val().toLowerCase().trim();
+            filterCompanies(filter);
         });
 
         // Select all visible companies.

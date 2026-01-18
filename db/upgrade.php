@@ -826,5 +826,14 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011908, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.9: Fix company search bar, add lazy role assignment for IOMAD managers.
+    if ($oldversion < 2025011909) {
+        // Purge all caches to ensure the updated AMD module is loaded.
+        // The main fix is in the AMD module (companyaccess.js) and util.php.
+        purge_all_caches();
+
+        upgrade_plugin_savepoint(true, 2025011909, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

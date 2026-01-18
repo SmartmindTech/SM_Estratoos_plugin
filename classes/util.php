@@ -289,6 +289,9 @@ class util {
      * For company managers, also checks if their company has plugin access enabled.
      * Also grants access to users with roles containing 'admin' or 'manager' in the shortname.
      *
+     * LAZY ROLE ASSIGNMENT: If a user qualifies via IOMAD managertype but doesn't have
+     * a system-level role yet, this function will automatically assign the companymanager role.
+     *
      * @param int|null $userid User ID (defaults to current user).
      * @return bool True if user can administer tokens.
      */
@@ -332,7 +335,8 @@ class util {
                 // Check each company the user belongs to.
                 foreach ($usercompanies as $uc) {
                     // User qualifies if: (managertype > 0 OR has admin/manager role).
-                    $qualifies = ($uc->managertype > 0 || $hasadminrole);
+                    $qualifiesviaiomad = ($uc->managertype > 0);
+                    $qualifies = ($qualifiesviaiomad || $hasadminrole);
                     $enabled = self::is_company_enabled($uc->companyid);
 
                     if (!empty($CFG->debug) && $CFG->debug >= DEBUG_DEVELOPER) {
@@ -342,6 +346,11 @@ class util {
                     }
 
                     if ($qualifies && $enabled) {
+                        // LAZY ROLE ASSIGNMENT: If user qualifies via IOMAD managertype but
+                        // doesn't have a system-level role yet, assign the companymanager role.
+                        if ($qualifiesviaiomad && !$hasadminrole) {
+                            self::ensure_system_role_assigned($userid);
+                        }
                         return true;
                     }
                 }
@@ -357,6 +366,53 @@ class util {
         } else {
             // NON-IOMAD MODE: Check if user has admin/manager role.
             return self::has_admin_or_manager_role($userid);
+        }
+    }
+
+    /**
+     * Ensure the user has a companymanager (or manager) role at system level.
+     * This is a lazy assignment for IOMAD company managers who qualified via managertype
+     * but don't have a system-level role yet.
+     *
+     * @param int $userid User ID.
+     */
+    private static function ensure_system_role_assigned(int $userid): void {
+        global $DB, $CFG;
+
+        try {
+            // Get companymanager role, fallback to manager.
+            $systemrole = $DB->get_record('role', ['shortname' => 'companymanager']);
+            if (!$systemrole) {
+                $systemrole = $DB->get_record('role', ['shortname' => 'manager']);
+            }
+
+            if (!$systemrole) {
+                if (!empty($CFG->debug) && $CFG->debug >= DEBUG_DEVELOPER) {
+                    debugging("SM_ESTRATOOS DEBUG: Cannot find companymanager or manager role for lazy assignment", DEBUG_DEVELOPER);
+                }
+                return;
+            }
+
+            // Check if user already has this role at system level.
+            $systemcontext = \context_system::instance();
+            $hasrole = $DB->record_exists('role_assignments', [
+                'roleid' => $systemrole->id,
+                'contextid' => $systemcontext->id,
+                'userid' => $userid,
+            ]);
+
+            if (!$hasrole) {
+                // Assign the system role.
+                role_assign($systemrole->id, $userid, $systemcontext->id);
+
+                if (!empty($CFG->debug) && $CFG->debug >= DEBUG_DEVELOPER) {
+                    debugging("SM_ESTRATOOS DEBUG: Lazy-assigned user $userid to system role {$systemrole->shortname}", DEBUG_DEVELOPER);
+                }
+            }
+        } catch (\Exception $e) {
+            if (!empty($CFG->debug) && $CFG->debug >= DEBUG_DEVELOPER) {
+                debugging("SM_ESTRATOOS DEBUG: Failed lazy role assignment for user $userid: " . $e->getMessage(), DEBUG_DEVELOPER);
+            }
         }
     }
 

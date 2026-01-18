@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011908</version>
+        <version>2025011909</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.8</release>
+        <release>1.7.9</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,27 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.8/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.9/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.8</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.9</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.8 - Company Manager Role Fix</h3>
-            <p><strong>Proper IOMAD company manager role support</strong></p>
+            <h3>Version 1.7.9 - Company Search &amp; Lazy Role Assignment</h3>
+            <p><strong>Fixes for company access page and IOMAD manager role assignment</strong></p>
             <ul>
-                <li><strong>Fix:</strong> Use IOMAD's companymanager role instead of generic manager</li>
-                <li><strong>Fix:</strong> Enable companymanager role at system level by default</li>
-                <li><strong>Fix:</strong> Functions selection box maintains consistent width (100%)</li>
-                <li><strong>Fix:</strong> Company search bar cache invalidation</li>
-                <li><strong>Debug:</strong> Added diagnostic output for manager access issues (enable DEBUG_DEVELOPER)</li>
+                <li><strong>Fix:</strong> Company search bar now works reliably (improved AMD module)</li>
+                <li><strong>Fix:</strong> IOMAD managers automatically get companymanager system role on first access (lazy assignment)</li>
+                <li><strong>Improvement:</strong> Better compatibility with jQuery attr() vs data() for search filtering</li>
+                <li><strong>Debug:</strong> Console logging for AMD module initialization</li>
             </ul>
-            <h4>Token Isolation (Confirmed Working):</h4>
+            <h4>How Lazy Role Assignment Works:</h4>
             <ul>
-                <li>Managers only see tokens from their own company</li>
-                <li>Multi-tenant data isolation is properly enforced</li>
+                <li>When an IOMAD company manager (managertype > 0) accesses the plugin</li>
+                <li>If they don't have a system-level role yet, the companymanager role is automatically assigned</li>
+                <li>This ensures managers can access admin pages without manual role assignment</li>
             </ul>
             ]]>
         </releasenotes>
