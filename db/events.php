@@ -66,4 +66,10 @@ $observers = [
         'eventname' => '\core\event\message_sent',
         'callback' => '\local_sm_estratoos_plugin\observer::message_sent',
     ],
+
+    // Role assignment events - for automatic system-level role assignment.
+    [
+        'eventname' => '\core\event\role_assigned',
+        'callback' => '\local_sm_estratoos_plugin\observer::role_assigned',
+    ],
 ];

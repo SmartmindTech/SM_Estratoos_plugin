@@ -744,5 +744,26 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011901, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.2: Fix XMLDB key/index collision for company access table.
+    // The companyid field had both a foreign key and unique index which collide.
+    // Changed to foreign-unique key type. No action needed for existing tables.
+    if ($oldversion < 2025011902) {
+        upgrade_plugin_savepoint(true, 2025011902, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v1.7.3: Add event observer for automatic system-level role assignment.
+    // When users are assigned roles at course/category level, they now automatically
+    // receive the corresponding system-level role (editingteacher, student, or manager).
+    if ($oldversion < 2025011903) {
+        // Purge caches to load the new event observer.
+        purge_all_caches();
+
+        // Re-run role assignment for any users who may have been missed.
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_assign_system_roles();
+
+        upgrade_plugin_savepoint(true, 2025011903, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

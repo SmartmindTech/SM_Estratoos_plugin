@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011902</version>
+        <version>2025011903</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.2</release>
+        <release>1.7.3</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,24 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.2/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.3/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.2</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.3</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.2 - XMLDB Fix</h3>
-            <p><strong>Fix for database table creation during upgrade</strong></p>
+            <h3>Version 1.7.3 - Automatic Role Assignment</h3>
+            <p><strong>System-level roles now automatically assigned for new users</strong></p>
             <ul>
-                <li><strong>Fix:</strong> XMLDB key/index collision for company access table</li>
-                <li>Changed companyid_fk from foreign to foreign-unique to combine foreign key and unique constraint</li>
+                <li><strong>New:</strong> Event observer for role_assigned events</li>
+                <li><strong>New:</strong> Users assigned roles after plugin install now get system roles automatically</li>
+                <li>Teacher-like roles → editingteacher system role</li>
+                <li>Student-like roles → student system role</li>
+                <li>Manager-like roles → manager system role</li>
+                <li>IOMAD: Only assigns if company is enabled</li>
             </ul>
-            <h4>Included from v1.7.1:</h4>
+            <h4>Included from v1.7.x:</h4>
             <ul>
                 <li>Grant webservice/rest:use and moodle/site:sendmessage to admin/manager roles</li>
-                <li>Auto-assign users to system-level roles based on course/category roles</li>
                 <li>Multilingual role detection (English, Spanish, Portuguese)</li>
                 <li>Company access control for IOMAD multi-tenant</li>
                 <li>Token suspension mechanism with status column</li>
