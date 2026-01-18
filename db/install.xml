@@ -15,6 +15,7 @@
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="notes" TYPE="text" NOTNULL="false" COMMENT="Admin notes about this token"/>
+        <FIELD NAME="active" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="1=active, 0=suspended (company access disabled)"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -25,6 +26,7 @@
       <INDEXES>
         <INDEX NAME="companyid_idx" UNIQUE="false" FIELDS="companyid"/>
         <INDEX NAME="batchid_idx" UNIQUE="false" FIELDS="batchid"/>
+        <INDEX NAME="active_idx" UNIQUE="false" FIELDS="active"/>
       </INDEXES>
     </TABLE>
 
@@ -77,6 +79,26 @@
         <INDEX NAME="batchid_idx" UNIQUE="false" FIELDS="batchid"/>
         <INDEX NAME="companyid_idx" UNIQUE="false" FIELDS="companyid"/>
         <INDEX NAME="timedeleted_idx" UNIQUE="false" FIELDS="timedeleted"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_sm_estratoos_plugin_access" COMMENT="Companies with access to SmartMind Estratoos Plugin">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="companyid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Reference to company.id"/>
+        <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="1=enabled, 0=disabled"/>
+        <FIELD NAME="enabledby" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="User who enabled/modified access"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="companyid_fk" TYPE="foreign" FIELDS="companyid" REFTABLE="company" REFFIELDS="id"/>
+        <KEY NAME="enabledby_fk" TYPE="foreign" FIELDS="enabledby" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="companyid_unique" UNIQUE="true" FIELDS="companyid"/>
+        <INDEX NAME="enabled_idx" UNIQUE="false" FIELDS="enabled"/>
       </INDEXES>
     </TABLE>
   </TABLES>

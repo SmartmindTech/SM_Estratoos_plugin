@@ -67,13 +67,13 @@ class service_functions_form extends \moodleform {
 
             // Search filter (JavaScript will handle this).
             $mform->addElement('text', 'search', get_string('search'),
-                ['id' => 'function-search', 'placeholder' => get_string('searchfunctions', 'local_sm_estratoos_plugin')]);
+                ['placeholder' => get_string('searchfunctions', 'local_sm_estratoos_plugin')]);
             $mform->setType('search', PARAM_TEXT);
 
             // Function selection.
             $select = $mform->addElement('select', 'fids',
                 get_string('functions', 'webservice'), $availablefunctions,
-                ['id' => 'function-select', 'size' => 15]);
+                ['size' => 15]);
             $select->setMultiple(true);
             $mform->addRule('fids', get_string('required'), 'required', null, 'client');
 

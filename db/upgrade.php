@@ -658,5 +658,91 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011805, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.0: Add company access control feature.
+    // Super administrators can now control which IOMAD companies have access to the plugin.
+    // Company managers will only see the plugin if their company is enabled.
+    // Also adds 'active' field to tokens table for suspending tokens when company is disabled.
+    if ($oldversion < 2025011900) {
+        // 1. Create the company access control table.
+        $table = new xmldb_table('local_sm_estratoos_plugin_access');
+
+        // Adding fields.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('companyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('enabledby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+        // Adding keys.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('companyid_fk', XMLDB_KEY_FOREIGN, ['companyid'], 'company', ['id']);
+        $table->add_key('enabledby_fk', XMLDB_KEY_FOREIGN, ['enabledby'], 'user', ['id']);
+
+        // Adding indexes.
+        $table->add_index('companyid_unique', XMLDB_INDEX_UNIQUE, ['companyid']);
+        $table->add_index('enabled_idx', XMLDB_INDEX_NOTUNIQUE, ['enabled']);
+
+        // Create the table if it doesn't exist.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // 2. Add 'active' field to the main tokens table.
+        // This allows suspending tokens when a company is disabled without deleting them.
+        $tokentable = new xmldb_table('local_sm_estratoos_plugin');
+        $activefield = new xmldb_field('active', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'notes');
+
+        if (!$dbman->field_exists($tokentable, $activefield)) {
+            $dbman->add_field($tokentable, $activefield);
+        }
+
+        // Add index on active field for performance.
+        $activeindex = new xmldb_index('active_idx', XMLDB_INDEX_NOTUNIQUE, ['active']);
+        if (!$dbman->index_exists($tokentable, $activeindex)) {
+            $dbman->add_index($tokentable, $activeindex);
+        }
+
+        // 3. BACKWARD COMPATIBILITY: Enable all existing companies by default.
+        // This ensures existing installations continue to work as before.
+        // New companies (created after this upgrade) will NOT be auto-enabled.
+        // All existing tokens remain active (default value = 1).
+        if ($dbman->table_exists('company')) {
+            $companies = $DB->get_records('company', [], '', 'id');
+            $adminid = get_admin()->id;
+            $time = time();
+
+            foreach ($companies as $company) {
+                if (!$DB->record_exists('local_sm_estratoos_plugin_access', ['companyid' => $company->id])) {
+                    $DB->insert_record('local_sm_estratoos_plugin_access', [
+                        'companyid' => $company->id,
+                        'enabled' => 1,
+                        'enabledby' => $adminid,
+                        'timecreated' => $time,
+                        'timemodified' => $time,
+                    ]);
+                }
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2025011900, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v1.7.1: Add system-level role assignment and admin/manager role capabilities.
+    // This grants capabilities to admin/manager roles and assigns users to system-level
+    // roles based on their course/category role names.
+    if ($oldversion < 2025011901) {
+        // Include install.php to use the configuration functions.
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run webservice configuration to grant capabilities to admin/manager roles.
+        xmldb_local_sm_estratoos_plugin_configure_webservices();
+
+        // Assign users to system-level roles based on their course/category roles.
+        xmldb_local_sm_estratoos_plugin_assign_system_roles();
+
+        upgrade_plugin_savepoint(true, 2025011901, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

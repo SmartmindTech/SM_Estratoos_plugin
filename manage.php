@@ -204,6 +204,7 @@ if (empty($tokens)) {
         get_string('user'),
         get_string('company', 'local_sm_estratoos_plugin'),
         get_string('service', 'local_sm_estratoos_plugin'),
+        get_string('status'),
         get_string('restrictions', 'local_sm_estratoos_plugin'),
         get_string('validuntil', 'local_sm_estratoos_plugin'),
         get_string('lastaccess'),
@@ -212,6 +213,16 @@ if (empty($tokens)) {
     $table->attributes['class'] = 'table table-striped table-hover';
 
     foreach ($tokens as $token) {
+        // Status badge - check if token is active or suspended.
+        $isactive = isset($token->active) ? (bool)$token->active : true;
+        if ($isactive) {
+            $statusbadge = html_writer::tag('span', get_string('tokenstatusactive', 'local_sm_estratoos_plugin'),
+                ['class' => 'badge badge-success']);
+        } else {
+            $statusbadge = html_writer::tag('span', get_string('tokenstatussuspended', 'local_sm_estratoos_plugin'),
+                ['class' => 'badge badge-danger']);
+        }
+
         // Restrictions badges.
         $restrictions = '';
         if ($token->restricttocompany) {
@@ -261,6 +272,7 @@ if (empty($tokens)) {
                 html_writer::tag('small', $token->email, ['class' => 'text-muted']),
             $token->companyname,
             $token->servicename,
+            $statusbadge,
             $restrictions ?: '-',
             $validuntil,
             $lastaccess,

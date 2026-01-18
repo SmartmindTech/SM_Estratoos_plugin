@@ -376,6 +376,39 @@ class company_token_manager {
     }
 
     /**
+     * Check if a token is active (not suspended).
+     *
+     * This method checks the 'active' field in the local_sm_estratoos_plugin table.
+     * Tokens are suspended when their company access is disabled.
+     *
+     * @param string $token The token string.
+     * @return bool True if token is active, false if suspended or not found.
+     */
+    public static function is_token_active(string $token): bool {
+        global $DB;
+
+        try {
+            $sql = "SELECT lit.active
+                    FROM {local_sm_estratoos_plugin} lit
+                    JOIN {external_tokens} et ON et.id = lit.tokenid
+                    WHERE et.token = :token";
+
+            $active = $DB->get_field_sql($sql, ['token' => $token]);
+
+            // If token not found in our table, it's not a plugin token - consider it active.
+            if ($active === false) {
+                return true;
+            }
+
+            return (bool)$active;
+        } catch (\dml_exception $e) {
+            // Database error - log and consider active (fail open for non-plugin tokens).
+            debugging('is_token_active: Database error - ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return true;
+        }
+    }
+
+    /**
      * Revoke a token by ID.
      *
      * @param int $tokenid The local_sm_estratoos_plugin ID.

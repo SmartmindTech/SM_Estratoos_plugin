@@ -153,6 +153,8 @@ $string['confirmrevoke'] = 'Tem certeza de que deseja revogar este token? Esta a
 $string['confirmrevokeselected'] = 'Tem certeza de que deseja revogar os tokens selecionados? Esta ação não pode ser desfeita.';
 $string['tokenrevoked'] = 'Token revogado com sucesso';
 $string['tokensrevoked'] = '{$a} tokens revogados com sucesso';
+$string['tokenstatusactive'] = 'Ativo';
+$string['tokenstatussuspended'] = 'Suspenso';
 
 // Mensagens de erro.
 $string['accessdenied'] = 'Acesso negado. Apenas administradores do site podem acessar esta página.';
@@ -165,6 +167,7 @@ $string['forumnotincompany'] = 'Este fórum não pertence à sua empresa';
 $string['discussionnotincompany'] = 'Esta discussão não pertence à sua empresa';
 $string['invalidtoken'] = 'Token inválido';
 $string['tokennotfound'] = 'Token não encontrado';
+$string['tokensuspended'] = 'Este token foi suspenso porque o acesso da empresa foi desabilitado. Entre em contato com o administrador.';
 $string['invalidiprestriction'] = 'Formato de restrição de IP inválido';
 $string['csverror'] = 'Erro ao processar arquivo CSV: {$a}';
 $string['nousersfound'] = 'Nenhum usuário encontrado que corresponda aos critérios';
@@ -324,3 +327,18 @@ $string['apifunctiontag_desc'] = 'Esta função é fornecida pelo plugin SmartMi
 // Erros de funções com contexto de categoria.
 $string['usernotincompany'] = 'O usuário especificado não pertence à empresa do token.';
 $string['categorynotincompany'] = 'A categoria especificada não está na árvore de categorias da empresa.';
+
+// Controle de acesso de empresas.
+$string['managecompanyaccess'] = 'Gerenciar Acesso de Empresas';
+$string['managecompanyaccessdesc'] = 'Controlar quais empresas IOMAD podem acessar o SmartMind Estratoos Plugin.';
+$string['companiesaccessupdated'] = 'Configurações de acesso das empresas atualizadas com sucesso.';
+$string['searchcompanies'] = 'Pesquisar empresas...';
+$string['deselectall'] = 'Desmarcar Todos';
+$string['companiesenabled'] = 'empresas habilitadas';
+$string['nocompanies'] = 'Nenhuma empresa encontrada.';
+$string['noiomad'] = 'Este recurso está disponível apenas em instalações multi-tenant IOMAD.';
+$string['backtodashboard'] = 'Voltar ao Painel';
+$string['tokensuspended'] = 'Token suspenso';
+$string['tokenactive'] = 'Token ativo';
+$string['companydisabled'] = 'Empresa desabilitada - tokens suspensos';
+$string['companyenabled'] = 'Empresa habilitada - tokens reativados';

@@ -187,6 +187,17 @@ if ($issiteadmin) {
     ];
 }
 
+// Card 5: Manage Company Access (only for site admins in IOMAD mode).
+if ($issiteadmin && $isiomad) {
+    $cards[] = [
+        'title' => get_string('managecompanyaccess', 'local_sm_estratoos_plugin'),
+        'description' => get_string('managecompanyaccessdesc', 'local_sm_estratoos_plugin'),
+        'url' => new moodle_url('/local/sm_estratoos_plugin/company_access.php'),
+        'icon' => 'i/permissions',
+        'class' => 'bg-dark text-white',
+    ];
+}
+
 // Render cards.
 echo html_writer::start_div('row mt-4 justify-content-center');
 foreach ($cards as $card) {

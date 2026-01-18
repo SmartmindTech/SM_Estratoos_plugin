@@ -153,6 +153,8 @@ $string['confirmrevoke'] = '¿Está seguro de que desea revocar este token? Esta
 $string['confirmrevokeselected'] = '¿Está seguro de que desea revocar los tokens seleccionados? Esta acción no se puede deshacer.';
 $string['tokenrevoked'] = 'Token revocado exitosamente';
 $string['tokensrevoked'] = '{$a} tokens revocados exitosamente';
+$string['tokenstatusactive'] = 'Activo';
+$string['tokenstatussuspended'] = 'Suspendido';
 
 // Mensajes de error.
 $string['accessdenied'] = 'Acceso denegado. Solo los administradores del sitio pueden acceder a esta página.';
@@ -165,6 +167,7 @@ $string['forumnotincompany'] = 'Este foro no pertenece a su empresa';
 $string['discussionnotincompany'] = 'Esta discusión no pertenece a su empresa';
 $string['invalidtoken'] = 'Token inválido';
 $string['tokennotfound'] = 'Token no encontrado';
+$string['tokensuspended'] = 'Este token ha sido suspendido porque el acceso de la empresa está deshabilitado. Contacte a su administrador.';
 $string['invalidiprestriction'] = 'Formato de restricción de IP inválido';
 $string['csverror'] = 'Error procesando archivo CSV: {$a}';
 $string['nousersfound'] = 'No se encontraron usuarios que coincidan con los criterios';
@@ -332,3 +335,18 @@ $string['healthcheck_maintenance'] = 'Moodle está actualmente en modo de manten
 $string['healthcheck_invalid_token'] = 'Tu sesión ha expirado o el token no es válido. Por favor, reconecta tu cuenta de Moodle.';
 $string['healthcheck_user_suspended'] = 'Tu cuenta de usuario ha sido suspendida. Por favor, contacta con tu administrador.';
 $string['healthcheck_internal_error'] = 'Ha ocurrido un error inesperado. Por favor, inténtelo más tarde.';
+
+// Control de acceso de empresas.
+$string['managecompanyaccess'] = 'Gestionar Acceso de Empresas';
+$string['managecompanyaccessdesc'] = 'Controlar qué empresas IOMAD pueden acceder al SmartMind Estratoos Plugin.';
+$string['companiesaccessupdated'] = 'Configuraciones de acceso de empresas actualizadas exitosamente.';
+$string['searchcompanies'] = 'Buscar empresas...';
+$string['deselectall'] = 'Deseleccionar Todo';
+$string['companiesenabled'] = 'empresas habilitadas';
+$string['nocompanies'] = 'No se encontraron empresas.';
+$string['noiomad'] = 'Esta función solo está disponible en instalaciones multi-tenant IOMAD.';
+$string['backtodashboard'] = 'Volver al Panel';
+$string['tokensuspended'] = 'Token suspendido';
+$string['tokenactive'] = 'Token activo';
+$string['companydisabled'] = 'Empresa deshabilitada - tokens suspendidos';
+$string['companyenabled'] = 'Empresa habilitada - tokens reactivados';

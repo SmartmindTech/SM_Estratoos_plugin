@@ -46,6 +46,16 @@ function local_sm_estratoos_plugin_pre_processor($functionname, $params) {
     // Store params for use in post_processor.
     global $local_sm_estratoos_plugin_params;
     $local_sm_estratoos_plugin_params = $params;
+
+    // Check if the token is suspended (company access disabled).
+    // This blocks API calls for suspended tokens BEFORE execution.
+    $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+    if ($token) {
+        if (!\local_sm_estratoos_plugin\company_token_manager::is_token_active($token)) {
+            throw new \moodle_exception('tokensuspended', 'local_sm_estratoos_plugin');
+        }
+    }
+
     return $params;
 }
 

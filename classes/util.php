@@ -230,7 +230,61 @@ class util {
     }
 
     /**
+     * Check if user has a role containing admin/manager keywords in the shortname.
+     *
+     * This is used to grant plugin access to users with administrative roles
+     * even if they are not IOMAD company managers.
+     *
+     * Supported keywords (multilingual):
+     * - English: admin, administrator, manager
+     * - Spanish: administrador, gerente, gestor
+     * - Portuguese: administrador, gerente, gestor
+     *
+     * @param int|null $userid User ID (defaults to current user).
+     * @return bool True if user has such a role.
+     */
+    public static function has_admin_or_manager_role(int $userid = null): bool {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        try {
+            // Check for roles at system level or any category context.
+            // Include multilingual keywords for admin/manager roles.
+            $sql = "SELECT DISTINCT r.id, r.shortname
+                    FROM {role_assignments} ra
+                    JOIN {role} r ON r.id = ra.roleid
+                    JOIN {context} ctx ON ctx.id = ra.contextid
+                    WHERE ra.userid = :userid
+                      AND ctx.contextlevel IN (:systemlevel, :categorylevel)
+                      AND (
+                          -- English keywords
+                          LOWER(r.shortname) LIKE '%admin%'
+                          OR LOWER(r.shortname) LIKE '%manager%'
+                          -- Spanish/Portuguese keywords
+                          OR LOWER(r.shortname) LIKE '%administrador%'
+                          OR LOWER(r.shortname) LIKE '%gerente%'
+                          OR LOWER(r.shortname) LIKE '%gestor%'
+                      )";
+
+            $roles = $DB->get_records_sql($sql, [
+                'userid' => $userid,
+                'systemlevel' => CONTEXT_SYSTEM,
+                'categorylevel' => CONTEXT_COURSECAT,
+            ]);
+
+            return !empty($roles);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * Check if user is a company admin (IOMAD manager) or site admin.
+     * For company managers, also checks if their company has plugin access enabled.
+     * Also grants access to users with roles containing 'admin' or 'manager' in the shortname.
      *
      * @param int|null $userid User ID (defaults to current user).
      * @return bool True if user can administer tokens.
@@ -248,19 +302,41 @@ class util {
         }
 
         // Check if IOMAD is installed.
-        if (!self::is_iomad_installed()) {
-            return false;
-        }
+        if (self::is_iomad_installed()) {
+            // IOMAD MODE: Check (managertype > 0 OR admin/manager role) AND company enabled.
+            try {
+                // Get user's companies with their manager status.
+                $sql = "SELECT cu.id, cu.companyid, cu.managertype
+                        FROM {company_users} cu
+                        WHERE cu.userid = :userid";
+                $usercompanies = $DB->get_records_sql($sql, ['userid' => $userid]);
 
-        // Check if user is a company manager (managertype > 0).
-        try {
-            $sql = "SELECT cu.id, cu.managertype
-                    FROM {company_users} cu
-                    WHERE cu.userid = :userid AND cu.managertype > 0";
-            $result = $DB->get_record_sql($sql, ['userid' => $userid]);
-            return !empty($result);
-        } catch (\Exception $e) {
-            return false;
+                if (empty($usercompanies)) {
+                    return false;
+                }
+
+                // Check if user has admin/manager role (cache this to avoid multiple queries).
+                $hasadminrole = self::has_admin_or_manager_role($userid);
+
+                // Check each company the user belongs to.
+                foreach ($usercompanies as $uc) {
+                    // User qualifies if: (managertype > 0 OR has admin/manager role).
+                    if ($uc->managertype > 0 || $hasadminrole) {
+                        // AND company must be enabled.
+                        if (self::is_company_enabled($uc->companyid)) {
+                            return true;
+                        }
+                    }
+                }
+
+                // User is in companies but none are enabled or user has no qualifying role.
+                return false;
+            } catch (\Exception $e) {
+                return false;
+            }
+        } else {
+            // NON-IOMAD MODE: Check if user has admin/manager role.
+            return self::has_admin_or_manager_role($userid);
         }
     }
 
@@ -481,5 +557,331 @@ class util {
         }
 
         $workbook->close();
+    }
+
+    // =========================================================================
+    // COMPANY ACCESS CONTROL METHODS
+    // =========================================================================
+
+    /**
+     * Get all enabled company IDs for the plugin.
+     *
+     * @return array Array of company IDs that are enabled.
+     */
+    public static function get_enabled_companies(): array {
+        global $DB;
+
+        if (!self::is_iomad_installed()) {
+            return [];
+        }
+
+        try {
+            return $DB->get_fieldset_select(
+                'local_sm_estratoos_plugin_access',
+                'companyid',
+                'enabled = ?',
+                [1]
+            );
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Check if a company is enabled to access the plugin.
+     *
+     * @param int $companyid Company ID.
+     * @return bool True if company is enabled.
+     */
+    public static function is_company_enabled(int $companyid): bool {
+        global $DB;
+
+        if (!self::is_iomad_installed()) {
+            return false;
+        }
+
+        try {
+            $record = $DB->get_record('local_sm_estratoos_plugin_access', [
+                'companyid' => $companyid,
+                'enabled' => 1,
+            ]);
+            return !empty($record);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Enable access for a company.
+     * Also reactivates all suspended tokens for this company.
+     *
+     * @param int $companyid Company ID.
+     * @param int|null $userid User ID who enabled the access.
+     * @return bool Success.
+     */
+    public static function enable_company_access(int $companyid, int $userid = null): bool {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        $time = time();
+
+        try {
+            $existing = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $companyid]);
+
+            if ($existing) {
+                $existing->enabled = 1;
+                $existing->enabledby = $userid;
+                $existing->timemodified = $time;
+                $DB->update_record('local_sm_estratoos_plugin_access', $existing);
+            } else {
+                $DB->insert_record('local_sm_estratoos_plugin_access', [
+                    'companyid' => $companyid,
+                    'enabled' => 1,
+                    'enabledby' => $userid,
+                    'timecreated' => $time,
+                    'timemodified' => $time,
+                ]);
+            }
+
+            // Reactivate all tokens for this company.
+            self::set_company_tokens_active($companyid, true, $time);
+
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Disable access for a company.
+     * Also suspends all tokens for this company (they will be reactivated when company is re-enabled).
+     *
+     * @param int $companyid Company ID.
+     * @param int|null $userid User ID who disabled the access.
+     * @return bool Success.
+     */
+    public static function disable_company_access(int $companyid, int $userid = null): bool {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        $time = time();
+
+        try {
+            $existing = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $companyid]);
+
+            if ($existing) {
+                $existing->enabled = 0;
+                $existing->enabledby = $userid;
+                $existing->timemodified = $time;
+                $DB->update_record('local_sm_estratoos_plugin_access', $existing);
+            } else {
+                // Insert a disabled record (company was never in our table).
+                $DB->insert_record('local_sm_estratoos_plugin_access', [
+                    'companyid' => $companyid,
+                    'enabled' => 0,
+                    'enabledby' => $userid,
+                    'timecreated' => $time,
+                    'timemodified' => $time,
+                ]);
+            }
+
+            // Suspend all tokens for this company.
+            self::set_company_tokens_active($companyid, false, $time);
+
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Set active status for all tokens of a company.
+     *
+     * @param int $companyid Company ID.
+     * @param bool $active True to activate, false to suspend.
+     * @param int|null $time Timestamp for timemodified.
+     */
+    private static function set_company_tokens_active(int $companyid, bool $active, int $time = null): void {
+        global $DB;
+
+        if ($time === null) {
+            $time = time();
+        }
+
+        // Update all tokens for this company.
+        // Only affects tokens with companyid > 0 (not admin tokens).
+        $DB->execute(
+            "UPDATE {local_sm_estratoos_plugin}
+             SET active = ?, timemodified = ?
+             WHERE companyid = ?",
+            [$active ? 1 : 0, $time, $companyid]
+        );
+    }
+
+    /**
+     * Bulk update company access.
+     * Enables the provided company IDs and disables all others.
+     * Also activates/suspends tokens accordingly.
+     *
+     * @param array $companyids Company IDs to enable.
+     * @param int|null $userid User ID who made the change.
+     */
+    public static function set_enabled_companies(array $companyids, int $userid = null): void {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        if (!self::is_iomad_installed()) {
+            return;
+        }
+
+        $time = time();
+        $enabledids = array_map('intval', $companyids);
+
+        // Get all companies.
+        $allcompanies = self::get_companies();
+
+        foreach ($allcompanies as $company) {
+            $shouldenable = in_array($company->id, $enabledids);
+            $existing = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $company->id]);
+            $wasEnabled = $existing && ($existing->enabled == 1);
+
+            if ($existing) {
+                // Update if state changed.
+                if ($wasEnabled !== $shouldenable) {
+                    $existing->enabled = $shouldenable ? 1 : 0;
+                    $existing->enabledby = $userid;
+                    $existing->timemodified = $time;
+                    $DB->update_record('local_sm_estratoos_plugin_access', $existing);
+
+                    // Update token status.
+                    self::set_company_tokens_active($company->id, $shouldenable, $time);
+                }
+            } else {
+                // Insert new record.
+                $DB->insert_record('local_sm_estratoos_plugin_access', [
+                    'companyid' => $company->id,
+                    'enabled' => $shouldenable ? 1 : 0,
+                    'enabledby' => $userid,
+                    'timecreated' => $time,
+                    'timemodified' => $time,
+                ]);
+
+                // If disabling a company that was never in the access table,
+                // suspend its tokens (they were active by default before this feature).
+                if (!$shouldenable) {
+                    self::set_company_tokens_active($company->id, false, $time);
+                }
+            }
+        }
+    }
+
+    /**
+     * Check if current user has access to the plugin.
+     * - Site admins always have access
+     * - Company managers only if their company is enabled
+     *
+     * @param int|null $userid User ID (defaults to current user).
+     * @return bool True if user can access the plugin.
+     */
+    public static function has_plugin_access(int $userid = null): bool {
+        global $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        // Site admins always have access.
+        if (is_siteadmin($userid)) {
+            return true;
+        }
+
+        // Check if IOMAD is installed.
+        if (!self::is_iomad_installed()) {
+            return false;
+        }
+
+        // Get companies the user manages (without filtering by enabled status yet).
+        $managedcompanies = self::get_user_managed_companies_raw($userid);
+
+        if (empty($managedcompanies)) {
+            return false;
+        }
+
+        // Check if at least one managed company is enabled.
+        foreach ($managedcompanies as $company) {
+            if (self::is_company_enabled($company->id)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get companies that the user manages (raw - without enabled filter).
+     * This is used internally by has_plugin_access().
+     *
+     * @param int|null $userid User ID (defaults to current user).
+     * @return array Array of company records.
+     */
+    private static function get_user_managed_companies_raw(int $userid = null): array {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        // Site admins can manage all companies.
+        if (is_siteadmin($userid)) {
+            return self::get_companies();
+        }
+
+        // Check if IOMAD is installed.
+        if (!self::is_iomad_installed()) {
+            return [];
+        }
+
+        // Get companies where user is a manager (no enabled filter).
+        try {
+            $sql = "SELECT c.id, c.name, c.shortname, c.category
+                    FROM {company} c
+                    JOIN {company_users} cu ON cu.companyid = c.id
+                    WHERE cu.userid = :userid AND cu.managertype > 0
+                    ORDER BY c.name";
+            return $DB->get_records_sql($sql, ['userid' => $userid]);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get all companies with their enabled status (for the admin page).
+     *
+     * @return array Array of companies with 'enabled' property.
+     */
+    public static function get_companies_with_access_status(): array {
+        global $DB;
+
+        if (!self::is_iomad_installed()) {
+            return [];
+        }
+
+        $companies = self::get_companies();
+        $enabledids = self::get_enabled_companies();
+
+        foreach ($companies as $company) {
+            $company->enabled = in_array($company->id, $enabledids);
+        }
+
+        return $companies;
     }
 }

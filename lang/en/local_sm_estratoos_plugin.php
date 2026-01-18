@@ -153,6 +153,8 @@ $string['confirmrevoke'] = 'Are you sure you want to revoke this token? This act
 $string['confirmrevokeselected'] = 'Are you sure you want to revoke the selected tokens? This action cannot be undone.';
 $string['tokenrevoked'] = 'Token revoked successfully';
 $string['tokensrevoked'] = '{$a} tokens revoked successfully';
+$string['tokenstatusactive'] = 'Active';
+$string['tokenstatussuspended'] = 'Suspended';
 
 // Error messages.
 $string['accessdenied'] = 'Access denied. Only site administrators can access this page.';
@@ -165,6 +167,7 @@ $string['forumnotincompany'] = 'This forum does not belong to your company';
 $string['discussionnotincompany'] = 'This discussion does not belong to your company';
 $string['invalidtoken'] = 'Invalid token';
 $string['tokennotfound'] = 'Token not found';
+$string['tokensuspended'] = 'This token has been suspended because the company access is disabled. Contact your administrator.';
 $string['invalidiprestriction'] = 'Invalid IP restriction format';
 $string['csverror'] = 'Error processing CSV file: {$a}';
 $string['nousersfound'] = 'No users found matching the criteria';
@@ -332,3 +335,19 @@ $string['healthcheck_maintenance'] = 'Moodle is currently in maintenance mode. P
 $string['healthcheck_invalid_token'] = 'Your session has expired or the token is invalid. Please reconnect your Moodle account.';
 $string['healthcheck_user_suspended'] = 'Your user account has been suspended. Please contact your administrator.';
 $string['healthcheck_internal_error'] = 'An unexpected error occurred. Please try again later.';
+
+// Company access control.
+$string['managecompanyaccess'] = 'Manage Company Access';
+$string['managecompanyaccessdesc'] = 'Control which IOMAD companies can access the SmartMind Estratoos Plugin.';
+$string['companiesaccessupdated'] = 'Company access settings updated successfully.';
+$string['searchcompanies'] = 'Search companies...';
+$string['deselectall'] = 'Deselect All';
+$string['companiesenabled'] = 'companies enabled';
+$string['nocompanies'] = 'No companies found.';
+$string['noiomad'] = 'This feature is only available in IOMAD multi-tenant installations.';
+$string['backtodashboard'] = 'Back to Dashboard';
+$string['tokensuspended'] = 'Token suspended';
+$string['tokenactive'] = 'Token active';
+$string['companydisabled'] = 'Company disabled - tokens suspended';
+$string['companyenabled'] = 'Company enabled - tokens reactivated';
+$string['tokensuspendedwarning'] = 'This token is suspended because the company access has been disabled.';
