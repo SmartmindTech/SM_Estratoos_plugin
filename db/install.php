@@ -347,6 +347,10 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_get_dashboard_stats',
         // v1.7.22: Company-scoped instant messaging.
         'local_sm_estratoos_plugin_send_instant_messages',
+        // v1.7.23: Presence/session tracking functions.
+        'local_sm_estratoos_plugin_start_session',
+        'local_sm_estratoos_plugin_session_heartbeat',
+        'local_sm_estratoos_plugin_end_session',
     ];
 
     foreach ($pluginfunctions as $functionname) {

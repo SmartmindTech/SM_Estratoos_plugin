@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011922</version>
+        <version>2025011923</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.22</release>
+        <release>1.7.23</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,33 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.22/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.23/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.22</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.23</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.22 - Company-Scoped Instant Messaging</h3>
-            <p><strong>New API function for sending messages with company-level tokens</strong></p>
+            <h3>Version 1.7.23 - Moodle Presence Tracking via Sessions</h3>
+            <p><strong>New API functions to make SmartLearning users appear "online" in Moodle</strong></p>
 
-            <h4>New Function:</h4>
-            <p><code>local_sm_estratoos_plugin_send_instant_messages</code></p>
+            <h4>New Functions:</h4>
             <ul>
-                <li>Same API structure as <code>core_message_send_instant_messages</code></li>
-                <li>Works with company/category-scoped tokens (IOMAD)</li>
-                <li>Recipients must be in the same company as the sender</li>
-                <li>Falls back to standard capability check for system tokens</li>
+                <li><code>local_sm_estratoos_plugin_start_session</code> - Create a session in mdl_sessions (user goes "online")</li>
+                <li><code>local_sm_estratoos_plugin_session_heartbeat</code> - Update session timestamp (keep user "online")</li>
+                <li><code>local_sm_estratoos_plugin_end_session</code> - Delete session (user goes "offline")</li>
             </ul>
 
-            <h4>Key Difference from Core:</h4>
-            <p>The core function requires system-level <code>moodle/site:sendmessage</code> capability.
-            This plugin function validates at company category level for IOMAD tokens, allowing
-            company managers to send messages without site-admin privileges.</p>
+            <h4>How It Works:</h4>
+            <p>SmartLearning calls <code>start_session</code> when users begin using the platform,
+            <code>session_heartbeat</code> every 5 minutes, and <code>end_session</code> when they leave.
+            This creates records in Moodle's <code>mdl_sessions</code> table, making users appear in
+            "users online" blocks and presence reports.</p>
+
+            <h4>Session ID Convention:</h4>
+            <p>Sessions created by SmartLearning use a <code>slp_</code> prefix (SmartLearning Presence)
+            to distinguish them from browser sessions.</p>
             ]]>
         </releasenotes>
     </update>

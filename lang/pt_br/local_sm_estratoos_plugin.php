@@ -348,3 +348,8 @@ $string['companyenabled'] = 'Empresa habilitada - tokens reativados';
 
 // Mensagens (v1.7.22).
 $string['recipientnotincompany'] = 'O destinatário não é membro da sua empresa';
+
+// Rastreamento de sessão/presença (v1.7.23).
+$string['invalidsession'] = 'Sessão inválida ou expirada';
+$string['sessionstarted'] = 'Sessão iniciada - usuário agora online';
+$string['sessionended'] = 'Sessão encerrada - usuário agora offline';

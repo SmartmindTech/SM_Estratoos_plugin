@@ -1256,5 +1256,20 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011922, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.23: Add presence/session tracking functions for SmartLearning.
+    // These functions allow SmartLearning to register users as "online" in Moodle
+    // by creating/updating/deleting records in mdl_sessions.
+    // - start_session: Creates a session record (user goes "online")
+    // - session_heartbeat: Updates session timemodified (keeps user "online")
+    // - end_session: Deletes session record (user goes "offline")
+    if ($oldversion < 2025011923) {
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run the full service rebuild to add the new session tracking functions.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011923, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

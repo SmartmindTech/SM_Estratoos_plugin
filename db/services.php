@@ -264,6 +264,49 @@ $functions = [
     ],
 
     // =========================================================================
+    // PRESENCE / SESSION TRACKING FUNCTIONS (v1.7.23)
+    // These functions allow SmartLearning to register users as "online" in Moodle
+    // by creating/updating/deleting records in mdl_sessions.
+    // =========================================================================
+
+    // Start a SmartLearning presence session.
+    'local_sm_estratoos_plugin_start_session' => [
+        'classname' => 'local_sm_estratoos_plugin\external\start_session',
+        'methodname' => 'execute',
+        'description' => 'Start a SmartLearning presence session. Creates a record in mdl_sessions to make the user ' .
+                        'appear "online" in Moodle reports and user online blocks. Returns session ID (sid) to use ' .
+                        'with heartbeat and end_session. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
+    // Send heartbeat to keep session alive.
+    'local_sm_estratoos_plugin_session_heartbeat' => [
+        'classname' => 'local_sm_estratoos_plugin\external\session_heartbeat',
+        'methodname' => 'execute',
+        'description' => 'Send heartbeat to keep a SmartLearning presence session alive. Updates the session\'s ' .
+                        'timemodified field in mdl_sessions. Should be called every 5 minutes. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
+    // End a SmartLearning presence session.
+    'local_sm_estratoos_plugin_end_session' => [
+        'classname' => 'local_sm_estratoos_plugin\external\end_session',
+        'methodname' => 'execute',
+        'description' => 'End a SmartLearning presence session. Deletes the session record from mdl_sessions, making ' .
+                        'the user appear "offline" in Moodle. Returns total session duration. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
+    // =========================================================================
     // COURSE CONTENT FUNCTIONS
     // =========================================================================
 

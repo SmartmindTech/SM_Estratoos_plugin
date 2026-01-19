@@ -356,3 +356,8 @@ $string['companyenabled'] = 'Empresa habilitada - tokens reactivados';
 
 // Mensajería (v1.7.22).
 $string['recipientnotincompany'] = 'El destinatario no es miembro de su empresa';
+
+// Seguimiento de sesión/presencia (v1.7.23).
+$string['invalidsession'] = 'Sesión inválida o expirada';
+$string['sessionstarted'] = 'Sesión iniciada - usuario ahora en línea';
+$string['sessionended'] = 'Sesión finalizada - usuario ahora desconectado';

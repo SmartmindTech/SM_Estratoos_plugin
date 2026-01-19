@@ -357,3 +357,8 @@ $string['tokensuspendedwarning'] = 'This token is suspended because the company 
 
 // Messaging (v1.7.22).
 $string['recipientnotincompany'] = 'Recipient is not a member of your company';
+
+// Session/Presence tracking (v1.7.23).
+$string['invalidsession'] = 'Invalid or expired session';
+$string['sessionstarted'] = 'Session started - user is now online';
+$string['sessionended'] = 'Session ended - user is now offline';
