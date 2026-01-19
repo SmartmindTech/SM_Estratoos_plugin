@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011927</version>
+        <version>2025011928</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.27</release>
+        <release>1.7.28</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,31 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.27/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.28/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.27</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.28</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.27 - Fix Role Detection & Add Role Filter</h3>
-            <p><strong>Two improvements to the token management page</strong></p>
+            <h3>Version 1.7.28 - Fix Auto-Enable Company for Managers</h3>
+            <p><strong>Bug fix for manager token creation</strong></p>
 
-            <h4>1. Fixed Role Detection</h4>
-            <p>Role badges now correctly detect teachers and students:</p>
+            <h4>Problem Fixed</h4>
+            <p>When creating a manager token for a previously disabled company:</p>
             <ul>
-                <li><strong>Before:</strong> Only checked system-level roles (many users showed as "Other")</li>
-                <li><strong>After:</strong> Checks ALL role assignments (system, category, and course level)</li>
+                <li><strong>Before:</strong> Company showed as "Enabled" in UI but API calls still failed</li>
+                <li><strong>After:</strong> Both UI and API access work correctly</li>
             </ul>
-            <p>Teachers and students enrolled in courses are now properly identified.</p>
 
-            <h4>2. Role Filter Dropdown</h4>
-            <p>Added a new filter dropdown on the token management page:</p>
-            <ul>
-                <li>Filter tokens by role: Manager, Teacher, Student, or Other</li>
-                <li>Works alongside existing Company and Service filters</li>
-            </ul>
+            <h4>Technical Details</h4>
+            <p>The <code>auto_enable_company_for_managers()</code> function now properly synchronizes
+            both the access table AND reactivates suspended tokens when enabling a company.</p>
             ]]>
         </releasenotes>
     </update>

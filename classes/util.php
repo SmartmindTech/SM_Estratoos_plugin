@@ -740,7 +740,7 @@ class util {
      * @param bool $active True to activate, false to suspend.
      * @param int|null $time Timestamp for timemodified.
      */
-    private static function set_company_tokens_active(int $companyid, bool $active, int $time = null): void {
+    public static function set_company_tokens_active(int $companyid, bool $active, int $time = null): void {
         global $DB;
 
         if ($time === null) {

@@ -1251,6 +1251,9 @@ class company_token_manager {
                 $accessrecord->enabled = 1;
                 $accessrecord->timemodified = time();
                 $DB->update_record('local_sm_estratoos_plugin_access', $accessrecord);
+
+                // Also reactivate any suspended tokens for this company.
+                util::set_company_tokens_active($companyid, true);
             }
         } else {
             // Create new access record with enabled = 1.
@@ -1260,6 +1263,9 @@ class company_token_manager {
             $newaccess->timecreated = time();
             $newaccess->timemodified = time();
             $DB->insert_record('local_sm_estratoos_plugin_access', $newaccess);
+
+            // Also reactivate any suspended tokens for this company (in case there were any).
+            util::set_company_tokens_active($companyid, true);
         }
     }
 }
