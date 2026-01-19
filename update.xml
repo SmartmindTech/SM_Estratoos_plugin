@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011917</version>
+        <version>2025011918</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.17</release>
+        <release>1.7.18</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,33 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.17/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.18/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.17</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.18</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.17 - Fix Company Search Bar (Inline JS)</h3>
-            <p><strong>Switch from AMD module to inline JavaScript for reliable search functionality</strong></p>
+            <h3>Version 1.7.18 - Debug Company Search</h3>
+            <p><strong>Added console logging to diagnose search bar issues</strong></p>
 
-            <h4>Root Cause Analysis:</h4>
-            <p>In v1.7.1, search worked because there was no companyaccess.min.js file - Moodle loaded
-            the source JS directly. Later versions added the minified file, which caused caching issues
-            in production mode where Moodle would load outdated cached versions.</p>
+            <h4>How to Test:</h4>
+            <ol>
+                <li>Go to Plugin → Manage Company Access</li>
+                <li>Open browser DevTools (F12) → Console tab</li>
+                <li>Look for messages starting with "SM_ESTRATOOS"</li>
+                <li>Type in search box and check if input events are logged</li>
+            </ol>
 
-            <h4>Solution:</h4>
+            <h4>Expected Console Output:</h4>
             <ul>
-                <li><strong>Inline JavaScript:</strong> Removed AMD module dependency, embedded JS directly in PHP</li>
-                <li><strong>No caching issues:</strong> Inline JS runs fresh on every page load</li>
-                <li><strong>Same functionality:</strong> Search, Select All, Deselect All, badge toggling</li>
-                <li><strong>Enabled/Disabled badges:</strong> Green badge for enabled, gray for disabled</li>
+                <li>SM_ESTRATOOS v1.7.18: Script starting...</li>
+                <li>SM_ESTRATOOS: DOMContentLoaded fired</li>
+                <li>SM_ESTRATOOS: searchInput found: true</li>
+                <li>SM_ESTRATOOS: companyItems count: [number]</li>
+                <li>SM_ESTRATOOS: Search input event - filter: [typed text]</li>
             </ul>
-
-            <h4>Why This Works:</h4>
-            <p>AMD modules in Moodle are cached aggressively. In production mode, the .min.js file is loaded
-            and cached. Even after plugin updates, old cached versions may persist. Inline JavaScript
-            bypasses this entirely - it's rendered fresh with each PHP page load.</p>
             ]]>
         </releasenotes>
     </update>
