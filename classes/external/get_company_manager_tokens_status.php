@@ -28,10 +28,11 @@ use external_multiple_structure;
 use external_warnings;
 
 /**
- * External function for getting manager tokens status for a company.
+ * External function for getting manager tokens status.
  *
- * This function returns information about whether a company has any manager
- * tokens created, along with details about those managers.
+ * This function returns information about whether managers have tokens.
+ * - IOMAD mode: Returns managers for a specific company (managertype > 0)
+ * - Non-IOMAD mode: Returns all users with manager-like roles who have tokens
  *
  * @package    local_sm_estratoos_plugin
  * @copyright  2025 SmartMind Technologies
@@ -51,9 +52,12 @@ class get_company_manager_tokens_status extends external_api {
     }
 
     /**
-     * Get manager tokens status for a company.
+     * Get manager tokens status.
      *
-     * @param int $companyid Company ID.
+     * For IOMAD: Returns managers for a specific company.
+     * For non-IOMAD: Returns all users with manager-like roles who have tokens.
+     *
+     * @param int $companyid Company ID (used in IOMAD mode, ignored in non-IOMAD).
      * @return array Manager tokens status.
      */
     public static function execute(int $companyid): array {
@@ -69,10 +73,26 @@ class get_company_manager_tokens_status extends external_api {
         $context = \context_system::instance();
         self::validate_context($context);
 
-        // Check IOMAD is installed.
-        if (!\local_sm_estratoos_plugin\util::is_iomad_installed()) {
-            throw new \moodle_exception('iomadnotinstalled', 'local_sm_estratoos_plugin');
+        // Check if IOMAD is installed.
+        $isiomad = \local_sm_estratoos_plugin\util::is_iomad_installed();
+
+        if ($isiomad) {
+            // IOMAD MODE: Get managers for a specific company.
+            return self::get_iomad_managers($companyid);
+        } else {
+            // NON-IOMAD MODE: Get all users with manager-like roles who have tokens.
+            return self::get_standard_managers();
         }
+    }
+
+    /**
+     * Get managers for IOMAD mode.
+     *
+     * @param int $companyid Company ID.
+     * @return array Manager tokens status.
+     */
+    private static function get_iomad_managers(int $companyid): array {
+        global $DB;
 
         // Get company information.
         $company = $DB->get_record('company', ['id' => $companyid]);
@@ -122,6 +142,69 @@ class get_company_manager_tokens_status extends external_api {
                 'name' => $company->name,
                 'shortname' => $company->shortname,
                 'category' => (int)$company->category,
+            ],
+            'managers' => $managersdata,
+            'warnings' => [],
+        ];
+    }
+
+    /**
+     * Get managers for non-IOMAD (standard Moodle) mode.
+     *
+     * Detects managers via role shortname patterns: manager, admin, gerente, administrador.
+     *
+     * @return array Manager tokens status.
+     */
+    private static function get_standard_managers(): array {
+        global $DB;
+
+        // Get all users with manager-like roles who have tokens.
+        // Manager detection via role shortname patterns (multilingual support).
+        $sql = "SELECT DISTINCT
+                    u.id as userid,
+                    u.username,
+                    u.firstname,
+                    u.lastname,
+                    u.email,
+                    lit.timecreated as token_created,
+                    lit.active as token_active
+                FROM {local_sm_estratoos_plugin} lit
+                JOIN {external_tokens} et ON et.id = lit.tokenid
+                JOIN {user} u ON u.id = et.userid
+                JOIN {role_assignments} ra ON ra.userid = u.id
+                JOIN {role} r ON r.id = ra.roleid
+                WHERE u.deleted = 0
+                  AND (
+                      LOWER(r.shortname) LIKE '%manager%'
+                      OR LOWER(r.shortname) LIKE '%admin%'
+                      OR LOWER(r.shortname) LIKE '%gerente%'
+                      OR LOWER(r.shortname) LIKE '%administrador%'
+                  )
+                ORDER BY u.lastname, u.firstname";
+
+        $managers = $DB->get_records_sql($sql);
+
+        // Format managers data.
+        $managersdata = [];
+        foreach ($managers as $manager) {
+            $managersdata[] = [
+                'userid' => (int)$manager->userid,
+                'username' => $manager->username,
+                'firstname' => $manager->firstname,
+                'lastname' => $manager->lastname,
+                'email' => $manager->email,
+                'token_created' => (int)$manager->token_created,
+                'token_active' => (bool)$manager->token_active,
+            ];
+        }
+
+        return [
+            'has_manager_tokens' => !empty($managersdata),
+            'company' => [
+                'id' => 0,
+                'name' => '',
+                'shortname' => '',
+                'category' => 0,
             ],
             'managers' => $managersdata,
             'warnings' => [],

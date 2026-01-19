@@ -1339,5 +1339,50 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011925, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.26: Non-IOMAD support and category-scoped tokens security improvement.
+    // - get_company_manager_tokens_status now works for non-IOMAD Moodles
+    // - Non-admin users in non-IOMAD mode now get category context instead of system context
+    // Migration: Update existing non-IOMAD tokens to use category context (except super admins).
+    if ($oldversion < 2025011926) {
+        // Get the top-level category for the new context.
+        $topcategory = $DB->get_record('course_categories', ['parent' => 0], 'id', IGNORE_MULTIPLE);
+
+        if ($topcategory) {
+            // Get the category context.
+            $catcontext = context_coursecat::instance($topcategory->id);
+            $syscontext = context_system::instance();
+
+            // Find all non-IOMAD tokens (companyid = 0 or NULL) with system context.
+            // Skip super admin tokens - they should keep system context.
+            $sql = "SELECT et.id as tokenid, et.userid
+                    FROM {external_tokens} et
+                    JOIN {local_sm_estratoos_plugin} smp ON smp.tokenid = et.id
+                    WHERE (smp.companyid = 0 OR smp.companyid IS NULL)
+                      AND et.contextid = :syscontextid";
+
+            $tokens = $DB->get_records_sql($sql, ['syscontextid' => $syscontext->id]);
+
+            $migratedcount = 0;
+            foreach ($tokens as $token) {
+                // Skip super admins - they keep system context.
+                if (is_siteadmin($token->userid)) {
+                    continue;
+                }
+
+                // Update token to use category context.
+                $DB->set_field('external_tokens', 'contextid', $catcontext->id, ['id' => $token->tokenid]);
+                $migratedcount++;
+            }
+
+            if ($migratedcount > 0) {
+                error_log("SM_ESTRATOOS_PLUGIN v1.7.26: Migrated $migratedcount non-IOMAD tokens " .
+                          "from system context to category context (security improvement)");
+            }
+        }
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011926, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

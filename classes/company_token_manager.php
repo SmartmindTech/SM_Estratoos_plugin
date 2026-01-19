@@ -73,8 +73,21 @@ class company_token_manager {
             // Generate token name: FIRSTNAME_LASTNAME_ROLE (all caps, spaces replaced with underscores).
             $tokenname = self::generate_token_name($user->firstname, $user->lastname, $userrole);
 
-            // Use system context for standard Moodle.
-            $context = \context_system::instance();
+            // Determine context based on user type (v1.7.26 security improvement).
+            if (is_siteadmin($userid)) {
+                // Super admins get system context (full access).
+                $context = \context_system::instance();
+            } else {
+                // Normal users get category context (restricted access).
+                // Use site's top-level category (parent = 0) for security.
+                $topcategory = $DB->get_record('course_categories', ['parent' => 0], 'id', IGNORE_MULTIPLE);
+                if ($topcategory) {
+                    $context = \context_coursecat::instance($topcategory->id);
+                } else {
+                    // Fallback to system context if no categories exist (edge case).
+                    $context = \context_system::instance();
+                }
+            }
         }
 
         // Determine validity period.

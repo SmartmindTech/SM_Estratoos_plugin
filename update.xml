@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011925</version>
+        <version>2025011926</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.25</release>
+        <release>1.7.26</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,33 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.25/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.26/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.25</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.26</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.25 - Default Service, Role Badges, Auto-Enable for Managers, Manager Tokens API</h3>
-            <p><strong>Four enhancements to improve token management</strong></p>
+            <h3>Version 1.7.26 - Non-IOMAD Support & Category-Scoped Tokens Security</h3>
+            <p><strong>Two security and compatibility improvements</strong></p>
 
-            <h4>1. Default Service Selection</h4>
-            <p>When creating tokens (admin or batch), the "SmartMind - Estratoos Plugin" service is now
-            pre-selected by default.</p>
-
-            <h4>2. Role Column with Badges</h4>
-            <p>The tokens management page now shows a "Role" column with colored badges:</p>
+            <h4>1. Non-IOMAD Support for Manager Tokens API</h4>
+            <p>The <code>get_company_manager_tokens_status</code> function now works on non-IOMAD Moodles:</p>
             <ul>
-                <li><span style="background:#ffc107;color:#000;padding:2px 6px;border-radius:3px;">Manager</span> - Yellow badge</li>
-                <li><span style="background:#28a745;color:#fff;padding:2px 6px;border-radius:3px;">Teacher</span> - Green badge</li>
-                <li><span style="background:#17a2b8;color:#fff;padding:2px 6px;border-radius:3px;">Student</span> - Blue badge</li>
-                <li><span style="background:#6c757d;color:#fff;padding:2px 6px;border-radius:3px;">Other</span> - Gray badge</li>
+                <li><strong>IOMAD mode:</strong> Returns managers for a specific company (managertype > 0)</li>
+                <li><strong>Non-IOMAD mode:</strong> Returns all users with manager-like roles who have tokens</li>
             </ul>
+            <p>Manager detection via role patterns: manager, admin, gerente, administrador</p>
 
-            <h4>3. Auto-Enable Company for Managers</h4>
-            <p>When creating tokens for IOMAD company managers (managertype > 0), the company is automatically
-            enabled in the plugin access control. This ensures managers always have access to their company data.</p>
-
-            <h4>4. New API Function: get_company_manager_tokens_status</h4>
-            <p>New function to check if a company has manager tokens:</p>
-            <code>local_sm_estratoos_plugin_get_company_manager_tokens_status(companyid)</code>
-            <p>Returns: has_manager_tokens (bool), company info, and list of managers with tokens.</p>
+            <h4>2. Category-Scoped Tokens (Security Improvement)</h4>
+            <p>Non-IOMAD tokens for normal users now use <code>CONTEXT_COURSECAT</code> (level 40) instead of
+            <code>CONTEXT_SYSTEM</code> (level 10):</p>
+            <ul>
+                <li><strong>Super admins:</strong> Keep system context (full access)</li>
+                <li><strong>Normal users:</strong> Category context (restricted access)</li>
+            </ul>
+            <p>Existing tokens are automatically migrated during upgrade.</p>
             ]]>
         </releasenotes>
     </update>
