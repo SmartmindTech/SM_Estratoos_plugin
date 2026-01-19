@@ -1412,5 +1412,18 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011929, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.30: Fix new API functions not being added on upgrade, improved expiry date UI.
+    // The v1.7.29 upgrade step called xmldb_local_sm_estratoos_plugin_add_to_mobile_service()
+    // but the new functions weren't in the $pluginfunctions array. This fixes that.
+    if ($oldversion < 2025011930) {
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run to add the get_token_details and get_companies_access_status functions.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011930, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

@@ -186,23 +186,46 @@ if (empty($companies)) {
         echo html_writer::end_tag('label');
         echo html_writer::end_div(); // custom-control
 
-        // Expiry date picker (v1.7.29).
+        // Expiry date dropdown (v1.7.29 - v1.7.30 improved UI).
         $expiryvalue = !empty($company->expirydate) ? date('Y-m-d', $company->expirydate) : '';
-        echo html_writer::start_div('ml-auto d-flex align-items-center');
-        echo html_writer::tag('label', get_string('expirydate', 'local_sm_estratoos_plugin') . ':', [
-            'class' => 'mb-0 mr-2 small text-muted',
-            'for' => 'expiry-' . $company->id
-        ]);
-        echo html_writer::empty_tag('input', [
-            'type' => 'date',
-            'class' => 'form-control form-control-sm expiry-date-input',
-            'style' => 'width: 150px;',
-            'id' => 'expiry-' . $company->id,
-            'name' => 'expirydate_display[' . $company->id . ']',
-            'value' => $expiryvalue,
+        $expirydisplay = !empty($company->expirydate) ? userdate($company->expirydate, get_string('strftimedate', 'langconfig')) : '';
+        echo html_writer::start_div('ml-auto d-flex align-items-center expiry-container', [
             'data-companyid' => $company->id
         ]);
-        // Hidden field for timestamp.
+        // Dropdown for expiry selection.
+        echo html_writer::start_tag('select', [
+            'class' => 'form-control form-control-sm expiry-dropdown',
+            'id' => 'expiry-select-' . $company->id,
+            'data-companyid' => $company->id,
+            'style' => 'width: auto; min-width: 150px;'
+        ]);
+        // Option: Never.
+        echo html_writer::tag('option', get_string('never', 'local_sm_estratoos_plugin'), [
+            'value' => 'never',
+            'selected' => empty($company->expirydate) ? 'selected' : null
+        ]);
+        // Option: Select date (triggers date picker).
+        echo html_writer::tag('option', get_string('selectdate', 'local_sm_estratoos_plugin'), [
+            'value' => 'select'
+        ]);
+        // Option: Custom date (shown when a date is set).
+        if (!empty($company->expirydate)) {
+            echo html_writer::tag('option', $expirydisplay, [
+                'value' => 'custom',
+                'selected' => 'selected',
+                'data-timestamp' => $company->expirydate
+            ]);
+        }
+        echo html_writer::end_tag('select');
+        // Hidden date input (shown when "Select date" is chosen).
+        echo html_writer::empty_tag('input', [
+            'type' => 'date',
+            'class' => 'form-control form-control-sm expiry-date-input ml-2 d-none',
+            'id' => 'expiry-date-' . $company->id,
+            'data-companyid' => $company->id,
+            'value' => $expiryvalue
+        ]);
+        // Hidden field for timestamp (sent with form).
         echo html_writer::empty_tag('input', [
             'type' => 'hidden',
             'name' => 'expirydate[' . $company->id . ']',
@@ -334,21 +357,80 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
             });
         });
 
-        // Handle date picker changes - convert date to timestamp (v1.7.29).
+        // Handle expiry dropdown changes (v1.7.30 improved UI).
+        var expiryDropdowns = document.querySelectorAll(".expiry-dropdown");
+        expiryDropdowns.forEach(function(dropdown) {
+            dropdown.addEventListener("change", function() {
+                var companyId = this.getAttribute("data-companyid");
+                var dateInput = document.getElementById("expiry-date-" + companyId);
+                var hiddenField = document.getElementById("expirydate-hidden-" + companyId);
+
+                if (this.value === "never") {
+                    // Hide date picker, set timestamp to 0.
+                    if (dateInput) dateInput.classList.add("d-none");
+                    if (hiddenField) hiddenField.value = 0;
+                } else if (this.value === "select") {
+                    // Show date picker.
+                    if (dateInput) {
+                        dateInput.classList.remove("d-none");
+                        dateInput.focus();
+                    }
+                }
+                // If "custom" is selected, keep current value.
+            });
+        });
+
+        // Handle date picker changes - update dropdown with selected date.
         var dateInputs = document.querySelectorAll(".expiry-date-input");
         dateInputs.forEach(function(dateInput) {
             dateInput.addEventListener("change", function() {
                 var companyId = this.getAttribute("data-companyid");
+                var dropdown = document.getElementById("expiry-select-" + companyId);
                 var hiddenField = document.getElementById("expirydate-hidden-" + companyId);
-                if (hiddenField) {
-                    if (this.value) {
-                        // Convert date to timestamp (end of day, 23:59:59).
-                        var timestamp = Math.floor(new Date(this.value + "T23:59:59").getTime() / 1000);
-                        hiddenField.value = timestamp;
-                    } else {
-                        hiddenField.value = 0;
+
+                if (this.value) {
+                    // Convert date to timestamp (end of day, 23:59:59).
+                    var timestamp = Math.floor(new Date(this.value + "T23:59:59").getTime() / 1000);
+                    if (hiddenField) hiddenField.value = timestamp;
+
+                    // Format date for display.
+                    var dateObj = new Date(this.value);
+                    var displayDate = dateObj.toLocaleDateString();
+
+                    // Find or create custom option.
+                    var customOption = dropdown.querySelector('option[value="custom"]');
+                    if (!customOption) {
+                        customOption = document.createElement("option");
+                        customOption.value = "custom";
+                        dropdown.appendChild(customOption);
                     }
+                    customOption.textContent = displayDate;
+                    customOption.setAttribute("data-timestamp", timestamp);
+                    customOption.selected = true;
+
+                    // Hide date picker.
+                    this.classList.add("d-none");
+                } else {
+                    // No date selected, revert to Never.
+                    if (hiddenField) hiddenField.value = 0;
+                    dropdown.value = "never";
+                    this.classList.add("d-none");
                 }
+            });
+
+            // Hide date picker when clicking outside.
+            dateInput.addEventListener("blur", function() {
+                var self = this;
+                setTimeout(function() {
+                    if (!self.value) {
+                        var companyId = self.getAttribute("data-companyid");
+                        var dropdown = document.getElementById("expiry-select-" + companyId);
+                        if (dropdown && dropdown.value === "select") {
+                            dropdown.value = "never";
+                        }
+                        self.classList.add("d-none");
+                    }
+                }, 200);
             });
         });
     });

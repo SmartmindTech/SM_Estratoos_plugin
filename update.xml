@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011929</version>
+        <version>2025011930</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.29</release>
+        <release>1.7.30</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,33 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.29/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.30/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.29</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.30</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.29 - Token Details API, Company Expiration, UI Fixes</h3>
+            <h3>Version 1.7.30 - Upgrade Fix &amp; Improved Expiry Date UI</h3>
 
-            <h4>New Features</h4>
+            <h4>Bug Fixes</h4>
             <ul>
-                <li><strong>get_token_details API:</strong> Retrieve comprehensive token information including user roles, restrictions, creation info, service, company data, and more</li>
-                <li><strong>get_companies_access_status API:</strong> Monitor company access status and expiration dates, with token counts and days remaining</li>
-                <li><strong>Company access expiration:</strong> Set expiration dates for company access in the Admin UI with automatic disable on expiry</li>
+                <li><strong>Critical fix:</strong> New API functions (get_token_details, get_companies_access_status) are now properly added to the service during plugin upgrades</li>
             </ul>
 
             <h4>UI Improvements</h4>
             <ul>
-                <li>Added expiry date picker to Company Access page</li>
-                <li>Added "Expired" badge for companies with expired access</li>
-                <li>Fixed duplicate page titles across 6 admin pages</li>
+                <li><strong>Improved expiry date selector:</strong> Replaced date picker with dropdown ("Never" / "Select date...") for better UX</li>
+                <li>When a date is selected, it appears as an option in the dropdown</li>
             </ul>
 
-            <h4>Technical Details</h4>
+            <h4>Previous Version (1.7.29) Features</h4>
             <ul>
-                <li>New scheduled task: <code>expire_company_access</code> runs every 6 hours</li>
-                <li>Database: Added <code>expirydate</code> field to company access table</li>
-                <li>Translations: English, Spanish, Portuguese (Brazilian)</li>
+                <li><strong>get_token_details API:</strong> Retrieve comprehensive token information</li>
+                <li><strong>get_companies_access_status API:</strong> Monitor company access status and expiration dates</li>
+                <li><strong>Company access expiration:</strong> Set expiration dates with automatic disable on expiry</li>
+                <li>Scheduled task: <code>expire_company_access</code> runs every 6 hours</li>
             </ul>
             ]]>
         </releasenotes>

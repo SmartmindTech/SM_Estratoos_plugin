@@ -372,6 +372,7 @@ $string['role_other'] = 'Otro';
 // Expiración de acceso de empresas (v1.7.29).
 $string['expirydate'] = 'Fecha de expiración';
 $string['never'] = 'Nunca';
+$string['selectdate'] = 'Seleccionar fecha...';
 $string['expired'] = 'Expirado';
 $string['companyexpired'] = 'El acceso de la empresa ha expirado';
 $string['task:expirecompanyaccess'] = 'Expirar acceso de empresas';
