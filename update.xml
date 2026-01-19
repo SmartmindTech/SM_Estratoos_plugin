@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011916</version>
+        <version>2025011917</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.16</release>
+        <release>1.7.17</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,40 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.16/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.17/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.16</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.17</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.16 - Rebuild Company Access Page</h3>
-            <p><strong>Complete rebuild of company access page to match batch token design</strong></p>
+            <h3>Version 1.7.17 - Fix Company Search Bar (Inline JS)</h3>
+            <p><strong>Switch from AMD module to inline JavaScript for reliable search functionality</strong></p>
 
-            <h4>Changes:</h4>
+            <h4>Root Cause Analysis:</h4>
+            <p>In v1.7.1, search worked because there was no companyaccess.min.js file - Moodle loaded
+            the source JS directly. Later versions added the minified file, which caused caching issues
+            in production mode where Moodle would load outdated cached versions.</p>
+
+            <h4>Solution:</h4>
             <ul>
-                <li><strong>Complete Rebuild:</strong> company_access.php rewritten from scratch</li>
-                <li><strong>Same Design:</strong> Uses exact same HTML structure as batch_token_form.php</li>
-                <li><strong>Simpler JS:</strong> companyaccess.js simplified - no Promises, immediate binding</li>
-                <li><strong>Debug Logging:</strong> Console logs help diagnose if search works</li>
+                <li><strong>Inline JavaScript:</strong> Removed AMD module dependency, embedded JS directly in PHP</li>
+                <li><strong>No caching issues:</strong> Inline JS runs fresh on every page load</li>
+                <li><strong>Same functionality:</strong> Search, Select All, Deselect All, badge toggling</li>
+                <li><strong>Enabled/Disabled badges:</strong> Green badge for enabled, gray for disabled</li>
             </ul>
 
-            <h4>HTML Structure (same as user selection):</h4>
-            <ul>
-                <li>Quick select buttons with btn-group</li>
-                <li>Counter and search bar in flex header</li>
-                <li>Scrollable wrapper with border rounded</li>
-                <li>Custom checkbox structure for each company</li>
-            </ul>
-
-            <h4>How to Test:</h4>
-            <ol>
-                <li>Open browser console (F12)</li>
-                <li>Go to Plugin → Manage Company Access</li>
-                <li>Check console for "SM_ESTRATOOS:" messages</li>
-                <li>Type in search box - should see filter message and companies should filter</li>
-            </ol>
+            <h4>Why This Works:</h4>
+            <p>AMD modules in Moodle are cached aggressively. In production mode, the .min.js file is loaded
+            and cached. Even after plugin updates, old cached versions may persist. Inline JavaScript
+            bypasses this entirely - it's rendered fresh with each PHP page load.</p>
             ]]>
         </releasenotes>
     </update>

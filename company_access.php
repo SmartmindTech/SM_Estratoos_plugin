@@ -43,9 +43,6 @@ $PAGE->set_title(get_string('managecompanyaccess', 'local_sm_estratoos_plugin'))
 $PAGE->set_heading(get_string('managecompanyaccess', 'local_sm_estratoos_plugin'));
 $PAGE->set_pagelayout('admin');
 
-// Load AMD module for company search functionality.
-$PAGE->requires->js_call_amd('local_sm_estratoos_plugin/companyaccess', 'init');
-
 // Add navigation.
 $PAGE->navbar->add(get_string('pluginname', 'local_sm_estratoos_plugin'),
     new moodle_url('/local/sm_estratoos_plugin/index.php'));
@@ -196,5 +193,110 @@ echo html_writer::link(
 echo html_writer::end_div();
 
 echo html_writer::end_tag('form');
+
+// Inline JavaScript for search functionality (more reliable than AMD modules).
+// AMD modules can have caching issues in production mode.
+$enabledtext = get_string('enabled', 'local_sm_estratoos_plugin');
+$disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
+echo <<<SCRIPT
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var searchInput = document.getElementById("company-search");
+    var companyItems = document.querySelectorAll(".company-item");
+    var checkboxes = document.querySelectorAll(".company-checkbox");
+    var selectAllBtn = document.getElementById("select-all-companies");
+    var deselectAllBtn = document.getElementById("deselect-all-companies");
+    var countDisplay = document.getElementById("selected-count");
+
+    // Update enabled count.
+    function updateCount() {
+        var count = document.querySelectorAll(".company-checkbox:checked").length;
+        if (countDisplay) {
+            countDisplay.textContent = count + " companies selected";
+        }
+    }
+
+    // Update badge for a single checkbox.
+    function updateBadge(checkbox) {
+        var item = checkbox.closest(".company-item");
+        if (!item) return;
+
+        var badge = item.querySelector(".company-status-badge");
+        if (!badge) return;
+
+        if (checkbox.checked) {
+            badge.className = "badge badge-success ml-2 company-status-badge";
+            badge.textContent = "{$enabledtext}";
+        } else {
+            badge.className = "badge badge-secondary ml-2 company-status-badge";
+            badge.textContent = "{$disabledtext}";
+        }
+    }
+
+    // Update all badges.
+    function updateAllBadges() {
+        checkboxes.forEach(function(checkbox) {
+            updateBadge(checkbox);
+        });
+    }
+
+    // Search filter - filter companies as user types.
+    if (searchInput) {
+        searchInput.addEventListener("input", function() {
+            var filter = this.value.toLowerCase().trim();
+
+            companyItems.forEach(function(item) {
+                var name = item.getAttribute("data-name") || "";
+                if (filter === "" || name.indexOf(filter) !== -1) {
+                    item.style.display = "";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        });
+    }
+
+    // Select all visible companies.
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener("click", function() {
+            companyItems.forEach(function(item) {
+                if (item.style.display !== "none") {
+                    var checkbox = item.querySelector(".company-checkbox");
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        updateBadge(checkbox);
+                    }
+                }
+            });
+            updateCount();
+        });
+    }
+
+    // Deselect all visible companies.
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener("click", function() {
+            companyItems.forEach(function(item) {
+                if (item.style.display !== "none") {
+                    var checkbox = item.querySelector(".company-checkbox");
+                    if (checkbox) {
+                        checkbox.checked = false;
+                        updateBadge(checkbox);
+                    }
+                }
+            });
+            updateCount();
+        });
+    }
+
+    // Update count and badge when any checkbox changes.
+    checkboxes.forEach(function(checkbox) {
+        checkbox.addEventListener("change", function() {
+            updateCount();
+            updateBadge(this);
+        });
+    });
+});
+</script>
+SCRIPT;
 
 echo $OUTPUT->footer();

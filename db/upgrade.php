@@ -1210,5 +1210,14 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011916, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.17: Switch to inline JavaScript for company search (fix AMD caching issues).
+    // AMD modules were being cached in production mode, preventing updates from taking effect.
+    // Inline JS runs fresh on every page load, bypassing cache issues entirely.
+    if ($oldversion < 2025011917) {
+        // Purge caches to clear any remaining AMD module cache.
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011917, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
