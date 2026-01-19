@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011932</version>
+        <version>2025011933</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.32</release>
+        <release>1.7.33</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,26 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.32/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.33/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.32</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.33</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.32 - Context Validation Fix for Non-IOMAD Users</h3>
+            <h3>Version 1.7.33 - Add Missing Utility Method</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li><strong>Critical:</strong> Fixed context validation in 9 API functions to support non-IOMAD normal users</li>
-                <li>Non-admin users now use category context instead of system context (which was causing access denied errors)</li>
+                <li>Added missing <code>get_company_id_from_token()</code> method to util.php</li>
+                <li>This method is required by the context validation fix in v1.7.32</li>
             </ul>
 
-            <h4>Affected Functions</h4>
+            <h4>Previous Version (1.7.32)</h4>
             <ul>
-                <li>get_token_details, get_companies_access_status, get_company_manager_tokens_status</li>
-                <li>get_users, get_users_by_field, get_categories</li>
-                <li>get_conversations, get_conversation_messages, send_instant_messages</li>
-            </ul>
-
-            <h4>Context Handling Pattern</h4>
-            <ul>
-                <li><strong>IOMAD tokens:</strong> Use company's category context</li>
-                <li><strong>Site admins:</strong> Use system context</li>
-                <li><strong>Non-IOMAD normal users:</strong> Use top-level category context</li>
+                <li>Fixed context validation in 9 API functions for non-IOMAD users</li>
+                <li>Non-admin users now use category context instead of system context</li>
             </ul>
             ]]>
         </releasenotes>

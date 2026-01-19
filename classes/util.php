@@ -134,6 +134,27 @@ class util {
     }
 
     /**
+     * Get the company ID from the current web service request token.
+     *
+     * Uses the token to look up company restrictions in the plugin's token table.
+     *
+     * @return int The company ID or 0 if not available/not company-scoped.
+     */
+    public static function get_company_id_from_token(): int {
+        $token = self::get_current_request_token();
+        if (!$token) {
+            return 0;
+        }
+
+        $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
+        if ($restrictions && !empty($restrictions->companyid)) {
+            return (int)$restrictions->companyid;
+        }
+
+        return 0;
+    }
+
+    /**
      * Get all available companies.
      *
      * @return array Array of company records.
