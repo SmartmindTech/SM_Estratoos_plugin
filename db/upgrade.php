@@ -1219,5 +1219,11 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011917, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.18: Debug version with console logging for company search.
+    if ($oldversion < 2025011918) {
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011918, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

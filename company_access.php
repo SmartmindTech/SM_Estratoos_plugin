@@ -198,105 +198,133 @@ echo html_writer::end_tag('form');
 // AMD modules can have caching issues in production mode.
 $enabledtext = get_string('enabled', 'local_sm_estratoos_plugin');
 $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
-echo <<<SCRIPT
+?>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    var searchInput = document.getElementById("company-search");
-    var companyItems = document.querySelectorAll(".company-item");
-    var checkboxes = document.querySelectorAll(".company-checkbox");
-    var selectAllBtn = document.getElementById("select-all-companies");
-    var deselectAllBtn = document.getElementById("deselect-all-companies");
-    var countDisplay = document.getElementById("selected-count");
+(function() {
+    "use strict";
 
-    // Update enabled count.
-    function updateCount() {
-        var count = document.querySelectorAll(".company-checkbox:checked").length;
-        if (countDisplay) {
-            countDisplay.textContent = count + " companies selected";
+    console.log("SM_ESTRATOOS v1.7.18: Script starting...");
+
+    document.addEventListener("DOMContentLoaded", function() {
+        console.log("SM_ESTRATOOS: DOMContentLoaded fired");
+
+        var searchInput = document.getElementById("company-search");
+        var companyItems = document.querySelectorAll(".company-item");
+        var checkboxes = document.querySelectorAll(".company-checkbox");
+        var selectAllBtn = document.getElementById("select-all-companies");
+        var deselectAllBtn = document.getElementById("deselect-all-companies");
+        var countDisplay = document.getElementById("selected-count");
+
+        console.log("SM_ESTRATOOS: searchInput found:", searchInput !== null);
+        console.log("SM_ESTRATOOS: companyItems count:", companyItems.length);
+        console.log("SM_ESTRATOOS: checkboxes count:", checkboxes.length);
+
+        // Update enabled count.
+        function updateCount() {
+            var count = document.querySelectorAll(".company-checkbox:checked").length;
+            if (countDisplay) {
+                countDisplay.textContent = count + " companies selected";
+            }
         }
-    }
 
-    // Update badge for a single checkbox.
-    function updateBadge(checkbox) {
-        var item = checkbox.closest(".company-item");
-        if (!item) return;
+        // Update badge for a single checkbox.
+        function updateBadge(checkbox) {
+            var item = checkbox.closest(".company-item");
+            if (!item) return;
 
-        var badge = item.querySelector(".company-status-badge");
-        if (!badge) return;
+            var badge = item.querySelector(".company-status-badge");
+            if (!badge) return;
 
-        if (checkbox.checked) {
-            badge.className = "badge badge-success ml-2 company-status-badge";
-            badge.textContent = "{$enabledtext}";
+            if (checkbox.checked) {
+                badge.className = "badge badge-success ml-2 company-status-badge";
+                badge.textContent = "<?php echo $enabledtext; ?>";
+            } else {
+                badge.className = "badge badge-secondary ml-2 company-status-badge";
+                badge.textContent = "<?php echo $disabledtext; ?>";
+            }
+        }
+
+        // Search filter - filter companies as user types.
+        if (searchInput) {
+            console.log("SM_ESTRATOOS: Attaching input event listener to search box");
+            searchInput.addEventListener("input", function() {
+                var filter = this.value.toLowerCase().trim();
+                console.log("SM_ESTRATOOS: Search input event - filter:", filter);
+
+                companyItems.forEach(function(item) {
+                    var name = item.getAttribute("data-name") || "";
+                    if (filter === "" || name.indexOf(filter) !== -1) {
+                        item.style.display = "";
+                    } else {
+                        item.style.display = "none";
+                    }
+                });
+            });
+
+            // Also listen for keyup as backup.
+            searchInput.addEventListener("keyup", function() {
+                var filter = this.value.toLowerCase().trim();
+                console.log("SM_ESTRATOOS: Search keyup event - filter:", filter);
+
+                companyItems.forEach(function(item) {
+                    var name = item.getAttribute("data-name") || "";
+                    if (filter === "" || name.indexOf(filter) !== -1) {
+                        item.style.display = "";
+                    } else {
+                        item.style.display = "none";
+                    }
+                });
+            });
         } else {
-            badge.className = "badge badge-secondary ml-2 company-status-badge";
-            badge.textContent = "{$disabledtext}";
+            console.error("SM_ESTRATOOS: searchInput NOT FOUND!");
         }
-    }
 
-    // Update all badges.
-    function updateAllBadges() {
+        // Select all visible companies.
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener("click", function() {
+                console.log("SM_ESTRATOOS: Select All clicked");
+                companyItems.forEach(function(item) {
+                    if (item.style.display !== "none") {
+                        var checkbox = item.querySelector(".company-checkbox");
+                        if (checkbox) {
+                            checkbox.checked = true;
+                            updateBadge(checkbox);
+                        }
+                    }
+                });
+                updateCount();
+            });
+        }
+
+        // Deselect all visible companies.
+        if (deselectAllBtn) {
+            deselectAllBtn.addEventListener("click", function() {
+                console.log("SM_ESTRATOOS: Deselect All clicked");
+                companyItems.forEach(function(item) {
+                    if (item.style.display !== "none") {
+                        var checkbox = item.querySelector(".company-checkbox");
+                        if (checkbox) {
+                            checkbox.checked = false;
+                            updateBadge(checkbox);
+                        }
+                    }
+                });
+                updateCount();
+            });
+        }
+
+        // Update count and badge when any checkbox changes.
         checkboxes.forEach(function(checkbox) {
-            updateBadge(checkbox);
-        });
-    }
-
-    // Search filter - filter companies as user types.
-    if (searchInput) {
-        searchInput.addEventListener("input", function() {
-            var filter = this.value.toLowerCase().trim();
-
-            companyItems.forEach(function(item) {
-                var name = item.getAttribute("data-name") || "";
-                if (filter === "" || name.indexOf(filter) !== -1) {
-                    item.style.display = "";
-                } else {
-                    item.style.display = "none";
-                }
+            checkbox.addEventListener("change", function() {
+                updateCount();
+                updateBadge(this);
             });
         });
-    }
 
-    // Select all visible companies.
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener("click", function() {
-            companyItems.forEach(function(item) {
-                if (item.style.display !== "none") {
-                    var checkbox = item.querySelector(".company-checkbox");
-                    if (checkbox) {
-                        checkbox.checked = true;
-                        updateBadge(checkbox);
-                    }
-                }
-            });
-            updateCount();
-        });
-    }
-
-    // Deselect all visible companies.
-    if (deselectAllBtn) {
-        deselectAllBtn.addEventListener("click", function() {
-            companyItems.forEach(function(item) {
-                if (item.style.display !== "none") {
-                    var checkbox = item.querySelector(".company-checkbox");
-                    if (checkbox) {
-                        checkbox.checked = false;
-                        updateBadge(checkbox);
-                    }
-                }
-            });
-            updateCount();
-        });
-    }
-
-    // Update count and badge when any checkbox changes.
-    checkboxes.forEach(function(checkbox) {
-        checkbox.addEventListener("change", function() {
-            updateCount();
-            updateBadge(this);
-        });
+        console.log("SM_ESTRATOOS: All event listeners attached successfully");
     });
-});
+})();
 </script>
-SCRIPT;
+<?php
 
 echo $OUTPUT->footer();
