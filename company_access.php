@@ -203,21 +203,13 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
 (function() {
     "use strict";
 
-    console.log("SM_ESTRATOOS v1.7.18: Script starting...");
-
     document.addEventListener("DOMContentLoaded", function() {
-        console.log("SM_ESTRATOOS: DOMContentLoaded fired");
-
         var searchInput = document.getElementById("company-search");
         var companyItems = document.querySelectorAll(".company-item");
         var checkboxes = document.querySelectorAll(".company-checkbox");
         var selectAllBtn = document.getElementById("select-all-companies");
         var deselectAllBtn = document.getElementById("deselect-all-companies");
         var countDisplay = document.getElementById("selected-count");
-
-        console.log("SM_ESTRATOOS: searchInput found:", searchInput !== null);
-        console.log("SM_ESTRATOOS: companyItems count:", companyItems.length);
-        console.log("SM_ESTRATOOS: checkboxes count:", checkboxes.length);
 
         // Update enabled count.
         function updateCount() {
@@ -246,44 +238,26 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
 
         // Search filter - filter companies as user types.
         if (searchInput) {
-            console.log("SM_ESTRATOOS: Attaching input event listener to search box");
-
-            // Log all company data-name values at startup
-            console.log("SM_ESTRATOOS: Company data-name values:");
-            companyItems.forEach(function(item, index) {
-                console.log("  Item " + index + ": data-name='" + item.getAttribute("data-name") + "'");
-            });
-
             searchInput.addEventListener("input", function() {
                 var filter = this.value.toLowerCase().trim();
-                console.log("SM_ESTRATOOS: Search input - filter: '" + filter + "'");
 
-                companyItems.forEach(function(item, index) {
+                companyItems.forEach(function(item) {
                     var name = item.getAttribute("data-name") || "";
                     var matches = (filter === "" || name.indexOf(filter) !== -1);
-                    console.log("SM_ESTRATOOS: Item " + index + " name='" + name + "' matches=" + matches);
 
                     if (matches) {
-                        // Use classList to remove d-none (Bootstrap's !important display:none)
                         item.classList.remove("d-none");
-                        console.log("SM_ESTRATOOS: Setting item " + index + " to VISIBLE (removed d-none)");
                     } else {
-                        // Use classList to add d-none (Bootstrap's !important display:none)
                         item.classList.add("d-none");
-                        console.log("SM_ESTRATOOS: Setting item " + index + " to HIDDEN (added d-none)");
                     }
                 });
             });
-        } else {
-            console.error("SM_ESTRATOOS: searchInput NOT FOUND!");
         }
 
         // Select all visible companies.
         if (selectAllBtn) {
             selectAllBtn.addEventListener("click", function() {
-                console.log("SM_ESTRATOOS: Select All clicked");
                 companyItems.forEach(function(item) {
-                    // Check if item is visible (not hidden by d-none class)
                     if (!item.classList.contains("d-none")) {
                         var checkbox = item.querySelector(".company-checkbox");
                         if (checkbox) {
@@ -299,9 +273,7 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
         // Deselect all visible companies.
         if (deselectAllBtn) {
             deselectAllBtn.addEventListener("click", function() {
-                console.log("SM_ESTRATOOS: Deselect All clicked");
                 companyItems.forEach(function(item) {
-                    // Check if item is visible (not hidden by d-none class)
                     if (!item.classList.contains("d-none")) {
                         var checkbox = item.querySelector(".company-checkbox");
                         if (checkbox) {
@@ -321,8 +293,6 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
                 updateBadge(this);
             });
         });
-
-        console.log("SM_ESTRATOOS: All event listeners attached successfully");
     });
 })();
 </script>

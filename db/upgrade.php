@@ -1237,5 +1237,11 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011920, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.21: Cleanup - removed console logs, added comprehensive documentation.
+    if ($oldversion < 2025011921) {
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011921, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
