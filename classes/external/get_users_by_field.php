@@ -114,9 +114,20 @@ class get_users_by_field extends external_api {
                 return [];
             }
         } else {
-            // Standard Moodle token (non-IOMAD or no company): validate at system context.
+            // Standard Moodle token (non-IOMAD or no company).
             // No capability required for basic user info needed for messaging.
-            $context = \context_system::instance();
+            if (is_siteadmin()) {
+                // Site admin: Use system context.
+                $context = \context_system::instance();
+            } else {
+                // Non-IOMAD normal user: Use top-level category context.
+                $topcategory = $DB->get_record('course_categories', ['parent' => 0], 'id', IGNORE_MULTIPLE);
+                if ($topcategory) {
+                    $context = \context_coursecat::instance($topcategory->id);
+                } else {
+                    $context = \context_system::instance();
+                }
+            }
             self::validate_context($context);
         }
 

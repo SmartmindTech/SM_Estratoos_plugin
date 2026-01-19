@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011931</version>
+        <version>2025011932</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.31</release>
+        <release>1.7.32</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,25 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.31/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.32/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.31</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.32</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.31 - Expiry Date Label</h3>
+            <h3>Version 1.7.32 - Context Validation Fix for Non-IOMAD Users</h3>
 
-            <h4>UI Improvements</h4>
+            <h4>Bug Fixes</h4>
             <ul>
-                <li>Added "Expiry date:" label before the dropdown selector in Company Access page</li>
+                <li><strong>Critical:</strong> Fixed context validation in 9 API functions to support non-IOMAD normal users</li>
+                <li>Non-admin users now use category context instead of system context (which was causing access denied errors)</li>
             </ul>
 
-            <h4>Previous Versions</h4>
+            <h4>Affected Functions</h4>
             <ul>
-                <li><strong>v1.7.30:</strong> Fixed new API functions not being added on upgrade, improved expiry date dropdown UI</li>
-                <li><strong>v1.7.29:</strong> get_token_details API, get_companies_access_status API, company access expiration dates</li>
+                <li>get_token_details, get_companies_access_status, get_company_manager_tokens_status</li>
+                <li>get_users, get_users_by_field, get_categories</li>
+                <li>get_conversations, get_conversation_messages, send_instant_messages</li>
+            </ul>
+
+            <h4>Context Handling Pattern</h4>
+            <ul>
+                <li><strong>IOMAD tokens:</strong> Use company's category context</li>
+                <li><strong>Site admins:</strong> Use system context</li>
+                <li><strong>Non-IOMAD normal users:</strong> Use top-level category context</li>
             </ul>
             ]]>
         </releasenotes>

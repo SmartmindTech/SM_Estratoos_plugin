@@ -69,8 +69,24 @@ class get_company_manager_tokens_status extends external_api {
         ]);
         $companyid = $params['companyid'];
 
-        // Validate context.
-        $context = \context_system::instance();
+        // Validate context based on token type.
+        $usercompanyid = \local_sm_estratoos_plugin\util::get_company_id_from_token();
+        if ($usercompanyid && \local_sm_estratoos_plugin\util::is_iomad_installed()) {
+            // IOMAD: Use company's category context.
+            $company = $DB->get_record('company', ['id' => $usercompanyid], '*', MUST_EXIST);
+            $context = \context_coursecat::instance($company->category);
+        } else if (is_siteadmin()) {
+            // Site admin: Use system context.
+            $context = \context_system::instance();
+        } else {
+            // Non-IOMAD normal user: Use top-level category context.
+            $topcategory = $DB->get_record('course_categories', ['parent' => 0], 'id', IGNORE_MULTIPLE);
+            if ($topcategory) {
+                $context = \context_coursecat::instance($topcategory->id);
+            } else {
+                $context = \context_system::instance();
+            }
+        }
         self::validate_context($context);
 
         // Check if IOMAD is installed.

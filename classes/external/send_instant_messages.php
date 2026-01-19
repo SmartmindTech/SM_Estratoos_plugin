@@ -120,7 +120,19 @@ class send_instant_messages extends external_api {
                 [$companyid]
             );
         } else {
-            // Standard Moodle token: validate at system context.
+            // Standard Moodle token (non-IOMAD or no company).
+            if (is_siteadmin()) {
+                // Site admin: Use system context.
+                $context = \context_system::instance();
+            } else {
+                // Non-IOMAD normal user: Use top-level category context.
+                $topcategory = $DB->get_record('course_categories', ['parent' => 0], 'id', IGNORE_MULTIPLE);
+                if ($topcategory) {
+                    $context = \context_coursecat::instance($topcategory->id);
+                } else {
+                    $context = \context_system::instance();
+                }
+            }
             self::validate_context($context);
 
             // Require standard messaging capability for non-IOMAD tokens.

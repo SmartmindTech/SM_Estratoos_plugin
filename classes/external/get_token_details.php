@@ -68,7 +68,24 @@ class get_token_details extends external_api {
             'token' => $token,
         ]);
 
-        $context = \context_system::instance();
+        // Validate context based on token type.
+        $companyid = util::get_company_id_from_token();
+        if ($companyid && util::is_iomad_installed()) {
+            // IOMAD: Use company's category context.
+            $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
+            $context = \context_coursecat::instance($company->category);
+        } else if (is_siteadmin()) {
+            // Site admin: Use system context.
+            $context = \context_system::instance();
+        } else {
+            // Non-IOMAD normal user: Use top-level category context.
+            $topcategory = $DB->get_record('course_categories', ['parent' => 0], 'id', IGNORE_MULTIPLE);
+            if ($topcategory) {
+                $context = \context_coursecat::instance($topcategory->id);
+            } else {
+                $context = \context_system::instance();
+            }
+        }
         self::validate_context($context);
 
         // Must provide either tokenid or token.
