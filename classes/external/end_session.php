@@ -62,8 +62,24 @@ class end_session extends external_api {
         // Validate parameters.
         $params = self::validate_parameters(self::execute_parameters(), ['sid' => $sid]);
 
-        // Validate context.
-        $context = \context_system::instance();
+        // Validate context based on token type.
+        $companyid = \local_sm_estratoos_plugin\util::get_company_id_from_token();
+        if ($companyid && \local_sm_estratoos_plugin\util::is_iomad_installed()) {
+            // IOMAD: Use company's category context.
+            $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
+            $context = \context_coursecat::instance($company->category);
+        } else if (is_siteadmin()) {
+            // Site admin: Use system context.
+            $context = \context_system::instance();
+        } else {
+            // Non-IOMAD normal user: Use top-level category context.
+            $topcategory = $DB->get_record('course_categories', ['parent' => 0], 'id', IGNORE_MULTIPLE);
+            if ($topcategory) {
+                $context = \context_coursecat::instance($topcategory->id);
+            } else {
+                $context = \context_system::instance();
+            }
+        }
         self::validate_context($context);
 
         // Validate session ID format.

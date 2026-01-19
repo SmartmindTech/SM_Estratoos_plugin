@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011933</version>
+        <version>2025011934</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.33</release>
+        <release>1.7.34</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,26 +29,26 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.33/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.34/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.33</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.34</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.33 - Add Missing Utility Method</h3>
+            <h3>Version 1.7.34 - Fix Session API Context</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Added missing <code>get_company_id_from_token()</code> method to util.php</li>
-                <li>This method is required by the context validation fix in v1.7.32</li>
+                <li>Fixed context validation in session tracking APIs: start_session, session_heartbeat, end_session</li>
+                <li>These functions now use the same context pattern as other API functions</li>
             </ul>
 
-            <h4>Previous Version (1.7.32)</h4>
+            <h4>Previous Versions</h4>
             <ul>
-                <li>Fixed context validation in 9 API functions for non-IOMAD users</li>
-                <li>Non-admin users now use category context instead of system context</li>
+                <li><strong>v1.7.33:</strong> Added missing get_company_id_from_token() method</li>
+                <li><strong>v1.7.32:</strong> Fixed context validation in 9 API functions for non-IOMAD users</li>
             </ul>
             ]]>
         </releasenotes>
