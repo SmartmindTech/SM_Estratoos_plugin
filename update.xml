@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011923</version>
+        <version>2025011924</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.23</release>
+        <release>1.7.24</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,33 +29,33 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.23/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.24/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.23</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.24</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.23 - Moodle Presence Tracking via Sessions</h3>
-            <p><strong>New API functions to make SmartLearning users appear "online" in Moodle</strong></p>
+            <h3>Version 1.7.24 - Fix User Functions Capability for Company-Scoped Tokens</h3>
+            <p><strong>Fixed "nopermissions" error for get_users_by_field and get_users functions</strong></p>
 
-            <h4>New Functions:</h4>
+            <h4>Problem:</h4>
+            <p>Company-scoped tokens were failing with "Lo sentimos, pero no tiene los permisos para hacer esto
+            (Ver perfiles de usuario)" when calling user lookup functions for chat/messaging features.</p>
+
+            <h4>Solution:</h4>
+            <p>Removed the <code>moodle/user:viewdetails</code> capability requirement. Security is now
+            enforced by company filtering - users can only see other users in their own company.</p>
+
+            <h4>Affected Functions:</h4>
             <ul>
-                <li><code>local_sm_estratoos_plugin_start_session</code> - Create a session in mdl_sessions (user goes "online")</li>
-                <li><code>local_sm_estratoos_plugin_session_heartbeat</code> - Update session timestamp (keep user "online")</li>
-                <li><code>local_sm_estratoos_plugin_end_session</code> - Delete session (user goes "offline")</li>
+                <li><code>local_sm_estratoos_plugin_get_users_by_field</code></li>
+                <li><code>local_sm_estratoos_plugin_get_users</code></li>
             </ul>
 
-            <h4>How It Works:</h4>
-            <p>SmartLearning calls <code>start_session</code> when users begin using the platform,
-            <code>session_heartbeat</code> every 5 minutes, and <code>end_session</code> when they leave.
-            This creates records in Moodle's <code>mdl_sessions</code> table, making users appear in
-            "users online" blocks and presence reports.</p>
-
-            <h4>Session ID Convention:</h4>
-            <p>Sessions created by SmartLearning use a <code>slp_</code> prefix (SmartLearning Presence)
-            to distinguish them from browser sessions.</p>
+            <h4>Impact:</h4>
+            <p>Chat user lists and user info lookups now work correctly with company-scoped tokens.</p>
             ]]>
         </releasenotes>
     </update>

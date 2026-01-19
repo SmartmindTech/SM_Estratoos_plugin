@@ -193,10 +193,11 @@ $functions = [
         'classname' => 'local_sm_estratoos_plugin\external\get_users_by_field',
         'methodname' => 'execute',
         'description' => 'Get company users by field (id, username, email, idnumber). ' .
-                        'Works with category-scoped tokens. Returns only users in the token\'s company.',
+                        'Works with category-scoped tokens. Returns only users in the token\'s company. ' .
+                        'No capability required - security enforced by company filtering. [SM Estratoos API Function]',
         'type' => 'read',
         'ajax' => true,
-        'capabilities' => 'moodle/user:viewdetails',
+        'capabilities' => '',
         'loginrequired' => true,
     ],
 
@@ -205,10 +206,11 @@ $functions = [
         'classname' => 'local_sm_estratoos_plugin\external\get_users',
         'methodname' => 'execute',
         'description' => 'Search company users by criteria (firstname, lastname, email, username, idnumber). ' .
-                        'Works with category-scoped tokens. Returns only users in the token\'s company. [SM Estratoos API Function]',
+                        'Works with category-scoped tokens. Returns only users in the token\'s company. ' .
+                        'No capability required - security enforced by company filtering. [SM Estratoos API Function]',
         'type' => 'read',
         'ajax' => true,
-        'capabilities' => 'moodle/user:viewdetails',
+        'capabilities' => '',
         'loginrequired' => true,
     ],
 

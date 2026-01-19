@@ -1271,5 +1271,16 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011923, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.24: Fix capability issue for get_users_by_field and get_users functions.
+    // These functions now work without requiring moodle/user:viewdetails capability.
+    // Security is enforced by company filtering (IOMAD tokens only see company users).
+    if ($oldversion < 2025011924) {
+        // No database changes needed - just code changes.
+        // Purge caches to ensure the updated services.php is loaded.
+        purge_all_caches();
+
+        upgrade_plugin_savepoint(true, 2025011924, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

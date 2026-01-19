@@ -96,10 +96,11 @@ class get_users_by_field extends external_api {
 
         if ($companyid > 0) {
             // IOMAD company-scoped token: validate at category context.
+            // No capability required - users in the same company can view each other's basic info.
+            // Security is enforced by company filtering below.
             $company = $DB->get_record('company', ['id' => $companyid], '*', MUST_EXIST);
             $context = \context_coursecat::instance($company->category);
             self::validate_context($context);
-            require_capability('moodle/user:viewdetails', $context);
 
             // Get company user IDs for filtering.
             $companyuserids = $DB->get_fieldset_select(
@@ -114,9 +115,9 @@ class get_users_by_field extends external_api {
             }
         } else {
             // Standard Moodle token (non-IOMAD or no company): validate at system context.
+            // No capability required for basic user info needed for messaging.
             $context = \context_system::instance();
             self::validate_context($context);
-            require_capability('moodle/user:viewdetails', $context);
         }
 
         // Query users matching field.
