@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011934</version>
+        <version>2025011935</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.34</release>
+        <release>1.7.35</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,24 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.34/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.35/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.34</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.35</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.34 - Fix Session API Context</h3>
+            <h3>Version 1.7.35 - Fix Timezone in Expiry Date Picker</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fixed context validation in session tracking APIs: start_session, session_heartbeat, end_session</li>
-                <li>These functions now use the same context pattern as other API functions</li>
+                <li>Fixed timezone mismatch in company expiry date picker</li>
+                <li>JavaScript now uses UTC ("Z" suffix) when converting dates to timestamps</li>
+                <li>PHP now uses gmdate() instead of date() for consistent UTC handling</li>
+                <li>This fixes the 1-day shift issue when server timezone differs from browser timezone</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li><strong>v1.7.34:</strong> Fixed context validation in session APIs</li>
                 <li><strong>v1.7.33:</strong> Added missing get_company_id_from_token() method</li>
                 <li><strong>v1.7.32:</strong> Fixed context validation in 9 API functions for non-IOMAD users</li>
             </ul>

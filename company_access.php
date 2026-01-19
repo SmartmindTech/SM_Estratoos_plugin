@@ -187,7 +187,8 @@ if (empty($companies)) {
         echo html_writer::end_div(); // custom-control
 
         // Expiry date dropdown (v1.7.29 - v1.7.30 improved UI).
-        $expiryvalue = !empty($company->expirydate) ? date('Y-m-d', $company->expirydate) : '';
+        // Use gmdate for UTC to avoid timezone issues between server/browser.
+        $expiryvalue = !empty($company->expirydate) ? gmdate('Y-m-d', $company->expirydate) : '';
         $expirydisplay = !empty($company->expirydate) ? userdate($company->expirydate, get_string('strftimedate', 'langconfig')) : '';
         echo html_writer::start_div('ml-auto d-flex align-items-center expiry-container', [
             'data-companyid' => $company->id
@@ -394,8 +395,9 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
                 var hiddenField = document.getElementById("expirydate-hidden-" + companyId);
 
                 if (this.value) {
-                    // Convert date to timestamp (end of day, 23:59:59).
-                    var timestamp = Math.floor(new Date(this.value + "T23:59:59").getTime() / 1000);
+                    // Convert date to timestamp (end of day, 23:59:59 UTC).
+                    // Use "Z" suffix to ensure UTC timezone, avoiding browser timezone issues.
+                    var timestamp = Math.floor(new Date(this.value + "T23:59:59Z").getTime() / 1000);
                     if (hiddenField) hiddenField.value = timestamp;
 
                     // Format date for display.
