@@ -1243,5 +1243,18 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011921, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.22: Add send_instant_messages function for company-scoped messaging.
+    // This function mirrors core_message_send_instant_messages but validates
+    // recipients against the token's company scope instead of requiring
+    // system-level moodle/site:sendmessage capability.
+    if ($oldversion < 2025011922) {
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run the full service rebuild to add the new messaging function.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        upgrade_plugin_savepoint(true, 2025011922, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

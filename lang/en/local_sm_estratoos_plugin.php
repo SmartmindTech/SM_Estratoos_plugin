@@ -354,3 +354,6 @@ $string['tokenactive'] = 'Token active';
 $string['companydisabled'] = 'Company disabled - tokens suspended';
 $string['companyenabled'] = 'Company enabled - tokens reactivated';
 $string['tokensuspendedwarning'] = 'This token is suspended because the company access has been disabled.';
+
+// Messaging (v1.7.22).
+$string['recipientnotincompany'] = 'Recipient is not a member of your company';

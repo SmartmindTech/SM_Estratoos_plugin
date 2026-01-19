@@ -249,6 +249,20 @@ $functions = [
         'loginrequired' => true,
     ],
 
+    // Send instant messages with company-scoped validation (v1.7.22).
+    'local_sm_estratoos_plugin_send_instant_messages' => [
+        'classname' => 'local_sm_estratoos_plugin\external\send_instant_messages',
+        'methodname' => 'execute',
+        'description' => 'Send instant messages to users within the same company scope. ' .
+                        'Works with category-scoped tokens (IOMAD) and system tokens. ' .
+                        'Recipients must be in the same company as the sender for IOMAD tokens. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
     // =========================================================================
     // COURSE CONTENT FUNCTIONS
     // =========================================================================

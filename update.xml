@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011921</version>
+        <version>2025011922</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.21</release>
+        <release>1.7.22</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,28 +29,30 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.21/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.22/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.21</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.22</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.21 - Cleanup & Documentation</h3>
-            <p><strong>Production-ready release with comprehensive documentation</strong></p>
+            <h3>Version 1.7.22 - Company-Scoped Instant Messaging</h3>
+            <p><strong>New API function for sending messages with company-level tokens</strong></p>
 
-            <h4>Changes:</h4>
+            <h4>New Function:</h4>
+            <p><code>local_sm_estratoos_plugin_send_instant_messages</code></p>
             <ul>
-                <li>Removed all console.log debugging statements from company_access.php</li>
-                <li>Added comprehensive Spanish documentation (DOCUMENTACION.md)</li>
-                <li>Updated CLAUDE.md with recent version history</li>
-                <li>Added troubleshooting notes for Bootstrap CSS and AMD caching issues</li>
+                <li>Same API structure as <code>core_message_send_instant_messages</code></li>
+                <li>Works with company/category-scoped tokens (IOMAD)</li>
+                <li>Recipients must be in the same company as the sender</li>
+                <li>Falls back to standard capability check for system tokens</li>
             </ul>
 
-            <h4>Previous Fix (v1.7.20):</h4>
-            <p>Fixed company search filtering using Bootstrap's <code>d-none</code> class
-            instead of inline <code>style.display</code> to properly override <code>d-flex</code>.</p>
+            <h4>Key Difference from Core:</h4>
+            <p>The core function requires system-level <code>moodle/site:sendmessage</code> capability.
+            This plugin function validates at company category level for IOMAD tokens, allowing
+            company managers to send messages without site-admin privileges.</p>
             ]]>
         </releasenotes>
     </update>

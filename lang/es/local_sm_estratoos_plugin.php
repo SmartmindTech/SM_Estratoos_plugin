@@ -353,3 +353,6 @@ $string['tokensuspended'] = 'Token suspendido';
 $string['tokenactive'] = 'Token activo';
 $string['companydisabled'] = 'Empresa deshabilitada - tokens suspendidos';
 $string['companyenabled'] = 'Empresa habilitada - tokens reactivados';
+
+// Mensajería (v1.7.22).
+$string['recipientnotincompany'] = 'El destinatario no es miembro de su empresa';
