@@ -1203,5 +1203,12 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011915, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.16: Rebuild company access page from scratch (UI only, no DB changes).
+    if ($oldversion < 2025011916) {
+        // Purge caches to ensure new AMD module is loaded.
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011916, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

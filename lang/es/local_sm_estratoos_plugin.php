@@ -345,6 +345,7 @@ $string['deselectall'] = 'Deseleccionar Todo';
 $string['companiesenabled'] = 'empresas habilitadas';
 $string['companiesselected'] = 'empresas seleccionadas';
 $string['enabled'] = 'Habilitada';
+$string['disabled'] = 'Deshabilitada';
 $string['nocompanies'] = 'No se encontraron empresas.';
 $string['noiomad'] = 'Esta función solo está disponible en instalaciones multi-tenant IOMAD.';
 $string['backtodashboard'] = 'Volver al Panel';

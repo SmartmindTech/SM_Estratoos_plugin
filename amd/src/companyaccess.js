@@ -19,37 +19,23 @@
  * Provides search filtering, select all/deselect all functionality,
  * and live counter updates for the company access management page.
  *
+ * This module works with STATIC HTML (companies rendered by PHP)
+ * unlike userselection.js which works with AJAX-loaded users.
+ *
  * @module     local_sm_estratoos_plugin/companyaccess
  * @copyright  2025 SmartMind Technologies
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery', 'core/str'], function($, Str) {
+define(['jquery'], function($) {
     'use strict';
-
-    var strings = {};
-
-    /**
-     * Load language strings.
-     * @returns {Promise}
-     */
-    var loadStrings = function() {
-        return Str.get_strings([
-            {key: 'companiesselected', component: 'local_sm_estratoos_plugin'},
-            {key: 'enabled', component: 'local_sm_estratoos_plugin'}
-        ]).then(function(strs) {
-            strings.companiesselected = strs[0];
-            strings.enabled = strs[1];
-            return true;
-        });
-    };
 
     /**
      * Update the selected count display.
      */
     var updateCount = function() {
         var count = $('.company-checkbox:checked').length;
-        $('#selected-count').text(count + ' ' + strings.companiesselected);
+        $('#selected-count').text(count + ' companies selected');
     };
 
     /**
@@ -57,38 +43,28 @@ define(['jquery', 'core/str'], function($, Str) {
      */
     var updateBadges = function() {
         $('.company-checkbox').each(function() {
-            var $checkbox = $(this);
-            var $item = $checkbox.closest('.company-item');
+            var $cb = $(this);
+            var $item = $cb.closest('.company-item');
             var $badge = $item.find('.company-status-badge');
 
-            if ($checkbox.is(':checked')) {
-                // Add badge if not exists.
+            if ($cb.is(':checked')) {
+                // Show Enabled badge (green).
                 if ($badge.length === 0) {
-                    var $label = $item.find('.custom-control-label');
-                    $label.append('<span class="badge badge-success ml-2 company-status-badge">' +
-                        strings.enabled + '</span>');
+                    $item.find('.custom-control-label').append(
+                        '<span class="badge badge-success ml-2 company-status-badge">Enabled</span>'
+                    );
+                } else {
+                    $badge.removeClass('badge-secondary').addClass('badge-success').text('Enabled');
                 }
             } else {
-                // Remove badge.
-                $badge.remove();
-            }
-        });
-    };
-
-    /**
-     * Filter companies based on search term.
-     * @param {string} filter - The search term (lowercase).
-     */
-    var filterCompanies = function(filter) {
-        $('.company-item').each(function() {
-            var name = $(this).attr('data-name');
-            if (!name) {
-                name = '';
-            }
-            if (filter === '' || name.indexOf(filter) !== -1) {
-                $(this).show();
-            } else {
-                $(this).hide();
+                // Show Disabled badge (gray).
+                if ($badge.length === 0) {
+                    $item.find('.custom-control-label').append(
+                        '<span class="badge badge-secondary ml-2 company-status-badge">Disabled</span>'
+                    );
+                } else {
+                    $badge.removeClass('badge-success').addClass('badge-secondary').text('Disabled');
+                }
             }
         });
     };
@@ -97,38 +73,65 @@ define(['jquery', 'core/str'], function($, Str) {
      * Initialize the module.
      */
     var init = function() {
-        loadStrings().then(function() {
-            // Debug: Log initialization.
+        // Log initialization immediately.
+        if (window.console && window.console.log) {
+            window.console.log('SM_ESTRATOOS: companyaccess init() called');
+        }
+
+        // Wait for DOM ready using jQuery.
+        $(function() {
             if (window.console && window.console.log) {
-                window.console.log('SM_ESTRATOOS: companyaccess module initialized');
+                window.console.log('SM_ESTRATOOS: DOM ready, binding events');
                 window.console.log('SM_ESTRATOOS: Found ' + $('.company-item').length + ' company items');
+                window.console.log('SM_ESTRATOOS: Search input exists: ' + ($('#company-search').length > 0));
             }
 
-            // Search filter - use document delegation for robust event binding.
-            // This is the SAME PATTERN used by userselection.js (line 382).
+            // SEARCH - Filter by showing/hiding elements (no re-render needed).
+            // Using document delegation for maximum reliability.
             $(document).on('input keyup', '#company-search', function() {
                 var filter = $(this).val().toLowerCase().trim();
-                filterCompanies(filter);
+
+                if (window.console && window.console.log) {
+                    window.console.log('SM_ESTRATOOS: Search filter: "' + filter + '"');
+                }
+
+                $('.company-item').each(function() {
+                    var name = $(this).attr('data-name') || '';
+                    if (filter === '' || name.indexOf(filter) !== -1) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
             });
 
-            // Select all visible companies - document delegation.
+            // SELECT ALL - Using document delegation.
             $(document).on('click', '#select-all-companies', function(e) {
                 e.preventDefault();
+                if (window.console && window.console.log) {
+                    window.console.log('SM_ESTRATOOS: Select All clicked');
+                }
                 $('.company-checkbox:visible').prop('checked', true);
                 updateCount();
                 updateBadges();
             });
 
-            // Deselect all visible companies - document delegation.
+            // DESELECT ALL - Using document delegation.
             $(document).on('click', '#deselect-all-companies', function(e) {
                 e.preventDefault();
+                if (window.console && window.console.log) {
+                    window.console.log('SM_ESTRATOOS: Deselect All clicked');
+                }
                 $('.company-checkbox:visible').prop('checked', false);
                 updateCount();
                 updateBadges();
             });
 
-            // Update count and badges when any checkbox changes - document delegation.
+            // CHECKBOX CHANGE - Using document delegation.
             $(document).on('change', '.company-checkbox', function() {
+                if (window.console && window.console.log) {
+                    window.console.log('SM_ESTRATOOS: Checkbox changed');
+                }
                 updateCount();
                 updateBadges();
             });
@@ -136,10 +139,8 @@ define(['jquery', 'core/str'], function($, Str) {
             // Initial count update.
             updateCount();
 
-            return true;
-        }).catch(function(err) {
-            if (window.console && window.console.error) {
-                window.console.error('SM_ESTRATOOS: Error loading strings', err);
+            if (window.console && window.console.log) {
+                window.console.log('SM_ESTRATOOS: All event handlers bound successfully');
             }
         });
     };

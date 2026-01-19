@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011915</version>
+        <version>2025011916</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.15</release>
+        <release>1.7.16</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,36 +29,40 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.15/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.16/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.15</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.16</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.15 - Fix Role Cleanup & Company Search</h3>
-            <p><strong>Critical fixes for system-level role cleanup and company search functionality</strong></p>
+            <h3>Version 1.7.16 - Rebuild Company Access Page</h3>
+            <p><strong>Complete rebuild of company access page to match batch token design</strong></p>
 
-            <h4>Bug Fixes:</h4>
+            <h4>Changes:</h4>
             <ul>
-                <li><strong>Role Cleanup:</strong> Fixed broken upgrade steps (v1.7.1/v1.7.3) that called non-existent function</li>
-                <li><strong>Aggressive Cleanup:</strong> Removes ALL system-level editingteacher and student roles</li>
-                <li><strong>Company Search:</strong> Fixed search bar using document-level event delegation (same as user search)</li>
+                <li><strong>Complete Rebuild:</strong> company_access.php rewritten from scratch</li>
+                <li><strong>Same Design:</strong> Uses exact same HTML structure as batch_token_form.php</li>
+                <li><strong>Simpler JS:</strong> companyaccess.js simplified - no Promises, immediate binding</li>
+                <li><strong>Debug Logging:</strong> Console logs help diagnose if search works</li>
             </ul>
 
-            <h4>Technical Changes:</h4>
+            <h4>HTML Structure (same as user selection):</h4>
             <ul>
-                <li>Commented out broken function calls in db/upgrade.php (lines 742, 763)</li>
-                <li>Added v1.7.15 upgrade step with aggressive system-level role removal</li>
-                <li>companyaccess.js now uses $(document).on() pattern like userselection.js</li>
-                <li>All event handlers use document delegation for robust timing</li>
+                <li>Quick select buttons with btn-group</li>
+                <li>Counter and search bar in flex header</li>
+                <li>Scrollable wrapper with border rounded</li>
+                <li>Custom checkbox structure for each company</li>
             </ul>
 
-            <h4>Why this matters:</h4>
-            <p>Previous versions had a bug where upgrade steps called a function that didn't exist,
-            causing upgrades to fail. This left system-level teacher/student roles assigned,
-            which breaks IOMAD's company context handling. This version fixes both issues.</p>
+            <h4>How to Test:</h4>
+            <ol>
+                <li>Open browser console (F12)</li>
+                <li>Go to Plugin → Manage Company Access</li>
+                <li>Check console for "SM_ESTRATOOS:" messages</li>
+                <li>Type in search box - should see filter message and companies should filter</li>
+            </ol>
             ]]>
         </releasenotes>
     </update>

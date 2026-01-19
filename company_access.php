@@ -91,11 +91,11 @@ echo html_writer::start_tag('form', [
 ]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
-// Quick select buttons - same style as user selection.
+// Quick select buttons - SAME structure as batch_token_form.php.
 echo html_writer::start_div('company-quick-select mb-2');
 echo html_writer::tag('label', get_string('quickselect', 'local_sm_estratoos_plugin') . ':', ['class' => 'font-weight-bold']);
 echo html_writer::start_div('btn-group ml-2', ['role' => 'group']);
-echo html_writer::tag('button', get_string('selectallusers', 'local_sm_estratoos_plugin'), [
+echo html_writer::tag('button', get_string('selectall'), [
     'type' => 'button',
     'class' => 'btn btn-sm btn-outline-secondary',
     'id' => 'select-all-companies'
@@ -108,11 +108,10 @@ echo html_writer::tag('button', get_string('selectnone', 'local_sm_estratoos_plu
 echo html_writer::end_div();
 echo html_writer::end_div();
 
-// Header row with counter on left and search bar on right - same style as user selection.
+// Counter and Search - SAME layout as batch_token_form.php.
 echo html_writer::start_div('company-list-header d-flex justify-content-between align-items-center mb-2');
 echo html_writer::tag('span', $enabledcount . ' ' . get_string('companiesselected', 'local_sm_estratoos_plugin'), [
-    'id' => 'selected-count',
-    'data-initial' => $enabledcount
+    'id' => 'selected-count'
 ]);
 echo html_writer::empty_tag('input', [
     'type' => 'text',
@@ -123,9 +122,10 @@ echo html_writer::empty_tag('input', [
 ]);
 echo html_writer::end_div();
 
-// Company list with scrollbar - same style as user selection.
-echo html_writer::start_div('company-list-wrapper border rounded', [
+// Company list wrapper - SAME style as user-list-wrapper in batch_token_form.php.
+echo html_writer::start_div('', [
     'id' => 'company-list-wrapper',
+    'class' => 'border rounded',
     'style' => 'max-height: 400px; overflow-y: auto; background: #fafafa;'
 ]);
 
@@ -138,13 +138,13 @@ if (empty($companies)) {
     foreach ($companies as $company) {
         $id = 'company-' . $company->id;
 
-        // Company item - same style as user item.
+        // Company item - SAME structure as user-item in userselection.js.
         echo html_writer::start_div('company-item d-flex align-items-center py-2 px-2 border-bottom', [
             'data-name' => strtolower($company->name . ' ' . $company->shortname),
             'style' => 'background: #fff; margin-bottom: 1px;'
         ]);
 
-        // Custom checkbox - same style as user selection.
+        // Custom checkbox - SAME structure as batch_token_form.php.
         echo html_writer::start_div('custom-control custom-checkbox');
         echo html_writer::empty_tag('input', [
             'type' => 'checkbox',
@@ -159,12 +159,16 @@ if (empty($companies)) {
             'for' => $id,
             'style' => 'cursor: pointer;'
         ]);
-        echo html_writer::tag('strong', $company->name);
-        echo html_writer::tag('small', ' (' . $company->shortname . ')', ['class' => 'text-muted ml-2']);
-        // Status badge.
+        echo html_writer::tag('strong', format_string($company->name));
+        echo html_writer::tag('small', ' (' . format_string($company->shortname) . ')', ['class' => 'text-muted ml-2']);
+        // Status badge - show Enabled or Disabled.
         if ($company->enabled) {
             echo html_writer::tag('span', get_string('enabled', 'local_sm_estratoos_plugin'), [
                 'class' => 'badge badge-success ml-2 company-status-badge'
+            ]);
+        } else {
+            echo html_writer::tag('span', get_string('disabled', 'local_sm_estratoos_plugin'), [
+                'class' => 'badge badge-secondary ml-2 company-status-badge'
             ]);
         }
         echo html_writer::end_tag('label');
