@@ -88,6 +88,7 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="companyid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Reference to company.id"/>
         <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="1=enabled, 0=disabled"/>
+        <FIELD NAME="expirydate" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Expiration timestamp for company access (null = never expires)"/>
         <FIELD NAME="enabledby" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="User who enabled/modified access"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true"/>

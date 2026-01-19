@@ -614,9 +614,10 @@ class util {
 
     /**
      * Check if a company is enabled to access the plugin.
+     * Also checks if access has expired (v1.7.29).
      *
      * @param int $companyid Company ID.
-     * @return bool True if company is enabled.
+     * @return bool True if company is enabled and not expired.
      */
     public static function is_company_enabled(int $companyid): bool {
         global $DB, $CFG;
@@ -630,18 +631,69 @@ class util {
                 'companyid' => $companyid,
                 'enabled' => 1,
             ]);
-            $result = !empty($record);
+
+            if (empty($record)) {
+                return false;
+            }
+
+            // Check if expired (v1.7.29).
+            if (!empty($record->expirydate) && $record->expirydate < time()) {
+                // Company access has expired - auto-disable it.
+                self::disable_company_access($companyid, get_admin()->id);
+                return false;
+            }
 
             // DEBUG: Log the check result.
             if (!empty($CFG->debug) && $CFG->debug >= DEBUG_DEVELOPER) {
-                debugging("SM_ESTRATOOS DEBUG: is_company_enabled($companyid) = " . ($result ? '1' : '0') .
-                          ", record: " . ($record ? json_encode($record) : 'null'), DEBUG_DEVELOPER);
+                debugging("SM_ESTRATOOS DEBUG: is_company_enabled($companyid) = 1" .
+                          ", record: " . json_encode($record), DEBUG_DEVELOPER);
             }
 
-            return $result;
+            return true;
         } catch (\Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * Get company access expiry date.
+     *
+     * @param int $companyid Company ID.
+     * @return int|null Expiry timestamp or null if never expires.
+     */
+    public static function get_company_expiry_date(int $companyid): ?int {
+        global $DB;
+
+        $record = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $companyid]);
+        if ($record && !empty($record->expirydate)) {
+            return (int)$record->expirydate;
+        }
+        return null;
+    }
+
+    /**
+     * Set company access expiry date.
+     *
+     * @param int $companyid Company ID.
+     * @param int|null $expirydate Expiry timestamp or null for never.
+     * @param int|null $userid User who made the change.
+     * @return bool Success.
+     */
+    public static function set_company_expiry_date(int $companyid, ?int $expirydate, int $userid = null): bool {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        $record = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $companyid]);
+        if ($record) {
+            $record->expirydate = $expirydate;
+            $record->enabledby = $userid;
+            $record->timemodified = time();
+            return $DB->update_record('local_sm_estratoos_plugin_access', $record);
+        }
+        return false;
     }
 
     /**
@@ -940,9 +992,9 @@ class util {
     }
 
     /**
-     * Get all companies with their enabled status (for the admin page).
+     * Get all companies with their enabled status and expiry info (for the admin page).
      *
-     * @return array Array of companies with 'enabled' property.
+     * @return array Array of companies with 'enabled', 'expirydate', 'expired' properties.
      */
     public static function get_companies_with_access_status(): array {
         global $DB;
@@ -952,10 +1004,14 @@ class util {
         }
 
         $companies = self::get_companies();
-        $enabledids = self::get_enabled_companies();
+        $accessrecords = $DB->get_records('local_sm_estratoos_plugin_access', [], '', 'companyid, enabled, expirydate');
 
+        $now = time();
         foreach ($companies as $company) {
-            $company->enabled = in_array($company->id, $enabledids);
+            $access = isset($accessrecords[$company->id]) ? $accessrecords[$company->id] : null;
+            $company->enabled = $access && $access->enabled;
+            $company->expirydate = $access ? $access->expirydate : null;
+            $company->expired = !empty($company->expirydate) && $company->expirydate < $now;
         }
 
         return $companies;

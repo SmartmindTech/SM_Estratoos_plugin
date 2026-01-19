@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011928;  // YYYYMMDDXX format.
+$plugin->version = 2025011929;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.28';  // Fix auto-enable company for managers token reactivation bug.
+$plugin->release = '1.7.29';  // Token details API, company expiration dates, fix duplicate titles.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

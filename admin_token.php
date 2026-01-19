@@ -127,7 +127,6 @@ if ($mform->is_cancelled()) {
 // Display form.
 echo $OUTPUT->header();
 
-echo $OUTPUT->heading(get_string('admintoken', 'local_sm_estratoos_plugin'));
 echo html_writer::tag('p', get_string('admintokendesc', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
 
 // Warning box.

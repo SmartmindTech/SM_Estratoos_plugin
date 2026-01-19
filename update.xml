@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011928</version>
+        <version>2025011929</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.28</release>
+        <release>1.7.29</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,27 +29,36 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.28/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.29/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.28</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.29</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.28 - Fix Auto-Enable Company for Managers</h3>
-            <p><strong>Bug fix for manager token creation</strong></p>
+            <h3>Version 1.7.29 - Token Details API, Company Expiration, UI Fixes</h3>
 
-            <h4>Problem Fixed</h4>
-            <p>When creating a manager token for a previously disabled company:</p>
+            <h4>New Features</h4>
             <ul>
-                <li><strong>Before:</strong> Company showed as "Enabled" in UI but API calls still failed</li>
-                <li><strong>After:</strong> Both UI and API access work correctly</li>
+                <li><strong>get_token_details API:</strong> Retrieve comprehensive token information including user roles, restrictions, creation info, service, company data, and more</li>
+                <li><strong>get_companies_access_status API:</strong> Monitor company access status and expiration dates, with token counts and days remaining</li>
+                <li><strong>Company access expiration:</strong> Set expiration dates for company access in the Admin UI with automatic disable on expiry</li>
+            </ul>
+
+            <h4>UI Improvements</h4>
+            <ul>
+                <li>Added expiry date picker to Company Access page</li>
+                <li>Added "Expired" badge for companies with expired access</li>
+                <li>Fixed duplicate page titles across 6 admin pages</li>
             </ul>
 
             <h4>Technical Details</h4>
-            <p>The <code>auto_enable_company_for_managers()</code> function now properly synchronizes
-            both the access table AND reactivates suspended tokens when enabling a company.</p>
+            <ul>
+                <li>New scheduled task: <code>expire_company_access</code> runs every 6 hours</li>
+                <li>Database: Added <code>expirydate</code> field to company access table</li>
+                <li>Translations: English, Spanish, Portuguese (Brazilian)</li>
+            </ul>
             ]]>
         </releasenotes>
     </update>

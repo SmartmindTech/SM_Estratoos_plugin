@@ -135,6 +135,32 @@ $functions = [
         'loginrequired' => true,
     ],
 
+    // Get comprehensive token details (v1.7.29).
+    'local_sm_estratoos_plugin_get_token_details' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_token_details',
+        'methodname' => 'execute',
+        'description' => 'Get comprehensive details about a token including user roles, restrictions, creation info, ' .
+                        'service, company data, and more. Can lookup by plugin token ID or token hash. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
+    // Get company access status and expiration info (v1.7.29).
+    'local_sm_estratoos_plugin_get_companies_access_status' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_companies_access_status',
+        'methodname' => 'execute',
+        'description' => 'Get company access status and expiration dates. Returns enabled status, expiry date, days remaining, ' .
+                        'and token counts for all or specific companies. Useful for monitoring company access. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
     // =========================================================================
     // FORUM FUNCTIONS
     // =========================================================================

@@ -1384,5 +1384,33 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011926, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.27: Fix role detection for course-level roles, add role filter (code-only change).
+    if ($oldversion < 2025011927) {
+        upgrade_plugin_savepoint(true, 2025011927, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v1.7.28: Fix auto-enable company for managers token reactivation bug (code-only change).
+    if ($oldversion < 2025011928) {
+        upgrade_plugin_savepoint(true, 2025011928, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v1.7.29: Add company access expiration dates and get_token_details/get_companies_access_status API functions.
+    if ($oldversion < 2025011929) {
+        // 1. Add expirydate field to company access table.
+        $table = new xmldb_table('local_sm_estratoos_plugin_access');
+        $field = new xmldb_field('expirydate', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'enabled');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // 2. Add new API functions to service.
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011929, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

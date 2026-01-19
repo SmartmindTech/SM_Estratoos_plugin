@@ -43,7 +43,6 @@ $PAGE->navbar->add(get_string('manageservices', 'local_sm_estratoos_plugin'));
 $webservicemanager = new webservice();
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('manageservices', 'local_sm_estratoos_plugin'));
 
 // Description.
 echo html_writer::tag('p', get_string('manageservicesdesc', 'local_sm_estratoos_plugin'),

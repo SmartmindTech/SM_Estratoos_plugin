@@ -109,7 +109,6 @@ if ($updateavailable) {
     echo html_writer::end_div();
 }
 
-echo $OUTPUT->heading(get_string('dashboard', 'local_sm_estratoos_plugin'));
 echo html_writer::tag('p', get_string('dashboarddesc', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
 
 // Check if IOMAD is installed.

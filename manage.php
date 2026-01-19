@@ -111,7 +111,6 @@ if ($action === 'bulkrevoke' && !empty($tokenids)) {
 
 // Display page.
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('managetokens', 'local_sm_estratoos_plugin'));
 
 // Filters.
 global $DB;

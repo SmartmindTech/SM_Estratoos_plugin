@@ -263,8 +263,6 @@ if ($mform->is_cancelled()) {
 // Display form.
 echo $OUTPUT->header();
 
-echo $OUTPUT->heading(get_string('batchtokens', 'local_sm_estratoos_plugin'));
-
 // Show appropriate description based on IOMAD status.
 $isiomad = \local_sm_estratoos_plugin\util::is_iomad_installed();
 if ($isiomad) {

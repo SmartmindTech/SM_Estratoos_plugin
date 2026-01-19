@@ -369,3 +369,19 @@ $string['role_manager'] = 'Manager';
 $string['role_teacher'] = 'Teacher';
 $string['role_student'] = 'Student';
 $string['role_other'] = 'Other';
+
+// Company access expiration (v1.7.29).
+$string['expirydate'] = 'Expiry date';
+$string['never'] = 'Never';
+$string['expired'] = 'Expired';
+$string['companyexpired'] = 'Company access has expired';
+$string['task:expirecompanyaccess'] = 'Expire company access';
+$string['expirydate_help'] = 'Set an expiration date for this company\'s access. Leave empty for never.';
+
+// API functions (v1.7.29).
+$string['tokendetails'] = 'Token Details';
+$string['companiesaccessstatus'] = 'Companies Access Status';
+$string['daysremaining'] = 'Days remaining';
+$string['tokennotfound'] = 'Token not found';
+$string['invalidtoken'] = 'Invalid token';
+$string['accessdenied'] = 'Access denied';

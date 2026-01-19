@@ -45,4 +45,15 @@ $tasks = [
         'dayofweek' => '*',
         'disabled' => 0,
     ],
+    // Expire company access (v1.7.29) - runs every 6 hours.
+    [
+        'classname' => 'local_sm_estratoos_plugin\task\expire_company_access',
+        'blocking' => 0,
+        'minute' => '0',
+        'hour' => '*/6',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+        'disabled' => 0,
+    ],
 ];

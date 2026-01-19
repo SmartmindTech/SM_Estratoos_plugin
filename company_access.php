@@ -51,7 +51,17 @@ $PAGE->navbar->add(get_string('managecompanyaccess', 'local_sm_estratoos_plugin'
 // Handle form submission.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
     $enabledcompanies = optional_param_array('companies', [], PARAM_INT);
+    $expirydates = optional_param_array('expirydate', [], PARAM_INT);
+
     \local_sm_estratoos_plugin\util::set_enabled_companies($enabledcompanies);
+
+    // Update expiry dates for all companies.
+    $allcompanies = \local_sm_estratoos_plugin\util::get_companies();
+    foreach ($allcompanies as $company) {
+        $expiryvalue = isset($expirydates[$company->id]) ? (int)$expirydates[$company->id] : 0;
+        $expirydate = $expiryvalue > 0 ? $expiryvalue : null;
+        \local_sm_estratoos_plugin\util::set_company_expiry_date($company->id, $expirydate);
+    }
 
     redirect(
         $PAGE->url,
@@ -68,7 +78,6 @@ $totalcount = count($companies);
 
 echo $OUTPUT->header();
 
-echo $OUTPUT->heading(get_string('managecompanyaccess', 'local_sm_estratoos_plugin'));
 echo html_writer::tag('p', get_string('managecompanyaccessdesc', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
 
 // Back to dashboard link.
@@ -142,7 +151,7 @@ if (empty($companies)) {
         ]);
 
         // Custom checkbox - SAME structure as batch_token_form.php.
-        echo html_writer::start_div('custom-control custom-checkbox');
+        echo html_writer::start_div('custom-control custom-checkbox flex-grow-1');
         echo html_writer::empty_tag('input', [
             'type' => 'checkbox',
             'class' => 'custom-control-input company-checkbox',
@@ -168,8 +177,39 @@ if (empty($companies)) {
                 'class' => 'badge badge-secondary ml-2 company-status-badge'
             ]);
         }
+        // Expired badge (v1.7.29).
+        if (!empty($company->expired)) {
+            echo html_writer::tag('span', get_string('expired', 'local_sm_estratoos_plugin'), [
+                'class' => 'badge badge-danger ml-2'
+            ]);
+        }
         echo html_writer::end_tag('label');
         echo html_writer::end_div(); // custom-control
+
+        // Expiry date picker (v1.7.29).
+        $expiryvalue = !empty($company->expirydate) ? date('Y-m-d', $company->expirydate) : '';
+        echo html_writer::start_div('ml-auto d-flex align-items-center');
+        echo html_writer::tag('label', get_string('expirydate', 'local_sm_estratoos_plugin') . ':', [
+            'class' => 'mb-0 mr-2 small text-muted',
+            'for' => 'expiry-' . $company->id
+        ]);
+        echo html_writer::empty_tag('input', [
+            'type' => 'date',
+            'class' => 'form-control form-control-sm expiry-date-input',
+            'style' => 'width: 150px;',
+            'id' => 'expiry-' . $company->id,
+            'name' => 'expirydate_display[' . $company->id . ']',
+            'value' => $expiryvalue,
+            'data-companyid' => $company->id
+        ]);
+        // Hidden field for timestamp.
+        echo html_writer::empty_tag('input', [
+            'type' => 'hidden',
+            'name' => 'expirydate[' . $company->id . ']',
+            'id' => 'expirydate-hidden-' . $company->id,
+            'value' => $company->expirydate ?? 0
+        ]);
+        echo html_writer::end_div();
 
         echo html_writer::end_div(); // company-item
     }
@@ -291,6 +331,24 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
             checkbox.addEventListener("change", function() {
                 updateCount();
                 updateBadge(this);
+            });
+        });
+
+        // Handle date picker changes - convert date to timestamp (v1.7.29).
+        var dateInputs = document.querySelectorAll(".expiry-date-input");
+        dateInputs.forEach(function(dateInput) {
+            dateInput.addEventListener("change", function() {
+                var companyId = this.getAttribute("data-companyid");
+                var hiddenField = document.getElementById("expirydate-hidden-" + companyId);
+                if (hiddenField) {
+                    if (this.value) {
+                        // Convert date to timestamp (end of day, 23:59:59).
+                        var timestamp = Math.floor(new Date(this.value + "T23:59:59").getTime() / 1000);
+                        hiddenField.value = timestamp;
+                    } else {
+                        hiddenField.value = 0;
+                    }
+                }
             });
         });
     });

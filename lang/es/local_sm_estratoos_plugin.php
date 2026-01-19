@@ -368,3 +368,19 @@ $string['role_manager'] = 'Gerente';
 $string['role_teacher'] = 'Profesor';
 $string['role_student'] = 'Estudiante';
 $string['role_other'] = 'Otro';
+
+// Expiración de acceso de empresas (v1.7.29).
+$string['expirydate'] = 'Fecha de expiración';
+$string['never'] = 'Nunca';
+$string['expired'] = 'Expirado';
+$string['companyexpired'] = 'El acceso de la empresa ha expirado';
+$string['task:expirecompanyaccess'] = 'Expirar acceso de empresas';
+$string['expirydate_help'] = 'Establezca una fecha de expiración para el acceso. Deje vacío para nunca.';
+
+// Funciones API (v1.7.29).
+$string['tokendetails'] = 'Detalles del Token';
+$string['companiesaccessstatus'] = 'Estado de Acceso de Empresas';
+$string['daysremaining'] = 'Días restantes';
+$string['tokennotfound'] = 'Token no encontrado';
+$string['invalidtoken'] = 'Token inválido';
+$string['accessdenied'] = 'Acceso denegado';
