@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011926</version>
+        <version>2025011927</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.26</release>
+        <release>1.7.27</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,33 +29,31 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.26/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.27/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.26</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.27</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.26 - Non-IOMAD Support & Category-Scoped Tokens Security</h3>
-            <p><strong>Two security and compatibility improvements</strong></p>
+            <h3>Version 1.7.27 - Fix Role Detection & Add Role Filter</h3>
+            <p><strong>Two improvements to the token management page</strong></p>
 
-            <h4>1. Non-IOMAD Support for Manager Tokens API</h4>
-            <p>The <code>get_company_manager_tokens_status</code> function now works on non-IOMAD Moodles:</p>
+            <h4>1. Fixed Role Detection</h4>
+            <p>Role badges now correctly detect teachers and students:</p>
             <ul>
-                <li><strong>IOMAD mode:</strong> Returns managers for a specific company (managertype > 0)</li>
-                <li><strong>Non-IOMAD mode:</strong> Returns all users with manager-like roles who have tokens</li>
+                <li><strong>Before:</strong> Only checked system-level roles (many users showed as "Other")</li>
+                <li><strong>After:</strong> Checks ALL role assignments (system, category, and course level)</li>
             </ul>
-            <p>Manager detection via role patterns: manager, admin, gerente, administrador</p>
+            <p>Teachers and students enrolled in courses are now properly identified.</p>
 
-            <h4>2. Category-Scoped Tokens (Security Improvement)</h4>
-            <p>Non-IOMAD tokens for normal users now use <code>CONTEXT_COURSECAT</code> (level 40) instead of
-            <code>CONTEXT_SYSTEM</code> (level 10):</p>
+            <h4>2. Role Filter Dropdown</h4>
+            <p>Added a new filter dropdown on the token management page:</p>
             <ul>
-                <li><strong>Super admins:</strong> Keep system context (full access)</li>
-                <li><strong>Normal users:</strong> Category context (restricted access)</li>
+                <li>Filter tokens by role: Manager, Teacher, Student, or Other</li>
+                <li>Works alongside existing Company and Service filters</li>
             </ul>
-            <p>Existing tokens are automatically migrated during upgrade.</p>
             ]]>
         </releasenotes>
     </update>

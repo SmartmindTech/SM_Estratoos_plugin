@@ -33,6 +33,7 @@ require_login();
 // Get parameters.
 $companyid = optional_param('companyid', 0, PARAM_INT);
 $serviceid = optional_param('serviceid', 0, PARAM_INT);
+$rolefilter = optional_param('rolefilter', '', PARAM_ALPHA);
 $action = optional_param('action', '', PARAM_ALPHA);
 $tokenid = optional_param('tokenid', 0, PARAM_INT);
 $tokenids = optional_param_array('tokenids', [], PARAM_INT);
@@ -52,6 +53,7 @@ $PAGE->navbar->add(get_string('managetokens', 'local_sm_estratoos_plugin'));
 $returnurl = new moodle_url('/local/sm_estratoos_plugin/manage.php', [
     'companyid' => $companyid,
     'serviceid' => $serviceid,
+    'rolefilter' => $rolefilter,
 ]);
 
 // Handle actions.
@@ -154,6 +156,19 @@ echo html_writer::label(get_string('service', 'local_sm_estratoos_plugin') . ': 
 echo html_writer::select($services, 'serviceid', $serviceid, false, ['id' => 'filterservice', 'class' => 'form-control']);
 echo html_writer::end_div();
 
+// Role filter.
+$roles = [
+    '' => get_string('all'),
+    'manager' => get_string('role_manager', 'local_sm_estratoos_plugin'),
+    'teacher' => get_string('role_teacher', 'local_sm_estratoos_plugin'),
+    'student' => get_string('role_student', 'local_sm_estratoos_plugin'),
+    'other' => get_string('role_other', 'local_sm_estratoos_plugin'),
+];
+echo html_writer::start_div('form-group mr-2');
+echo html_writer::label(get_string('role', 'local_sm_estratoos_plugin') . ': ', 'filterrole', true, ['class' => 'mr-2']);
+echo html_writer::select($roles, 'rolefilter', $rolefilter, false, ['id' => 'filterrole', 'class' => 'form-control']);
+echo html_writer::end_div();
+
 echo html_writer::empty_tag('input', [
     'type' => 'submit',
     'value' => get_string('filter', 'local_sm_estratoos_plugin'),
@@ -213,6 +228,76 @@ foreach ($tokens as $token) {
     }
 }
 
+// Role filter helper function (defined early for use in filtering).
+function _get_user_role_type_for_filter($userid, $companyid = 0) {
+    global $DB;
+
+    // Check IOMAD manager status first.
+    if (\local_sm_estratoos_plugin\util::is_iomad_installed() && $companyid > 0) {
+        $managertype = $DB->get_field('company_users', 'managertype', [
+            'userid' => $userid,
+            'companyid' => $companyid,
+        ]);
+        if ($managertype > 0) {
+            return 'manager';
+        }
+    }
+
+    // Check ALL role assignments.
+    $sql = "SELECT DISTINCT r.id, r.shortname
+            FROM {role_assignments} ra
+            JOIN {role} r ON r.id = ra.roleid
+            WHERE ra.userid = :userid";
+    $userroles = $DB->get_records_sql($sql, ['userid' => $userid]);
+
+    $teacherpatterns = ['teacher', 'editingteacher', 'coursecreator', 'profesor', 'professor'];
+    $studentpatterns = ['student', 'alumno', 'aluno', 'estudante', 'estudiante'];
+    $managerpatterns = ['manager', 'admin', 'gerente', 'administrador'];
+
+    $hasteacher = false;
+    $hasstudent = false;
+
+    foreach ($userroles as $role) {
+        $shortname = strtolower($role->shortname);
+
+        foreach ($managerpatterns as $pattern) {
+            if (strpos($shortname, $pattern) !== false) {
+                return 'manager';
+            }
+        }
+        foreach ($teacherpatterns as $pattern) {
+            if (strpos($shortname, $pattern) !== false) {
+                $hasteacher = true;
+            }
+        }
+        foreach ($studentpatterns as $pattern) {
+            if (strpos($shortname, $pattern) !== false) {
+                $hasstudent = true;
+            }
+        }
+    }
+
+    if ($hasteacher) {
+        return 'teacher';
+    }
+    if ($hasstudent) {
+        return 'student';
+    }
+    return 'other';
+}
+
+// Apply role filter if specified.
+if (!empty($rolefilter)) {
+    $filteredtokens = [];
+    foreach ($tokens as $key => $token) {
+        $userrole = _get_user_role_type_for_filter($token->userid, $token->companyid ?? 0);
+        if ($userrole === $rolefilter) {
+            $filteredtokens[$key] = $token;
+        }
+    }
+    $tokens = $filteredtokens;
+}
+
 /**
  * Get role badge HTML for a user.
  *
@@ -235,14 +320,23 @@ function get_user_role_badge($userid, $companyid = 0) {
         }
     }
 
-    // 2. Check system-level role assignments.
-    $syscontext = context_system::instance();
-    $roles = get_user_roles($syscontext, $userid);
+    // 2. Check ALL role assignments (system, category, and course level).
+    // Query all distinct roles for this user across all contexts.
+    $sql = "SELECT DISTINCT r.id, r.shortname
+            FROM {role_assignments} ra
+            JOIN {role} r ON r.id = ra.roleid
+            WHERE ra.userid = :userid";
+    $roles = $DB->get_records_sql($sql, ['userid' => $userid]);
 
     // Define role patterns (supports multilingual).
     $teacherpatterns = ['teacher', 'editingteacher', 'coursecreator', 'profesor', 'professor'];
     $studentpatterns = ['student', 'alumno', 'aluno', 'estudante', 'estudiante'];
     $managerpatterns = ['manager', 'admin', 'gerente', 'administrador'];
+
+    // Track what roles we find (priority: manager > teacher > student > other).
+    $hasmanager = false;
+    $hasteacher = false;
+    $hasstudent = false;
 
     foreach ($roles as $role) {
         $shortname = strtolower($role->shortname);
@@ -250,31 +344,109 @@ function get_user_role_badge($userid, $companyid = 0) {
         // Check for manager roles.
         foreach ($managerpatterns as $pattern) {
             if (strpos($shortname, $pattern) !== false) {
-                return html_writer::tag('span', get_string('role_manager', 'local_sm_estratoos_plugin'),
-                    ['class' => 'badge badge-warning']);
+                $hasmanager = true;
+                break 2; // Manager is highest priority, return immediately.
             }
         }
 
         // Check for teacher roles.
         foreach ($teacherpatterns as $pattern) {
             if (strpos($shortname, $pattern) !== false) {
-                return html_writer::tag('span', get_string('role_teacher', 'local_sm_estratoos_plugin'),
-                    ['class' => 'badge badge-success']);
+                $hasteacher = true;
+                break;
             }
         }
 
         // Check for student roles.
         foreach ($studentpatterns as $pattern) {
             if (strpos($shortname, $pattern) !== false) {
-                return html_writer::tag('span', get_string('role_student', 'local_sm_estratoos_plugin'),
-                    ['class' => 'badge badge-info']);
+                $hasstudent = true;
+                break;
             }
         }
+    }
+
+    // Return badge based on priority.
+    if ($hasmanager) {
+        return html_writer::tag('span', get_string('role_manager', 'local_sm_estratoos_plugin'),
+            ['class' => 'badge badge-warning']);
+    }
+    if ($hasteacher) {
+        return html_writer::tag('span', get_string('role_teacher', 'local_sm_estratoos_plugin'),
+            ['class' => 'badge badge-success']);
+    }
+    if ($hasstudent) {
+        return html_writer::tag('span', get_string('role_student', 'local_sm_estratoos_plugin'),
+            ['class' => 'badge badge-info']);
     }
 
     // 3. Default to "Other".
     return html_writer::tag('span', get_string('role_other', 'local_sm_estratoos_plugin'),
         ['class' => 'badge badge-secondary']);
+}
+
+/**
+ * Get role type for a user (for filtering).
+ *
+ * @param int $userid The user ID.
+ * @param int $companyid The company ID (for IOMAD manager detection).
+ * @return string Role type: 'manager', 'teacher', 'student', or 'other'.
+ */
+function get_user_role_type($userid, $companyid = 0) {
+    global $DB;
+
+    // 1. Check IOMAD manager status first.
+    if (\local_sm_estratoos_plugin\util::is_iomad_installed() && $companyid > 0) {
+        $managertype = $DB->get_field('company_users', 'managertype', [
+            'userid' => $userid,
+            'companyid' => $companyid,
+        ]);
+        if ($managertype > 0) {
+            return 'manager';
+        }
+    }
+
+    // 2. Check ALL role assignments.
+    $sql = "SELECT DISTINCT r.id, r.shortname
+            FROM {role_assignments} ra
+            JOIN {role} r ON r.id = ra.roleid
+            WHERE ra.userid = :userid";
+    $roles = $DB->get_records_sql($sql, ['userid' => $userid]);
+
+    $teacherpatterns = ['teacher', 'editingteacher', 'coursecreator', 'profesor', 'professor'];
+    $studentpatterns = ['student', 'alumno', 'aluno', 'estudante', 'estudiante'];
+    $managerpatterns = ['manager', 'admin', 'gerente', 'administrador'];
+
+    $hasteacher = false;
+    $hasstudent = false;
+
+    foreach ($roles as $role) {
+        $shortname = strtolower($role->shortname);
+
+        foreach ($managerpatterns as $pattern) {
+            if (strpos($shortname, $pattern) !== false) {
+                return 'manager';
+            }
+        }
+        foreach ($teacherpatterns as $pattern) {
+            if (strpos($shortname, $pattern) !== false) {
+                $hasteacher = true;
+            }
+        }
+        foreach ($studentpatterns as $pattern) {
+            if (strpos($shortname, $pattern) !== false) {
+                $hasstudent = true;
+            }
+        }
+    }
+
+    if ($hasteacher) {
+        return 'teacher';
+    }
+    if ($hasstudent) {
+        return 'student';
+    }
+    return 'other';
 }
 
 if (empty($tokens)) {
