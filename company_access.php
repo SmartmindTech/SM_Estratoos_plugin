@@ -247,31 +247,28 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
         // Search filter - filter companies as user types.
         if (searchInput) {
             console.log("SM_ESTRATOOS: Attaching input event listener to search box");
-            searchInput.addEventListener("input", function() {
-                var filter = this.value.toLowerCase().trim();
-                console.log("SM_ESTRATOOS: Search input event - filter:", filter);
 
-                companyItems.forEach(function(item) {
-                    var name = item.getAttribute("data-name") || "";
-                    if (filter === "" || name.indexOf(filter) !== -1) {
-                        item.style.display = "";
-                    } else {
-                        item.style.display = "none";
-                    }
-                });
+            // Log all company data-name values at startup
+            console.log("SM_ESTRATOOS: Company data-name values:");
+            companyItems.forEach(function(item, index) {
+                console.log("  Item " + index + ": data-name='" + item.getAttribute("data-name") + "'");
             });
 
-            // Also listen for keyup as backup.
-            searchInput.addEventListener("keyup", function() {
+            searchInput.addEventListener("input", function() {
                 var filter = this.value.toLowerCase().trim();
-                console.log("SM_ESTRATOOS: Search keyup event - filter:", filter);
+                console.log("SM_ESTRATOOS: Search input - filter: '" + filter + "'");
 
-                companyItems.forEach(function(item) {
+                companyItems.forEach(function(item, index) {
                     var name = item.getAttribute("data-name") || "";
-                    if (filter === "" || name.indexOf(filter) !== -1) {
+                    var matches = (filter === "" || name.indexOf(filter) !== -1);
+                    console.log("SM_ESTRATOOS: Item " + index + " name='" + name + "' matches=" + matches);
+
+                    if (matches) {
                         item.style.display = "";
+                        console.log("SM_ESTRATOOS: Setting item " + index + " to VISIBLE");
                     } else {
                         item.style.display = "none";
+                        console.log("SM_ESTRATOOS: Setting item " + index + " to HIDDEN");
                     }
                 });
             });

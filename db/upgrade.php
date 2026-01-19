@@ -1225,5 +1225,11 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011918, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.19: More debug - log data-name values and match results.
+    if ($oldversion < 2025011919) {
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011919, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
