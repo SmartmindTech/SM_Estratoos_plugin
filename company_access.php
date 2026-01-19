@@ -192,6 +192,11 @@ if (empty($companies)) {
         echo html_writer::start_div('ml-auto d-flex align-items-center expiry-container', [
             'data-companyid' => $company->id
         ]);
+        // Label for expiry date.
+        echo html_writer::tag('label', get_string('expirydate', 'local_sm_estratoos_plugin') . ':', [
+            'class' => 'mb-0 mr-2 small text-muted',
+            'for' => 'expiry-select-' . $company->id
+        ]);
         // Dropdown for expiry selection.
         echo html_writer::start_tag('select', [
             'class' => 'form-control form-control-sm expiry-dropdown',
