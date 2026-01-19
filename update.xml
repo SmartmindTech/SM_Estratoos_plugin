@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011919</version>
+        <version>2025011920</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.19</release>
+        <release>1.7.20</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,32 +29,32 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.19/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.20/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.19</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.20</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.18 - Debug Company Search</h3>
-            <p><strong>Added console logging to diagnose search bar issues</strong></p>
+            <h3>Version 1.7.20 - FIX: Company Search Now Works!</h3>
+            <p><strong>Fixed Bootstrap CSS override that prevented search filtering</strong></p>
 
-            <h4>How to Test:</h4>
-            <ol>
-                <li>Go to Plugin → Manage Company Access</li>
-                <li>Open browser DevTools (F12) → Console tab</li>
-                <li>Look for messages starting with "SM_ESTRATOOS"</li>
-                <li>Type in search box and check if input events are logged</li>
-            </ol>
+            <h4>Root Cause:</h4>
+            <p>The company items used Bootstrap's <code>d-flex</code> class which sets
+            <code>display: flex !important</code>. This overrode the inline
+            <code>style.display = "none"</code> that JavaScript was setting.</p>
 
-            <h4>Expected Console Output:</h4>
+            <h4>Solution:</h4>
+            <p>Changed from <code>item.style.display = "none"</code> to using Bootstrap's
+            <code>d-none</code> class which has <code>display: none !important</code>
+            and properly overrides <code>d-flex</code>.</p>
+
+            <h4>Now Working:</h4>
             <ul>
-                <li>SM_ESTRATOOS v1.7.18: Script starting...</li>
-                <li>SM_ESTRATOOS: DOMContentLoaded fired</li>
-                <li>SM_ESTRATOOS: searchInput found: true</li>
-                <li>SM_ESTRATOOS: companyItems count: [number]</li>
-                <li>SM_ESTRATOOS: Search input event - filter: [typed text]</li>
+                <li>Search filtering as you type</li>
+                <li>Select All / Deselect All (only affects visible items)</li>
+                <li>Enabled/Disabled badges</li>
             </ul>
             ]]>
         </releasenotes>

@@ -264,11 +264,13 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
                     console.log("SM_ESTRATOOS: Item " + index + " name='" + name + "' matches=" + matches);
 
                     if (matches) {
-                        item.style.display = "";
-                        console.log("SM_ESTRATOOS: Setting item " + index + " to VISIBLE");
+                        // Use classList to remove d-none (Bootstrap's !important display:none)
+                        item.classList.remove("d-none");
+                        console.log("SM_ESTRATOOS: Setting item " + index + " to VISIBLE (removed d-none)");
                     } else {
-                        item.style.display = "none";
-                        console.log("SM_ESTRATOOS: Setting item " + index + " to HIDDEN");
+                        // Use classList to add d-none (Bootstrap's !important display:none)
+                        item.classList.add("d-none");
+                        console.log("SM_ESTRATOOS: Setting item " + index + " to HIDDEN (added d-none)");
                     }
                 });
             });
@@ -281,7 +283,8 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
             selectAllBtn.addEventListener("click", function() {
                 console.log("SM_ESTRATOOS: Select All clicked");
                 companyItems.forEach(function(item) {
-                    if (item.style.display !== "none") {
+                    // Check if item is visible (not hidden by d-none class)
+                    if (!item.classList.contains("d-none")) {
                         var checkbox = item.querySelector(".company-checkbox");
                         if (checkbox) {
                             checkbox.checked = true;
@@ -298,7 +301,8 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
             deselectAllBtn.addEventListener("click", function() {
                 console.log("SM_ESTRATOOS: Deselect All clicked");
                 companyItems.forEach(function(item) {
-                    if (item.style.display !== "none") {
+                    // Check if item is visible (not hidden by d-none class)
+                    if (!item.classList.contains("d-none")) {
                         var checkbox = item.querySelector(".company-checkbox");
                         if (checkbox) {
                             checkbox.checked = false;

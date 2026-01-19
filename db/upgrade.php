@@ -1231,5 +1231,11 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011919, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.20: FIX - Use d-none class instead of style.display (Bootstrap d-flex override).
+    if ($oldversion < 2025011920) {
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011920, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
