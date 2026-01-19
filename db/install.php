@@ -351,6 +351,8 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_start_session',
         'local_sm_estratoos_plugin_session_heartbeat',
         'local_sm_estratoos_plugin_end_session',
+        // v1.7.25: Company manager tokens status.
+        'local_sm_estratoos_plugin_get_company_manager_tokens_status',
     ];
 
     foreach ($pluginfunctions as $functionname) {

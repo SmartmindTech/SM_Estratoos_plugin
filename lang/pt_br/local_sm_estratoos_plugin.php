@@ -353,3 +353,10 @@ $string['recipientnotincompany'] = 'O destinatário não é membro da sua empres
 $string['invalidsession'] = 'Sessão inválida ou expirada';
 $string['sessionstarted'] = 'Sessão iniciada - usuário agora online';
 $string['sessionended'] = 'Sessão encerrada - usuário agora offline';
+
+// Emblemas de papel (v1.7.25).
+$string['role'] = 'Papel';
+$string['role_manager'] = 'Gerente';
+$string['role_teacher'] = 'Professor';
+$string['role_student'] = 'Estudante';
+$string['role_other'] = 'Outro';

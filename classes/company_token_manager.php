@@ -245,6 +245,11 @@ class company_token_manager {
         $batch->status = 'completed';
         $DB->update_record('local_sm_estratoos_plugin_batch', $batch);
 
+        // Auto-enable company if any manager tokens were created (IOMAD only).
+        if (util::is_iomad_installed() && $companyid > 0 && $results->successcount > 0) {
+            self::auto_enable_company_for_managers($companyid, $userids);
+        }
+
         return $results;
     }
 
@@ -1191,5 +1196,57 @@ class company_token_manager {
         // Clear access cache for this user to ensure new capability takes effect immediately.
         // Use mark_user_dirty to invalidate the user's capability cache.
         mark_user_dirty($userid);
+    }
+
+    /**
+     * Auto-enable a company if any of the given users is a manager.
+     *
+     * When creating tokens for managers (company_users.managertype > 0),
+     * automatically enable the company in the plugin access table.
+     * This ensures that companies with manager tokens are always enabled.
+     *
+     * @param int $companyid The company ID.
+     * @param array $userids Array of user IDs that received tokens.
+     */
+    private static function auto_enable_company_for_managers(int $companyid, array $userids): void {
+        global $DB;
+
+        if (empty($userids)) {
+            return;
+        }
+
+        // Check if any of these users is a manager for this company.
+        list($insql, $params) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'uid');
+        $params['companyid'] = $companyid;
+
+        $hasmanager = $DB->record_exists_select(
+            'company_users',
+            "companyid = :companyid AND userid $insql AND managertype > 0",
+            $params
+        );
+
+        if (!$hasmanager) {
+            return; // No managers among the users, nothing to do.
+        }
+
+        // A manager received a token - enable the company.
+        $accessrecord = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $companyid]);
+
+        if ($accessrecord) {
+            // Update existing record to enabled.
+            if (!$accessrecord->enabled) {
+                $accessrecord->enabled = 1;
+                $accessrecord->timemodified = time();
+                $DB->update_record('local_sm_estratoos_plugin_access', $accessrecord);
+            }
+        } else {
+            // Create new access record with enabled = 1.
+            $newaccess = new \stdClass();
+            $newaccess->companyid = $companyid;
+            $newaccess->enabled = 1;
+            $newaccess->timecreated = time();
+            $newaccess->timemodified = time();
+            $DB->insert_record('local_sm_estratoos_plugin_access', $newaccess);
+        }
     }
 }

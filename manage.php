@@ -213,6 +213,70 @@ foreach ($tokens as $token) {
     }
 }
 
+/**
+ * Get role badge HTML for a user.
+ *
+ * @param int $userid The user ID.
+ * @param int $companyid The company ID (for IOMAD manager detection).
+ * @return string HTML badge element.
+ */
+function get_user_role_badge($userid, $companyid = 0) {
+    global $DB;
+
+    // 1. Check IOMAD manager status first (if IOMAD is installed).
+    if (\local_sm_estratoos_plugin\util::is_iomad_installed() && $companyid > 0) {
+        $managertype = $DB->get_field('company_users', 'managertype', [
+            'userid' => $userid,
+            'companyid' => $companyid,
+        ]);
+        if ($managertype > 0) {
+            return html_writer::tag('span', get_string('role_manager', 'local_sm_estratoos_plugin'),
+                ['class' => 'badge badge-warning']);
+        }
+    }
+
+    // 2. Check system-level role assignments.
+    $syscontext = context_system::instance();
+    $roles = get_user_roles($syscontext, $userid);
+
+    // Define role patterns (supports multilingual).
+    $teacherpatterns = ['teacher', 'editingteacher', 'coursecreator', 'profesor', 'professor'];
+    $studentpatterns = ['student', 'alumno', 'aluno', 'estudante', 'estudiante'];
+    $managerpatterns = ['manager', 'admin', 'gerente', 'administrador'];
+
+    foreach ($roles as $role) {
+        $shortname = strtolower($role->shortname);
+
+        // Check for manager roles.
+        foreach ($managerpatterns as $pattern) {
+            if (strpos($shortname, $pattern) !== false) {
+                return html_writer::tag('span', get_string('role_manager', 'local_sm_estratoos_plugin'),
+                    ['class' => 'badge badge-warning']);
+            }
+        }
+
+        // Check for teacher roles.
+        foreach ($teacherpatterns as $pattern) {
+            if (strpos($shortname, $pattern) !== false) {
+                return html_writer::tag('span', get_string('role_teacher', 'local_sm_estratoos_plugin'),
+                    ['class' => 'badge badge-success']);
+            }
+        }
+
+        // Check for student roles.
+        foreach ($studentpatterns as $pattern) {
+            if (strpos($shortname, $pattern) !== false) {
+                return html_writer::tag('span', get_string('role_student', 'local_sm_estratoos_plugin'),
+                    ['class' => 'badge badge-info']);
+            }
+        }
+    }
+
+    // 3. Default to "Other".
+    return html_writer::tag('span', get_string('role_other', 'local_sm_estratoos_plugin'),
+        ['class' => 'badge badge-secondary']);
+}
+
 if (empty($tokens)) {
     echo $OUTPUT->notification(get_string('notokens', 'local_sm_estratoos_plugin'), 'info');
 } else {
@@ -227,6 +291,7 @@ if (empty($tokens)) {
     $table->head = [
         html_writer::checkbox('selectall', 1, false, '', ['id' => 'selectall']),
         get_string('user'),
+        get_string('role', 'local_sm_estratoos_plugin'),
         get_string('company', 'local_sm_estratoos_plugin'),
         get_string('service', 'local_sm_estratoos_plugin'),
         get_string('status'),
@@ -290,11 +355,15 @@ if (empty($tokens)) {
             ]
         );
 
+        // Role badge.
+        $rolebadge = get_user_role_badge($token->userid, $token->companyid ?? 0);
+
         $table->data[] = [
             html_writer::checkbox('tokenids[]', $token->id, false, '', ['class' => 'tokencheck']),
             html_writer::tag('strong', fullname($token)) .
                 html_writer::tag('br', '') .
                 html_writer::tag('small', $token->email, ['class' => 'text-muted']),
+            $rolebadge,
             $token->companyname,
             $token->servicename,
             $statusbadge,

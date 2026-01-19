@@ -361,3 +361,10 @@ $string['recipientnotincompany'] = 'El destinatario no es miembro de su empresa'
 $string['invalidsession'] = 'Sesión inválida o expirada';
 $string['sessionstarted'] = 'Sesión iniciada - usuario ahora en línea';
 $string['sessionended'] = 'Sesión finalizada - usuario ahora desconectado';
+
+// Insignias de rol (v1.7.25).
+$string['role'] = 'Rol';
+$string['role_manager'] = 'Gerente';
+$string['role_teacher'] = 'Profesor';
+$string['role_student'] = 'Estudiante';
+$string['role_other'] = 'Otro';

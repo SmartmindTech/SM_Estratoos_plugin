@@ -202,6 +202,12 @@ class batch_token_form extends \moodleform {
                 get_string('service', 'local_sm_estratoos_plugin'),
                 ['' => get_string('selectservice', 'local_sm_estratoos_plugin')] + $services);
             $mform->addRule('serviceid', get_string('required'), 'required', null, 'client');
+
+            // Pre-select SmartMind - Estratoos Plugin service as default.
+            $pluginservice = $DB->get_record('external_services', ['shortname' => 'sm_estratoos_plugin'], 'id');
+            if ($pluginservice && isset($services[$pluginservice->id])) {
+                $mform->setDefault('serviceid', $pluginservice->id);
+            }
         }
 
         if ($isiomad) {

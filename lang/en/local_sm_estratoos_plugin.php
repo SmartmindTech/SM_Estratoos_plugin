@@ -362,3 +362,10 @@ $string['recipientnotincompany'] = 'Recipient is not a member of your company';
 $string['invalidsession'] = 'Invalid or expired session';
 $string['sessionstarted'] = 'Session started - user is now online';
 $string['sessionended'] = 'Session ended - user is now offline';
+
+// Role badges (v1.7.25).
+$string['role'] = 'Role';
+$string['role_manager'] = 'Manager';
+$string['role_teacher'] = 'Teacher';
+$string['role_student'] = 'Student';
+$string['role_other'] = 'Other';

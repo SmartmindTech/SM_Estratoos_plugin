@@ -1282,5 +1282,62 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011924, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.25: Default service selection, role badges, auto-enable for managers, manager tokens API.
+    // - Default service: Pre-select "SmartMind Estratoos Plugin" when creating tokens
+    // - Role badges: Show user roles (Manager/Teacher/Student/Other) in tokens list
+    // - Auto-enable: When creating tokens for managers, automatically enable the company
+    // - New API: get_company_manager_tokens_status returns if a company has manager tokens
+    // Also enables companies that already have existing manager tokens (migration).
+    if ($oldversion < 2025011925) {
+        require_once(__DIR__ . '/install.php');
+
+        // Add the new API function to the service.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        // Migration: Enable all companies that already have manager tokens.
+        // This ensures backward compatibility - if managers have tokens, company should be enabled.
+        if ($dbman->table_exists('company_users') && $dbman->table_exists('company')) {
+            // Find companies with existing manager tokens.
+            $sql = "SELECT DISTINCT c.id as companyid
+                    FROM {company} c
+                    JOIN {company_users} cu ON cu.companyid = c.id
+                    JOIN {local_sm_estratoos_plugin} smp ON smp.companyid = c.id
+                    JOIN {external_tokens} et ON et.id = smp.tokenid
+                    WHERE cu.userid = et.userid AND cu.managertype > 0";
+
+            $companiestonable = $DB->get_records_sql($sql);
+
+            foreach ($companiestonable as $company) {
+                $accessrecord = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $company->companyid]);
+
+                if ($accessrecord) {
+                    // Update existing record to enabled.
+                    if (!$accessrecord->enabled) {
+                        $accessrecord->enabled = 1;
+                        $accessrecord->timemodified = time();
+                        $DB->update_record('local_sm_estratoos_plugin_access', $accessrecord);
+                    }
+                } else {
+                    // Create new access record with enabled = 1.
+                    $DB->insert_record('local_sm_estratoos_plugin_access', [
+                        'companyid' => $company->companyid,
+                        'enabled' => 1,
+                        'enabledby' => get_admin()->id,
+                        'timecreated' => time(),
+                        'timemodified' => time(),
+                    ]);
+                }
+            }
+
+            if (!empty($companiestonable)) {
+                error_log("SM_ESTRATOOS_PLUGIN v1.7.25: Enabled " . count($companiestonable) .
+                          " companies with existing manager tokens");
+            }
+        }
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011925, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

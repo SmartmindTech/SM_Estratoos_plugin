@@ -122,6 +122,19 @@ $functions = [
         'loginrequired' => true,
     ],
 
+    // Get manager tokens status for a company (v1.7.25).
+    'local_sm_estratoos_plugin_get_company_manager_tokens_status' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_company_manager_tokens_status',
+        'methodname' => 'execute',
+        'description' => 'Check if a company has any manager tokens created. Returns boolean flag and details about ' .
+                        'managers with tokens. Useful for company access management in IOMAD environments. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
     // =========================================================================
     // FORUM FUNCTIONS
     // =========================================================================
