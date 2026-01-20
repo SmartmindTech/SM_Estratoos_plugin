@@ -201,7 +201,7 @@ class update_plugin_version extends external_api {
      * @return array Result with 'success' and 'message'.
      */
     private static function perform_update(string $downloadurl, int $newversion, string $newrelease): array {
-        global $CFG;
+        global $CFG, $DB;
 
         // Plugin directory.
         $plugindir = $CFG->dirroot . '/local/sm_estratoos_plugin';
@@ -282,14 +282,59 @@ class update_plugin_version extends external_api {
         // Step 7: Clean up temp files.
         self::remove_directory($tempdir);
 
-        // Step 8: Trigger Moodle upgrade check.
-        // This will be done when admin visits admin/index.php or via CLI.
-        // We can't run it directly here as it requires a full page reload.
+        // Step 8: Run the database upgrade.
+        try {
+            // Purge all caches to ensure new code is loaded.
+            purge_all_caches();
 
-        return [
-            'success' => true,
-            'message' => "Plugin files updated to v$newrelease. Please visit Site Administration to complete the database upgrade.",
-        ];
+            // Get the old version from database.
+            $oldversion = $DB->get_field('config_plugins', 'value', [
+                'plugin' => 'local_sm_estratoos_plugin',
+                'name' => 'version',
+            ]);
+
+            if ($oldversion) {
+                // Include the new upgrade.php file.
+                $upgradefile = $CFG->dirroot . '/local/sm_estratoos_plugin/db/upgrade.php';
+                if (file_exists($upgradefile)) {
+                    require_once($upgradefile);
+
+                    // Run the upgrade function.
+                    if (function_exists('xmldb_local_sm_estratoos_plugin_upgrade')) {
+                        $upgraderesult = xmldb_local_sm_estratoos_plugin_upgrade((int)$oldversion);
+
+                        if ($upgraderesult) {
+                            // Update the version in database.
+                            $DB->set_field('config_plugins', 'value', $newversion, [
+                                'plugin' => 'local_sm_estratoos_plugin',
+                                'name' => 'version',
+                            ]);
+
+                            // Purge caches again after upgrade.
+                            purge_all_caches();
+
+                            return [
+                                'success' => true,
+                                'message' => "Plugin fully upgraded to v$newrelease. Database upgrade completed successfully.",
+                            ];
+                        }
+                    }
+                }
+            }
+
+            // If we couldn't run upgrade automatically, still report success for file update.
+            return [
+                'success' => true,
+                'message' => "Plugin files updated to v$newrelease. Database upgrade may need to be completed via Site Administration.",
+            ];
+
+        } catch (\Exception $e) {
+            // File update succeeded but DB upgrade failed.
+            return [
+                'success' => true,
+                'message' => "Plugin files updated to v$newrelease. Database upgrade error: " . $e->getMessage() . ". Please visit Site Administration to complete.",
+            ];
+        }
     }
 
     /**
