@@ -1425,5 +1425,25 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011930, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.37: Add plugin_version field and update_company_plugin_version API function.
+    // This allows each company to track their own plugin version independently,
+    // enabling independent updates per company from external systems.
+    if ($oldversion < 2025011937) {
+        // Add plugin_version field to company access table.
+        $table = new xmldb_table('local_sm_estratoos_plugin_access');
+        $field = new xmldb_field('plugin_version', XMLDB_TYPE_CHAR, '20', null, null, null, null, 'expirydate');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Add new API function to service.
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011937, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }

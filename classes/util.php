@@ -712,7 +712,7 @@ class util {
             return false;
         }
 
-        $oldexpirydate = $record->expirydate;
+        $wasEnabled = (bool)$record->enabled;
         $now = time();
 
         // Update the expiry date in the record.
@@ -721,21 +721,13 @@ class util {
         $record->timemodified = $now;
         $DB->update_record('local_sm_estratoos_plugin_access', $record);
 
-        // Check if expiry date is in the past (before end of today).
-        // End of today = start of tomorrow = midnight UTC of next day.
-        $endoftoday = strtotime('tomorrow midnight');
-
         if (!empty($expirydate) && $expirydate < $now) {
             // Expiry date is in the past - disable company and suspend tokens.
             self::disable_company_access($companyid, $userid);
-        } else if ($record->enabled && (empty($expirydate) || $expirydate >= $now)) {
-            // Expiry date is null or in the future - ensure company is enabled and tokens active.
-            // Only re-enable if the company was previously disabled due to expiry (not manual disable).
-            // Check if old expiry was in the past (meaning it was auto-disabled).
-            if (!empty($oldexpirydate) && $oldexpirydate < $now) {
-                // Re-enable company and unsuspend tokens.
-                self::enable_company_access($companyid, $userid);
-            }
+        } else {
+            // Expiry date is null (never) or today/future - enable company and unsuspend tokens.
+            // This ensures the company is enabled when a valid date is set.
+            self::enable_company_access($companyid, $userid);
         }
 
         return true;

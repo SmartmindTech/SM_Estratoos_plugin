@@ -385,3 +385,10 @@ $string['daysremaining'] = 'Días restantes';
 $string['tokennotfound'] = 'Token no encontrado';
 $string['invalidtoken'] = 'Token inválido';
 $string['accessdenied'] = 'Acceso denegado';
+
+// Seguimiento de versión del plugin (v1.7.37).
+$string['pluginversion'] = 'Versión del plugin';
+$string['pluginversion_help'] = 'La versión del plugin para esta empresa. Permite el seguimiento de versiones independiente por empresa.';
+$string['updatecompanypluginversion'] = 'Actualizar versión del plugin de la empresa';
+$string['versionupdated'] = 'Versión del plugin actualizada correctamente';
+$string['invalidversionformat'] = 'Formato de versión inválido. Formato esperado: X.Y.Z (ej: 1.7.37)';

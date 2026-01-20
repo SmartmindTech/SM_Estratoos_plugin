@@ -153,9 +153,22 @@ $functions = [
         'classname' => 'local_sm_estratoos_plugin\external\get_companies_access_status',
         'methodname' => 'execute',
         'description' => 'Get company access status and expiration dates. Returns enabled status, expiry date, days remaining, ' .
-                        'and token counts for all or specific companies. Useful for monitoring company access. ' .
+                        'plugin version, and token counts for all or specific companies. Useful for monitoring company access. ' .
                         '[SM Estratoos API Function]',
         'type' => 'read',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
+    // Update company plugin version for independent tracking (v1.7.37).
+    'local_sm_estratoos_plugin_update_company_plugin_version' => [
+        'classname' => 'local_sm_estratoos_plugin\external\update_company_plugin_version',
+        'methodname' => 'execute',
+        'description' => 'Update the plugin version for a company. Allows external systems to track which version each company ' .
+                        'is running, enabling independent/gradual rollouts. Returns success status and previous version. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'write',
         'ajax' => true,
         'capabilities' => '',
         'loginrequired' => true,

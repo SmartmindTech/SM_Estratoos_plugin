@@ -115,7 +115,7 @@ class get_companies_access_status extends external_api {
             "companyid $insql",
             $inparams,
             '',
-            'companyid, enabled, expirydate, enabledby, timecreated, timemodified'
+            'companyid, enabled, expirydate, plugin_version, enabledby, timecreated, timemodified'
         );
 
         // Get token counts per company.
@@ -177,6 +177,7 @@ class get_companies_access_status extends external_api {
                 'expirydate' => (int)$expirydate,
                 'expired' => $expired,
                 'daysremaining' => $daysremaining,
+                'pluginversion' => $access ? ($access->plugin_version ?? '') : '',
                 'enabledby' => (int)($access ? ($access->enabledby ?? 0) : 0),
                 'enabledbyname' => $enabledbyname,
                 'timecreated' => (int)($access ? ($access->timecreated ?? 0) : 0),
@@ -205,6 +206,7 @@ class get_companies_access_status extends external_api {
                     'expirydate' => new external_value(PARAM_INT, 'Expiration timestamp (0 = never)'),
                     'expired' => new external_value(PARAM_BOOL, 'Whether access has expired'),
                     'daysremaining' => new external_value(PARAM_INT, 'Days until expiration (-1 = never, negative = expired)'),
+                    'pluginversion' => new external_value(PARAM_TEXT, 'Plugin version for this company (empty if not set)'),
                     'enabledby' => new external_value(PARAM_INT, 'User ID who last modified access'),
                     'enabledbyname' => new external_value(PARAM_TEXT, 'Full name of user who modified access'),
                     'timecreated' => new external_value(PARAM_INT, 'Access record creation timestamp'),

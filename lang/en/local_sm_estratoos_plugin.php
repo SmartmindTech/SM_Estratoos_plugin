@@ -386,3 +386,10 @@ $string['daysremaining'] = 'Days remaining';
 $string['tokennotfound'] = 'Token not found';
 $string['invalidtoken'] = 'Invalid token';
 $string['accessdenied'] = 'Access denied';
+
+// Plugin version tracking (v1.7.37).
+$string['pluginversion'] = 'Plugin version';
+$string['pluginversion_help'] = 'The plugin version for this company. Allows independent version tracking per company.';
+$string['updatecompanypluginversion'] = 'Update company plugin version';
+$string['versionupdated'] = 'Plugin version updated successfully';
+$string['invalidversionformat'] = 'Invalid version format. Expected format: X.Y.Z (e.g., 1.7.37)';
