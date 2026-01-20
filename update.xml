@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011954</version>
+        <version>2025011955</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.54</release>
+        <release>1.7.55</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,22 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.54/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.55/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.54</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.55</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.54 - Manager Remote Update</h3>
+            <h3>Version 1.7.55 - Remote Update Test</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li><strong>New:</strong> Company managers can now update plugin via API (not just site admins)</li>
-                <li><strong>Fixed:</strong> Redirect to dashboard after upgrade (v1.7.53)</li>
-                <li><strong>update_plugin_version API:</strong> Full remote update capability</li>
-                <li>action=check: Check for available updates (default)</li>
-                <li>action=update: Download, extract, install AND run database upgrade automatically</li>
-            </ul>
-
-            <h4>Previous Versions</h4>
-            <ul>
-                <li><strong>v1.7.47:</strong> Pre-select company for single-company managers</li>
-                <li><strong>v1.7.46:</strong> Critical token protection during upgrades</li>
+                <li>Test version for remote update via API</li>
+                <li><strong>v1.7.54:</strong> Company managers can now update plugin via API</li>
+                <li><strong>v1.7.53:</strong> Fixed redirect to dashboard after upgrade</li>
+                <li><strong>v1.7.52:</strong> Full remote update capability with database upgrade</li>
             </ul>
             ]]>
         </releasenotes>
