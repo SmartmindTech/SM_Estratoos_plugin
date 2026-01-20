@@ -129,8 +129,8 @@ class update_plugin_version extends external_api {
                     'message' => $updatemessage,
                 ];
             } else {
-                // Only site admins can perform updates.
-                if (!is_siteadmin($USER)) {
+                // Site admins or company managers can perform updates.
+                if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
                     throw new \moodle_exception('nopermissions', 'error', '', 'update plugin');
                 }
 
