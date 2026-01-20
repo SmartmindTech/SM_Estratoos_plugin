@@ -27,9 +27,11 @@ require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/filelib.php');
 
 require_login();
+require_once(__DIR__ . '/classes/util.php');
 
-// Only site administrators can access this page.
-if (!is_siteadmin()) {
+// Site administrators and admin/manager roles can access this page.
+$canmanageupdates = is_siteadmin() || \local_sm_estratoos_plugin\util::has_admin_or_manager_role();
+if (!$canmanageupdates) {
     throw new moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
 }
 

@@ -32,15 +32,16 @@ require_login();
 
 require_once(__DIR__ . '/classes/update_checker.php');
 
-// Check if site admin (for admin-only features).
+// Check if site admin or has admin/manager role (for admin-only features).
 $issiteadmin = is_siteadmin();
+$canmanageupdates = $issiteadmin || \local_sm_estratoos_plugin\util::has_admin_or_manager_role();
 
-// Handle manual update check (only for site admins).
+// Handle manual update check (for site admins and admin/manager roles).
 $checkupdates = optional_param('checkupdates', 0, PARAM_BOOL);
 $updatechecked = false;
 $updateavailable = false;
 
-if ($issiteadmin) {
+if ($canmanageupdates) {
     if ($checkupdates && confirm_sesskey()) {
         // Force fetch updates.
         $updateavailable = \local_sm_estratoos_plugin\update_checker::check(true);
@@ -124,8 +125,8 @@ echo $OUTPUT->pix_icon($modeicon, '', 'moodle', ['class' => 'mr-2']);
 echo html_writer::tag('span', get_string('moodlemode', 'local_sm_estratoos_plugin') . ': ', ['class' => 'font-weight-bold mr-1']);
 echo html_writer::tag('span', $iomadstatus['message']);
 echo html_writer::end_div();
-// Check for updates button (only for site admins).
-if ($issiteadmin) {
+// Check for updates button (for site admins and admin/manager roles).
+if ($canmanageupdates) {
     $checkurl = new moodle_url('/local/sm_estratoos_plugin/index.php', ['checkupdates' => 1, 'sesskey' => sesskey()]);
     echo html_writer::link($checkurl, get_string('checkforupdates', 'local_sm_estratoos_plugin'), ['class' => 'btn btn-outline-secondary btn-sm']);
 }
