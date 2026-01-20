@@ -40,7 +40,7 @@ $canmanageupdates = $issiteadmin || \local_sm_estratoos_plugin\util::has_admin_o
 $syncversions = optional_param('syncversions', 0, PARAM_BOOL);
 $synccompany = optional_param('synccompany', 0, PARAM_INT);
 
-if ($issiteadmin && confirm_sesskey()) {
+if ($issiteadmin && ($syncversions || $synccompany > 0) && confirm_sesskey()) {
     $plugin = core_plugin_manager::instance()->get_plugin_info('local_sm_estratoos_plugin');
     $installedversion = $plugin->release ?? $plugin->versiondisk;
 
