@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011966</version>
+        <version>2025011967</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.66</release>
+        <release>1.7.67</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,20 +29,22 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.66/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.67/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.66</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.67</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.64 - DEBUG: Disable ALL Hooks</h3>
+            <h3>Version 1.7.67 - DEBUG: Module Processing without Module-Specific Data</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li>Disable pre_processor and post_processor hooks completely</li>
-                <li>Testing if hooks cause the SQL TEXT comparison error</li>
+                <li>Re-enable basic module processing (module info appears in response)</li>
+                <li>Disable module-specific data functions (SCORM, Quiz, Assignment, etc.)</li>
+                <li>Disable progress calculation</li>
+                <li>Testing if module-specific data queries cause the SQL TEXT comparison error</li>
             </ul>
             ]]>
         </releasenotes>

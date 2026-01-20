@@ -261,9 +261,7 @@ class get_course_content extends external_api {
                         'modules' => [],
                     ];
 
-                    // DEBUG v1.7.66: Skip module processing to isolate error.
                     // Get modules in this section.
-                    /*
                     if (!empty($modinfo->sections[$section->section])) {
                         foreach ($modinfo->sections[$section->section] as $cmid) {
                             $cm = $modinfo->cms[$cmid];
@@ -279,7 +277,6 @@ class get_course_content extends external_api {
                             }
                         }
                     }
-                    */
 
                     $sectionsdata[] = $sectiondata;
                 }
@@ -362,7 +359,9 @@ class get_course_content extends external_api {
             }
         }
 
+        // DEBUG v1.7.67: Skip module-specific content to isolate error.
         // Get module-specific content based on type.
+        /*
         switch ($cm->modname) {
             case 'scorm':
                 if ($options['includescormdetails']) {
@@ -454,8 +453,11 @@ class get_course_content extends external_api {
                 }
                 break;
         }
+        */
 
+        // DEBUG v1.7.67: Skip progress calculation since module-specific data is disabled.
         // Calculate progress based on module type and data (before JSON encoding).
+        /*
         $progressdata = [];
         $jsonfields = ['scorm', 'quiz', 'assignment', 'forum', 'book', 'lesson'];
         foreach ($jsonfields as $field) {
@@ -472,6 +474,7 @@ class get_course_content extends external_api {
                 $moduledata[$field] = json_encode($moduledata[$field]);
             }
         }
+        */
 
         return $moduledata;
     }
