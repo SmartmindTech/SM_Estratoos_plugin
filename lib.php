@@ -47,14 +47,17 @@ function local_sm_estratoos_plugin_pre_processor($functionname, $params) {
     global $local_sm_estratoos_plugin_params;
     $local_sm_estratoos_plugin_params = $params;
 
+    // TEMPORARILY DISABLED FOR DEBUGGING - checking if this causes the SQL error.
     // Check if the token is suspended (company access disabled).
     // This blocks API calls for suspended tokens BEFORE execution.
+    /*
     $token = \local_sm_estratoos_plugin\util::get_current_request_token();
     if ($token) {
         if (!\local_sm_estratoos_plugin\company_token_manager::is_token_active($token)) {
             throw new \moodle_exception('tokensuspended', 'local_sm_estratoos_plugin');
         }
     }
+    */
 
     return $params;
 }
@@ -69,6 +72,11 @@ function local_sm_estratoos_plugin_pre_processor($functionname, $params) {
 function local_sm_estratoos_plugin_post_processor($functionname, $result) {
     global $local_sm_estratoos_plugin_params;
 
+    // TEMPORARILY DISABLED FOR DEBUGGING - checking if this causes the SQL error.
+    // Return result without any filtering.
+    return $result;
+
+    /*
     // Get the current token.
     $token = \local_sm_estratoos_plugin\util::get_current_request_token();
     if (!$token) {
@@ -209,6 +217,7 @@ function local_sm_estratoos_plugin_post_processor($functionname, $result) {
         default:
             return $result;
     }
+    */
 }
 
 /**
