@@ -222,12 +222,20 @@ class webservice_filter {
         global $DB;
 
         // Get company's main category.
-        $companycategory = $this->restrictions->companycategory;
+        $companycategory = $this->restrictions->companycategory ?? null;
+
+        // If no valid company category, return empty array.
+        if (empty($companycategory) || !is_numeric($companycategory)) {
+            $this->companycategoryids = [];
+            return $this->companycategoryids;
+        }
+
+        $companycategory = (int)$companycategory;
         $this->companycategoryids = [$companycategory];
 
         // Get the category path.
         $category = $DB->get_record('course_categories', ['id' => $companycategory]);
-        if ($category) {
+        if ($category && !empty($category->path)) {
             // Get all subcategories using sql_like for cross-database compatibility.
             $likepath = $DB->sql_like('path', ':pathpattern');
             $subcats = $DB->get_records_sql(
@@ -235,7 +243,7 @@ class webservice_filter {
                 ['pathpattern' => $DB->sql_like_escape($category->path) . '/%']
             );
             foreach ($subcats as $subcat) {
-                $this->companycategoryids[] = $subcat->id;
+                $this->companycategoryids[] = (int)$subcat->id;
             }
         }
 

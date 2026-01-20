@@ -186,6 +186,11 @@ class get_course_content extends external_api {
                     // Get courses in company's category hierarchy (fallback).
                     $companycategoryids = $filter->get_company_category_ids();
                     $categorycourses = [];
+                    // Ensure all category IDs are valid integers before using in query.
+                    $companycategoryids = array_filter($companycategoryids, function($id) {
+                        return !empty($id) && is_numeric($id);
+                    });
+                    $companycategoryids = array_map('intval', $companycategoryids);
                     if (!empty($companycategoryids)) {
                         list($insql, $params) = $DB->get_in_or_equal($companycategoryids, SQL_PARAMS_NAMED);
                         $categorycourses = $DB->get_fieldset_select('course', 'id', "category $insql", $params);
