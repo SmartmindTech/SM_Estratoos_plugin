@@ -147,8 +147,7 @@ class get_course_content extends external_api {
     public static function execute(array $courseids = [], array $options = []): array {
         global $DB, $CFG, $USER;
 
-        // DEBUG: Return immediately to test if error is in our code at all.
-        return ['courses' => [], 'warnings' => [['item' => 'debug', 'itemid' => 0, 'warningcode' => 'debug', 'message' => 'DEBUG v1.7.65 - minimal test']]];
+        // DEBUG v1.7.66: Test basic course retrieval only (no module processing).
 
         // Validate parameters.
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -262,7 +261,9 @@ class get_course_content extends external_api {
                         'modules' => [],
                     ];
 
+                    // DEBUG v1.7.66: Skip module processing to isolate error.
                     // Get modules in this section.
+                    /*
                     if (!empty($modinfo->sections[$section->section])) {
                         foreach ($modinfo->sections[$section->section] as $cmid) {
                             $cm = $modinfo->cms[$cmid];
@@ -278,6 +279,7 @@ class get_course_content extends external_api {
                             }
                         }
                     }
+                    */
 
                     $sectionsdata[] = $sectiondata;
                 }
