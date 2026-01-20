@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011956</version>
+        <version>2025011957</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.56</release>
+        <release>1.7.57</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,23 +29,22 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.56/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.57/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.56</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.57</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.56 - Category Fallback for Course Access</h3>
+            <h3>Version 1.7.57 - Full Database Upgrade + SQL Compatibility Fix</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li><strong>Fix:</strong> get_course_content now uses company category as fallback when course is not in company_course table</li>
-                <li>Courses created in company category (but not via IOMAD course creator) are now accessible</li>
-                <li>Logic: company_course table OR courses in company's category hierarchy</li>
-                <li><strong>v1.7.55:</strong> Remote update test</li>
-                <li><strong>v1.7.54:</strong> Company managers can now update plugin via API</li>
+                <li><strong>Fix:</strong> Remote update via API now performs FULL database upgrade</li>
+                <li>Syncs capabilities, services, and tasks - no more "upgrade_noncore()" message</li>
+                <li><strong>Fix:</strong> SQL LIKE query now uses sql_like() for cross-database compatibility</li>
+                <li><strong>v1.7.56:</strong> Category fallback for get_course_content</li>
             </ul>
             ]]>
         </releasenotes>

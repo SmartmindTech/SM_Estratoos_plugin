@@ -282,10 +282,19 @@ class update_plugin_version extends external_api {
         // Step 7: Clean up temp files.
         self::remove_directory($tempdir);
 
-        // Step 8: Run the database upgrade.
+        // Step 8: Run the FULL database upgrade (including capabilities, services, tasks).
         try {
+            // Include required upgrade libraries.
+            require_once($CFG->libdir . '/upgradelib.php');
+            require_once($CFG->libdir . '/accesslib.php');
+            require_once($CFG->libdir . '/externallib.php');
+
             // Purge all caches to ensure new code is loaded.
             purge_all_caches();
+
+            // Reset plugin manager to detect new version.
+            $pluginman = \core_plugin_manager::instance();
+            $pluginman->reset_caches();
 
             // Get the old version from database.
             $oldversion = $DB->get_field('config_plugins', 'value', [
@@ -293,39 +302,58 @@ class update_plugin_version extends external_api {
                 'name' => 'version',
             ]);
 
+            $upgrademessages = [];
+
+            // Run db/upgrade.php if exists.
             if ($oldversion) {
-                // Include the new upgrade.php file.
                 $upgradefile = $CFG->dirroot . '/local/sm_estratoos_plugin/db/upgrade.php';
                 if (file_exists($upgradefile)) {
                     require_once($upgradefile);
 
-                    // Run the upgrade function.
                     if (function_exists('xmldb_local_sm_estratoos_plugin_upgrade')) {
                         $upgraderesult = xmldb_local_sm_estratoos_plugin_upgrade((int)$oldversion);
-
                         if ($upgraderesult) {
-                            // Update the version in database.
-                            $DB->set_field('config_plugins', 'value', $newversion, [
-                                'plugin' => 'local_sm_estratoos_plugin',
-                                'name' => 'version',
-                            ]);
-
-                            // Purge caches again after upgrade.
-                            purge_all_caches();
-
-                            return [
-                                'success' => true,
-                                'message' => "Plugin fully upgraded to v$newrelease. Database upgrade completed successfully.",
-                            ];
+                            $upgrademessages[] = 'db/upgrade.php executed';
                         }
                     }
                 }
             }
 
-            // If we couldn't run upgrade automatically, still report success for file update.
+            // Update the version in database FIRST.
+            $DB->set_field('config_plugins', 'value', $newversion, [
+                'plugin' => 'local_sm_estratoos_plugin',
+                'name' => 'version',
+            ]);
+            $upgrademessages[] = 'version updated';
+
+            // Sync capabilities from db/access.php.
+            $accessfile = $CFG->dirroot . '/local/sm_estratoos_plugin/db/access.php';
+            if (file_exists($accessfile)) {
+                update_capabilities('local_sm_estratoos_plugin');
+                $upgrademessages[] = 'capabilities synced';
+            }
+
+            // Sync web services from db/services.php.
+            $servicesfile = $CFG->dirroot . '/local/sm_estratoos_plugin/db/services.php';
+            if (file_exists($servicesfile)) {
+                external_update_descriptions('local_sm_estratoos_plugin');
+                $upgrademessages[] = 'services synced';
+            }
+
+            // Sync scheduled tasks from db/tasks.php.
+            $tasksfile = $CFG->dirroot . '/local/sm_estratoos_plugin/db/tasks.php';
+            if (file_exists($tasksfile)) {
+                \core\task\manager::reset_scheduled_tasks_for_component('local_sm_estratoos_plugin');
+                $upgrademessages[] = 'tasks synced';
+            }
+
+            // Purge caches again after all upgrades.
+            purge_all_caches();
+            $pluginman->reset_caches();
+
             return [
                 'success' => true,
-                'message' => "Plugin files updated to v$newrelease. Database upgrade may need to be completed via Site Administration.",
+                'message' => "Plugin fully upgraded to v$newrelease. " . implode(', ', $upgrademessages) . ".",
             ];
 
         } catch (\Exception $e) {

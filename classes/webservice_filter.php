@@ -228,10 +228,11 @@ class webservice_filter {
         // Get the category path.
         $category = $DB->get_record('course_categories', ['id' => $companycategory]);
         if ($category) {
-            // Get all subcategories.
+            // Get all subcategories using sql_like for cross-database compatibility.
+            $likepath = $DB->sql_like('path', ':pathpattern');
             $subcats = $DB->get_records_sql(
-                "SELECT id FROM {course_categories} WHERE path LIKE ?",
-                [$category->path . '/%']
+                "SELECT id FROM {course_categories} WHERE $likepath",
+                ['pathpattern' => $DB->sql_like_escape($category->path) . '/%']
             );
             foreach ($subcats as $subcat) {
                 $this->companycategoryids[] = $subcat->id;

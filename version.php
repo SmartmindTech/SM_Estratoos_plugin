@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011956;  // YYYYMMDDXX format.
+$plugin->version = 2025011957;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.56';  // Fix: category fallback for get_course_content when course not in company_course table.
+$plugin->release = '1.7.57';  // Full DB upgrade via API: sync capabilities, services, and tasks.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
