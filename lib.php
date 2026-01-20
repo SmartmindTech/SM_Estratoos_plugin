@@ -229,15 +229,19 @@ function local_sm_estratoos_plugin_extend_navigation(global_navigation $navigati
         if ($redirectflag) {
             // Only redirect if flag was set within last 5 minutes (upgrade can take time).
             if ((time() - $redirectflag) < 300) {
-                // Don't redirect if already on the plugin dashboard or during AJAX/API/admin calls.
+                // Don't redirect if already on the plugin dashboard or during AJAX/API calls.
                 $currenturl = $PAGE->url->get_path();
-                $isadminpage = strpos($currenturl, '/admin/') !== false;
                 $ispluginpage = strpos($currenturl, '/local/sm_estratoos_plugin/') !== false;
                 $iswebservice = strpos($currenturl, '/webservice/') !== false;
                 $isajax = defined('AJAX_SCRIPT') && AJAX_SCRIPT;
 
-                // Only redirect from the main site page (not admin pages, as upgrade continues there).
-                if (!$ispluginpage && !$iswebservice && !$isajax && !$isadminpage) {
+                // Block redirect during upgrade process pages (but allow admin/index.php which is the post-upgrade landing).
+                $isupgradepage = strpos($currenturl, '/admin/upgradesettings.php') !== false
+                    || strpos($currenturl, '/admin/environment.php') !== false
+                    || (strpos($currenturl, '/admin/index.php') !== false && optional_param('cache', 0, PARAM_INT));
+
+                // Redirect from admin/index.php (post-upgrade) or any non-admin page.
+                if (!$ispluginpage && !$iswebservice && !$isajax && !$isupgradepage) {
                     // Clear the flag first to prevent loops.
                     unset_config('redirect_to_dashboard', 'local_sm_estratoos_plugin');
                     // Redirect to plugin dashboard.
