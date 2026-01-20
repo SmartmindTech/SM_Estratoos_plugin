@@ -41,7 +41,7 @@ use local_sm_estratoos_plugin\util;
 /**
  * Get plugin version status and check for updates.
  */
-class update_company_plugin_version extends external_api {
+class get_plugin_status extends external_api {
 
     /**
      * Define input parameters.
@@ -61,15 +61,16 @@ class update_company_plugin_version extends external_api {
      * @return array Plugin status information.
      */
     public static function execute(bool $checkforupdates = false): array {
-        global $DB, $CFG;
+        global $DB, $CFG, $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'checkforupdates' => $checkforupdates,
         ]);
 
-        // Validate context.
-        $context = \context_system::instance();
-        self::validate_context($context);
+        // Basic validation - token already validated by Moodle at this point.
+        if (empty($USER->id) || isguestuser($USER)) {
+            throw new \moodle_exception('invaliduser', 'local_sm_estratoos_plugin');
+        }
 
         // Get current plugin info.
         $plugin = \core_plugin_manager::instance()->get_plugin_info('local_sm_estratoos_plugin');

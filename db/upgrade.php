@@ -1455,6 +1455,19 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011938, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.45: Add get_plugin_status function (system-wide plugin status check).
+    // This function replaces the per-company version tracking with a simpler system-wide check.
+    // Also adds auto-redirect to dashboard after install/upgrade and "Plugin Version:" label.
+    if ($oldversion < 2025011945) {
+        require_once(__DIR__ . '/install.php');
+
+        // Add the new get_plugin_status function to the service.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011945, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 
