@@ -359,11 +359,10 @@ class get_course_content extends external_api {
             }
         }
 
-        // DEBUG v1.7.69: Testing module-specific content one by one.
+        // DEBUG v1.7.70: Testing module-specific content - page, resource, folder, url, label, forum enabled.
         // Get module-specific content based on type.
         switch ($cm->modname) {
             case 'page':
-                // v1.7.69: Testing page content.
                 if ($options['includepagecontent']) {
                     $pagedata = self::get_page_content($cm->instance, $modulecontext);
                     $moduledata['pagecontent'] = $pagedata['content'];
@@ -371,13 +370,6 @@ class get_course_content extends external_api {
                 }
                 if ($options['includefilecontents']) {
                     $moduledata['contents'] = self::get_page_files($cm->instance, $modulecontext);
-                }
-                break;
-
-            /* DEBUG: Disabled for isolation testing
-            case 'scorm':
-                if ($options['includescormdetails']) {
-                    $moduledata['scorm'] = self::get_scorm_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
                 }
                 break;
 
@@ -413,6 +405,17 @@ class get_course_content extends external_api {
                 // Labels have their content in the description field (intro).
                 break;
 
+            case 'forum':
+                $moduledata['forum'] = self::get_forum_data($cm->instance);
+                break;
+
+            /* DEBUG: Disabled for isolation testing - complex modules with user data
+            case 'scorm':
+                if ($options['includescormdetails']) {
+                    $moduledata['scorm'] = self::get_scorm_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
+                }
+                break;
+
             case 'assign':
                 if ($options['includeassignmentdetails']) {
                     $moduledata['assignment'] = self::get_assignment_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
@@ -427,10 +430,6 @@ class get_course_content extends external_api {
                 } else {
                     $moduledata['quiz'] = self::get_quiz_basic($cm->instance);
                 }
-                break;
-
-            case 'forum':
-                $moduledata['forum'] = self::get_forum_data($cm->instance);
                 break;
 
             case 'book':
