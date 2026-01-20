@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011935</version>
+        <version>2025011936</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.35</release>
+        <release>1.7.36</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,28 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.35/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.36/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.35</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.36</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.35 - Fix Timezone in Expiry Date Picker</h3>
+            <h3>Version 1.7.36 - Expiry Date Auto-Disable/Enable Logic</h3>
 
-            <h4>Bug Fixes</h4>
+            <h4>New Features</h4>
             <ul>
-                <li>Fixed timezone mismatch in company expiry date picker</li>
-                <li>JavaScript now uses UTC ("Z" suffix) when converting dates to timestamps</li>
-                <li>PHP now uses gmdate() instead of date() for consistent UTC handling</li>
-                <li>This fixes the 1-day shift issue when server timezone differs from browser timezone</li>
+                <li>When expiry date is set to a past date, company is automatically disabled and all tokens suspended</li>
+                <li>When expiry date is changed from past to future/never, company is re-enabled and tokens unsuspended</li>
+                <li>This works both from the UI (immediately on save) and via scheduled task (every 6 hours)</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li><strong>v1.7.35:</strong> Fixed timezone in expiry date picker (UTC handling)</li>
                 <li><strong>v1.7.34:</strong> Fixed context validation in session APIs</li>
                 <li><strong>v1.7.33:</strong> Added missing get_company_id_from_token() method</li>
-                <li><strong>v1.7.32:</strong> Fixed context validation in 9 API functions for non-IOMAD users</li>
             </ul>
             ]]>
         </releasenotes>
