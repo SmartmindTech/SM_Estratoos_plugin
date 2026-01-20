@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011940;  // YYYYMMDDXX format.
+$plugin->version = 2025011941;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.40';  // Auto-update plugin_version per company based on user role (IOMAD/non-IOMAD).
+$plugin->release = '1.7.41';  // Dashboard updates section for super admin, fix manager role detection, individual company updates.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

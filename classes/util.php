@@ -259,6 +259,8 @@ class util {
      * NOTE: Only checks SYSTEM and CATEGORY contexts. Course-level managers
      * should NOT have access to the plugin.
      *
+     * Also checks IOMAD's company_users.managertype for IOMAD installations.
+     *
      * Supported keywords (multilingual):
      * - English: admin, administrator, manager
      * - Spanish: administrador, gerente, gestor
@@ -275,7 +277,19 @@ class util {
         }
 
         try {
-            // Check for roles at SYSTEM or CATEGORY context level ONLY.
+            // Check 1: IOMAD company_users.managertype > 0.
+            if (self::is_iomad_installed()) {
+                $ismanager = $DB->record_exists_select(
+                    'company_users',
+                    'userid = :userid AND managertype > 0',
+                    ['userid' => $userid]
+                );
+                if ($ismanager) {
+                    return true;
+                }
+            }
+
+            // Check 2: Roles at SYSTEM or CATEGORY context level.
             // Course-level managers should NOT have access to the plugin.
             // Include multilingual keywords for admin/manager roles.
             // Also explicitly include IOMAD's companymanager role.
@@ -1164,5 +1178,117 @@ class util {
     public static function get_system_plugin_version(): ?string {
         $version = get_config('local_sm_estratoos_plugin', 'system_plugin_version');
         return $version ? $version : null;
+    }
+
+    /**
+     * Get companies that need plugin version updates.
+     *
+     * @param string $latestversion The latest available version.
+     * @param int|null $userid User ID (for filtering to managed companies). Null = all companies.
+     * @return array Array of companies that need updates.
+     */
+    public static function get_companies_needing_update(string $latestversion, int $userid = null): array {
+        global $DB;
+
+        if (!self::is_iomad_installed()) {
+            return [];
+        }
+
+        // Get companies based on user permissions.
+        if ($userid === null || is_siteadmin($userid)) {
+            $companies = self::get_companies();
+        } else {
+            $companies = self::get_user_managed_companies($userid);
+        }
+
+        if (empty($companies)) {
+            return [];
+        }
+
+        // Get access records with versions.
+        $companyids = array_keys($companies);
+        list($insql, $inparams) = $DB->get_in_or_equal($companyids, SQL_PARAMS_NAMED);
+        $accessrecords = $DB->get_records_select(
+            'local_sm_estratoos_plugin_access',
+            "companyid $insql",
+            $inparams,
+            '',
+            'companyid, plugin_version'
+        );
+
+        $needsupdate = [];
+        foreach ($companies as $company) {
+            $currentversion = '';
+            if (isset($accessrecords[$company->id])) {
+                $currentversion = $accessrecords[$company->id]->plugin_version ?? '';
+            }
+
+            // Company needs update if version is empty or different from latest.
+            if (empty($currentversion) || version_compare($currentversion, $latestversion, '<')) {
+                $company->current_version = $currentversion;
+                $needsupdate[$company->id] = $company;
+            }
+        }
+
+        return $needsupdate;
+    }
+
+    /**
+     * Get all companies with their plugin versions for the dashboard.
+     *
+     * @param int|null $userid User ID (for filtering to managed companies). Null = all companies.
+     * @return array Array of companies with version info.
+     */
+    public static function get_companies_with_versions(int $userid = null): array {
+        global $DB;
+
+        if (!self::is_iomad_installed()) {
+            return [];
+        }
+
+        // Get companies based on user permissions.
+        if ($userid === null || is_siteadmin($userid)) {
+            $companies = self::get_companies();
+        } else {
+            $companies = self::get_user_managed_companies($userid);
+        }
+
+        if (empty($companies)) {
+            return [];
+        }
+
+        // Get access records with versions.
+        $companyids = array_keys($companies);
+        list($insql, $inparams) = $DB->get_in_or_equal($companyids, SQL_PARAMS_NAMED);
+        $accessrecords = $DB->get_records_select(
+            'local_sm_estratoos_plugin_access',
+            "companyid $insql",
+            $inparams,
+            '',
+            'companyid, plugin_version, enabled'
+        );
+
+        foreach ($companies as $company) {
+            $company->plugin_version = '';
+            $company->enabled = false;
+            if (isset($accessrecords[$company->id])) {
+                $company->plugin_version = $accessrecords[$company->id]->plugin_version ?? '';
+                $company->enabled = (bool)$accessrecords[$company->id]->enabled;
+            }
+        }
+
+        return $companies;
+    }
+
+    /**
+     * Check if all companies are up to date.
+     *
+     * @param string $latestversion The latest available version.
+     * @param int|null $userid User ID (for filtering to managed companies). Null = all companies.
+     * @return bool True if all companies have the latest version.
+     */
+    public static function all_companies_up_to_date(string $latestversion, int $userid = null): bool {
+        $needsupdate = self::get_companies_needing_update($latestversion, $userid);
+        return empty($needsupdate);
     }
 }

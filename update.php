@@ -38,8 +38,9 @@ if (!$canmanageupdates) {
 require_once(__DIR__ . '/classes/update_checker.php');
 
 $confirm = optional_param('confirm', 0, PARAM_BOOL);
+$companyid = optional_param('companyid', 0, PARAM_INT); // For individual company updates.
 
-$PAGE->set_url(new moodle_url('/local/sm_estratoos_plugin/update.php'));
+$PAGE->set_url(new moodle_url('/local/sm_estratoos_plugin/update.php', $companyid ? ['companyid' => $companyid] : []));
 $PAGE->set_context(context_system::instance());
 $PAGE->set_title(get_string('updateplugin', 'local_sm_estratoos_plugin'));
 $PAGE->set_heading(get_string('updateplugin', 'local_sm_estratoos_plugin'));
@@ -80,7 +81,22 @@ if ($confirm && confirm_sesskey()) {
     if ($success) {
         // Update the plugin version for the appropriate companies.
         $newrelease = $updateinfo['release'] ?? $updateinfo['version'];
-        $versionresult = \local_sm_estratoos_plugin\util::update_plugin_version_after_upgrade($newrelease);
+
+        // If companyid is specified and user is site admin, update only that company.
+        if ($companyid > 0 && is_siteadmin()) {
+            $updateresult = \local_sm_estratoos_plugin\util::set_company_plugin_version($companyid, $newrelease);
+            global $DB;
+            $company = $DB->get_record('company', ['id' => $companyid], 'shortname');
+            $versionresult = [
+                'success' => $updateresult,
+                'message' => $updateresult
+                    ? 'Updated plugin version to ' . $newrelease . ' for company ' . ($company->shortname ?? $companyid)
+                    : 'Failed to update plugin version',
+            ];
+        } else {
+            // Use the standard logic (all companies for admin, own company for manager).
+            $versionresult = \local_sm_estratoos_plugin\util::update_plugin_version_after_upgrade($newrelease);
+        }
 
         echo $OUTPUT->notification(get_string('updatesuccessful', 'local_sm_estratoos_plugin'), 'success');
         echo html_writer::tag('p', get_string('updatesuccessful_desc', 'local_sm_estratoos_plugin'));
@@ -107,6 +123,20 @@ echo $OUTPUT->header();
 
 echo $OUTPUT->heading(get_string('updateavailable', 'local_sm_estratoos_plugin'));
 
+// Show which company will be updated (if specific company selected).
+$companyname = '';
+if ($companyid > 0 && is_siteadmin()) {
+    global $DB;
+    $company = $DB->get_record('company', ['id' => $companyid], 'name, shortname');
+    if ($company) {
+        $companyname = $company->name . ' (' . $company->shortname . ')';
+        echo html_writer::div(
+            html_writer::tag('strong', get_string('company', 'local_sm_estratoos_plugin') . ': ') . $companyname,
+            'alert alert-info'
+        );
+    }
+}
+
 // Version info table.
 $table = new html_table();
 $table->attributes['class'] = 'generaltable';
@@ -116,8 +146,12 @@ $table->data = [
 ];
 echo html_writer::table($table);
 
-// Confirmation buttons.
-$confirmurl = new moodle_url('/local/sm_estratoos_plugin/update.php', ['confirm' => 1, 'sesskey' => sesskey()]);
+// Confirmation buttons - include companyid if set.
+$confirmparams = ['confirm' => 1, 'sesskey' => sesskey()];
+if ($companyid > 0) {
+    $confirmparams['companyid'] = $companyid;
+}
+$confirmurl = new moodle_url('/local/sm_estratoos_plugin/update.php', $confirmparams);
 $cancelurl = new moodle_url('/local/sm_estratoos_plugin/index.php');
 
 echo $OUTPUT->confirm(
