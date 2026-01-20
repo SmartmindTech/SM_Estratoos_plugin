@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011939</version>
+        <version>2025011940</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.39</release>
+        <release>1.7.40</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,27 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.39/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.40/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.39</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.40</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.39 - Admin/Manager Role Access to Update Button</h3>
+            <h3>Version 1.7.40 - Auto-Update Plugin Version Per Company</h3>
 
             <h4>New Features</h4>
             <ul>
-                <li>Users with admin/manager roles at system/category level can now see and use the "Check for updates" button</li>
-                <li>Previously only site administrators could see the update functionality</li>
+                <li><strong>IOMAD + Site Admin:</strong> UI update sets plugin_version for ALL companies</li>
+                <li><strong>IOMAD + Manager:</strong> UI update sets plugin_version ONLY for their own company</li>
+                <li><strong>Non-IOMAD:</strong> UI update stores system-wide plugin version in config</li>
+                <li>Shows notification after update with which companies were updated</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li><strong>v1.7.39:</strong> Allow admin/manager roles to see update button</li>
                 <li><strong>v1.7.38:</strong> Fix update_company_plugin_version API registration</li>
                 <li><strong>v1.7.37:</strong> Independent plugin version tracking per company</li>
-                <li><strong>v1.7.36:</strong> Auto-disable/enable company and suspend/unsuspend tokens on expiry date changes</li>
             </ul>
             ]]>
         </releasenotes>

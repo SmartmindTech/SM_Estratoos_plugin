@@ -78,8 +78,17 @@ if ($confirm && confirm_sesskey()) {
     $success = perform_plugin_update($updateinfo);
 
     if ($success) {
+        // Update the plugin version for the appropriate companies.
+        $newrelease = $updateinfo['release'] ?? $updateinfo['version'];
+        $versionresult = \local_sm_estratoos_plugin\util::update_plugin_version_after_upgrade($newrelease);
+
         echo $OUTPUT->notification(get_string('updatesuccessful', 'local_sm_estratoos_plugin'), 'success');
         echo html_writer::tag('p', get_string('updatesuccessful_desc', 'local_sm_estratoos_plugin'));
+
+        // Show which companies were updated.
+        if (!empty($versionresult['message'])) {
+            echo $OUTPUT->notification($versionresult['message'], 'info');
+        }
 
         // Redirect to upgrade page.
         $upgradeurl = new moodle_url('/admin/index.php');

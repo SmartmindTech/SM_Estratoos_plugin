@@ -1053,4 +1053,116 @@ class util {
 
         return $companies;
     }
+
+    /**
+     * Update plugin version after a UI upgrade.
+     *
+     * Logic:
+     * - IOMAD + Site Admin: Update ALL companies' plugin_version
+     * - IOMAD + Manager: Update ONLY the manager's company plugin_version
+     * - Non-IOMAD: Store version in plugin config (system-wide)
+     *
+     * @param string $version The new plugin version (e.g., "1.7.39").
+     * @param int|null $userid User ID performing the update (defaults to current user).
+     * @return array Result with 'success', 'message', and 'updated_companies'.
+     */
+    public static function update_plugin_version_after_upgrade(string $version, int $userid = null): array {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        $result = [
+            'success' => true,
+            'message' => '',
+            'updated_companies' => [],
+        ];
+
+        $time = time();
+
+        if (self::is_iomad_installed()) {
+            // IOMAD MODE.
+            if (is_siteadmin($userid)) {
+                // Site admin: Update ALL companies.
+                $companies = self::get_companies();
+                foreach ($companies as $company) {
+                    self::set_company_plugin_version($company->id, $version, $userid);
+                    $result['updated_companies'][] = $company->shortname;
+                }
+                $result['message'] = 'Updated plugin version to ' . $version . ' for all ' . count($companies) . ' companies';
+            } else {
+                // Manager: Update only their managed companies.
+                $managedcompanies = self::get_user_managed_companies($userid);
+                if (empty($managedcompanies)) {
+                    $result['success'] = false;
+                    $result['message'] = 'No companies found for this user';
+                    return $result;
+                }
+                foreach ($managedcompanies as $company) {
+                    self::set_company_plugin_version($company->id, $version, $userid);
+                    $result['updated_companies'][] = $company->shortname;
+                }
+                $result['message'] = 'Updated plugin version to ' . $version . ' for ' . count($managedcompanies) . ' company(ies): ' . implode(', ', $result['updated_companies']);
+            }
+        } else {
+            // NON-IOMAD MODE: Store in plugin config (system-wide).
+            set_config('system_plugin_version', $version, 'local_sm_estratoos_plugin');
+            set_config('system_plugin_version_updated', $time, 'local_sm_estratoos_plugin');
+            set_config('system_plugin_version_updatedby', $userid, 'local_sm_estratoos_plugin');
+            $result['message'] = 'Updated system plugin version to ' . $version;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Set the plugin version for a specific company.
+     *
+     * @param int $companyid Company ID.
+     * @param string $version Plugin version string.
+     * @param int|null $userid User who performed the update.
+     * @return bool Success.
+     */
+    public static function set_company_plugin_version(int $companyid, string $version, int $userid = null): bool {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        $time = time();
+
+        try {
+            $existing = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $companyid]);
+
+            if ($existing) {
+                $existing->plugin_version = $version;
+                $existing->timemodified = $time;
+                $DB->update_record('local_sm_estratoos_plugin_access', $existing);
+            } else {
+                $DB->insert_record('local_sm_estratoos_plugin_access', [
+                    'companyid' => $companyid,
+                    'enabled' => 1,
+                    'plugin_version' => $version,
+                    'enabledby' => $userid,
+                    'timecreated' => $time,
+                    'timemodified' => $time,
+                ]);
+            }
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get the system plugin version (for non-IOMAD installations).
+     *
+     * @return string|null The version string or null if not set.
+     */
+    public static function get_system_plugin_version(): ?string {
+        $version = get_config('local_sm_estratoos_plugin', 'system_plugin_version');
+        return $version ? $version : null;
+    }
 }
