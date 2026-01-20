@@ -476,6 +476,9 @@ class get_course_content extends external_api {
         }
         */
 
+        // DEBUG v1.7.67: Add default progress value since calculation is disabled.
+        $moduledata['progress'] = 0;
+
         return $moduledata;
     }
 
