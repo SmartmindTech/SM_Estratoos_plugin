@@ -405,3 +405,6 @@ $string['uptodate'] = 'Up to date';
 $string['allcompaniesuptodate'] = 'All companies are using the latest version';
 $string['versionsynced'] = 'Version synchronized for {$a}';
 $string['versionsyncfailed'] = 'Failed to sync version for {$a}';
+
+// Version label (v1.7.45).
+$string['pluginversionlabel'] = 'Plugin Version:';

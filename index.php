@@ -117,7 +117,10 @@ if ($updateavailable) {
 // Dashboard description with version badge on the right.
 echo html_writer::start_div('d-flex justify-content-between align-items-center mb-3');
 echo html_writer::tag('p', get_string('dashboarddesc', 'local_sm_estratoos_plugin'), ['class' => 'lead mb-0']);
+echo html_writer::start_div('d-flex align-items-center');
+echo html_writer::tag('span', get_string('pluginversionlabel', 'local_sm_estratoos_plugin'), ['class' => 'mr-2 text-muted']);
 echo html_writer::tag('span', 'v' . $currentversion, ['class' => 'badge badge-secondary', 'style' => 'font-size: 0.9rem;']);
+echo html_writer::end_div();
 echo html_writer::end_div();
 
 // Get IOMAD status (isiomad is already set above).
@@ -190,7 +193,8 @@ if ($issiteadmin) {
         'description' => get_string('manageservicesdesc', 'local_sm_estratoos_plugin'),
         'url' => new moodle_url('/local/sm_estratoos_plugin/services.php'),
         'icon' => 'i/edit',
-        'class' => 'bg-secondary text-white',
+        'class' => 'text-white',
+        'style' => 'background-color: #495057;', // Darker grey.
     ];
 }
 

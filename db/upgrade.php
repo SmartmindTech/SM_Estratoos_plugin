@@ -1455,5 +1455,8 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011938, 'local', 'sm_estratoos_plugin');
     }
 
+    // Set flag to redirect to plugin dashboard after upgrade completes.
+    set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
+
     return true;
 }

@@ -49,6 +49,9 @@ function xmldb_local_sm_estratoos_plugin_install() {
     // This was removed in v1.7.12 because it breaks IOMAD's company context handling.
     // Users should be assigned roles through IOMAD's UI or Moodle's role assignment interface.
 
+    // Set flag to redirect to plugin dashboard after install completes.
+    set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
+
     return true;
 }
 

@@ -223,6 +223,28 @@ function local_sm_estratoos_plugin_post_processor($functionname, $result) {
 function local_sm_estratoos_plugin_extend_navigation(global_navigation $navigation) {
     global $CFG, $PAGE;
 
+    // Check for redirect flag after install/upgrade (only for site admins).
+    if (is_siteadmin() && !defined('ABORT_AFTER_CONFIG') && !CLI_SCRIPT) {
+        $redirectflag = get_config('local_sm_estratoos_plugin', 'redirect_to_dashboard');
+        if ($redirectflag) {
+            // Only redirect if flag was set within last 60 seconds (to avoid stale redirects).
+            if ((time() - $redirectflag) < 60) {
+                // Don't redirect if already on the plugin dashboard or during AJAX/API calls.
+                $currenturl = $PAGE->url->get_path();
+                if (strpos($currenturl, '/local/sm_estratoos_plugin/') === false &&
+                    strpos($currenturl, '/webservice/') === false &&
+                    !defined('AJAX_SCRIPT')) {
+                    // Clear the flag first to prevent loops.
+                    unset_config('redirect_to_dashboard', 'local_sm_estratoos_plugin');
+                    // Redirect to plugin dashboard.
+                    redirect(new moodle_url('/local/sm_estratoos_plugin/index.php'));
+                }
+            }
+            // Clear stale flag.
+            unset_config('redirect_to_dashboard', 'local_sm_estratoos_plugin');
+        }
+    }
+
     // Check if user has access (site admin or company manager).
     if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
         return;

@@ -396,3 +396,6 @@ $string['uptodate'] = 'Atualizado';
 $string['allcompaniesuptodate'] = 'Todas as empresas estão usando a última versão';
 $string['versionsynced'] = 'Versão sincronizada para {$a}';
 $string['versionsyncfailed'] = 'Erro ao sincronizar a versão para {$a}';
+
+// Rótulo de versão (v1.7.45).
+$string['pluginversionlabel'] = 'Versão do Plugin:';
