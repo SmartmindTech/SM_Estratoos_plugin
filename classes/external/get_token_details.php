@@ -98,13 +98,8 @@ class get_token_details extends external_api {
 
         // Find the token record.
         if (!empty($params['token'])) {
-            // Lookup by token hash using sql_compare_text for cross-database TEXT column compatibility.
-            // Only wrap the column, not the parameter placeholder.
-            $tokencompare = $DB->sql_compare_text('token');
-            $externaltoken = $DB->get_record_sql(
-                "SELECT * FROM {external_tokens} WHERE {$tokencompare} = :token",
-                ['token' => $params['token']]
-            );
+            // Lookup by token hash.
+            $externaltoken = $DB->get_record('external_tokens', ['token' => $params['token']]);
             if ($externaltoken) {
                 $plugintoken = $DB->get_record('local_sm_estratoos_plugin', ['tokenid' => $externaltoken->id]);
             }

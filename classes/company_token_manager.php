@@ -118,14 +118,7 @@ class company_token_manager {
         );
 
         // Get the token record to link it.
-        // Use sql_compare_text for cross-database TEXT column compatibility.
-        // Only wrap the column, not the parameter placeholder.
-        $tokencompare = $DB->sql_compare_text('token');
-        $tokenrecord = $DB->get_record_sql(
-            "SELECT * FROM {external_tokens} WHERE {$tokencompare} = :token",
-            ['token' => $token],
-            MUST_EXIST
-        );
+        $tokenrecord = $DB->get_record('external_tokens', ['token' => $token], '*', MUST_EXIST);
 
         // Update the token name in Moodle's external_tokens table.
         $DB->set_field('external_tokens', 'name', $tokenname, ['id' => $tokenrecord->id]);
@@ -196,14 +189,7 @@ class company_token_manager {
         );
 
         // Get the token record and update the name.
-        // Use sql_compare_text for cross-database TEXT column compatibility.
-        // Only wrap the column, not the parameter placeholder.
-        $tokencompare = $DB->sql_compare_text('token');
-        $tokenrecord = $DB->get_record_sql(
-            "SELECT id FROM {external_tokens} WHERE {$tokencompare} = :token",
-            ['token' => $token],
-            MUST_EXIST
-        );
+        $tokenrecord = $DB->get_record('external_tokens', ['token' => $token], 'id', MUST_EXIST);
         $DB->set_field('external_tokens', 'name', $tokenname, ['id' => $tokenrecord->id]);
 
         return $token;
@@ -375,14 +361,10 @@ class company_token_manager {
     public static function get_token_company(string $token): ?int {
         global $DB;
 
-        // Use sql_compare_text for cross-database TEXT column compatibility.
-        // Only wrap the column, not the parameter placeholder.
-        $tokencompare = $DB->sql_compare_text('et.token');
-
         $sql = "SELECT lit.companyid
                 FROM {local_sm_estratoos_plugin} lit
                 JOIN {external_tokens} et ON et.id = lit.tokenid
-                WHERE {$tokencompare} = :token";
+                WHERE et.token = :token";
 
         $companyid = $DB->get_field_sql($sql, ['token' => $token]);
         return $companyid ?: null;
@@ -401,24 +383,20 @@ class company_token_manager {
             // Check if IOMAD is installed (company table exists).
             $isiomad = util::is_iomad_installed();
 
-            // Use sql_compare_text for cross-database TEXT column compatibility.
-            // Only wrap the column, not the parameter placeholder.
-            $tokencompare = $DB->sql_compare_text('et.token');
-
             if ($isiomad) {
                 $sql = "SELECT lit.*, c.name as companyname, c.shortname as companyshortname,
                                c.category as companycategory, et.userid
                         FROM {local_sm_estratoos_plugin} lit
                         JOIN {external_tokens} et ON et.id = lit.tokenid
                         LEFT JOIN {company} c ON c.id = lit.companyid
-                        WHERE {$tokencompare} = :token";
+                        WHERE et.token = :token";
             } else {
                 // Standard Moodle - no company table.
                 $sql = "SELECT lit.*, '' as companyname, '' as companyshortname,
                                0 as companycategory, et.userid
                         FROM {local_sm_estratoos_plugin} lit
                         JOIN {external_tokens} et ON et.id = lit.tokenid
-                        WHERE {$tokencompare} = :token";
+                        WHERE et.token = :token";
             }
 
             $record = $DB->get_record_sql($sql, ['token' => $token]);
@@ -443,14 +421,10 @@ class company_token_manager {
         global $DB;
 
         try {
-            // Use sql_compare_text for cross-database TEXT column compatibility.
-            // Only wrap the column, not the parameter placeholder.
-            $tokencompare = $DB->sql_compare_text('et.token');
-
             $sql = "SELECT lit.active
                     FROM {local_sm_estratoos_plugin} lit
                     JOIN {external_tokens} et ON et.id = lit.tokenid
-                    WHERE {$tokencompare} = :token";
+                    WHERE et.token = :token";
 
             $active = $DB->get_field_sql($sql, ['token' => $token]);
 

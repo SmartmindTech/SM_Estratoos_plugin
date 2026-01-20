@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011962</version>
+        <version>2025011963</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.62</release>
+        <release>1.7.63</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,21 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.62/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.63/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.62</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.63</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.62 - sql_compare_text() Fix</h3>
+            <h3>Version 1.7.63 - DEBUG: Isolate SQL Error</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li>Fix sql_compare_text() usage - only wrap column name, not parameter placeholder</li>
-                <li>Correct pattern: WHERE sql_compare_text(column) = :param</li>
-                <li>Resolves "text column comparison not allowed" error</li>
+                <li>Temporarily disable company filtering to isolate SQL error source</li>
+                <li>Core Moodle function works - error is in our filtering logic</li>
             </ul>
             ]]>
         </releasenotes>
