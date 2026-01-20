@@ -410,18 +410,20 @@ class get_course_content extends external_api {
                 $moduledata['forum'] = json_encode($forumdata);
                 break;
 
+            case 'assign':
+                // v1.7.72: Testing assignment data.
+                if ($options['includeassignmentdetails']) {
+                    $assigndata = self::get_assignment_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
+                } else {
+                    $assigndata = self::get_assignment_basic($cm->instance);
+                }
+                $moduledata['assignment'] = json_encode($assigndata);
+                break;
+
             /* DEBUG: Disabled for isolation testing - complex modules with user data
             case 'scorm':
                 if ($options['includescormdetails']) {
                     $moduledata['scorm'] = self::get_scorm_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
-                }
-                break;
-
-            case 'assign':
-                if ($options['includeassignmentdetails']) {
-                    $moduledata['assignment'] = self::get_assignment_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
-                } else {
-                    $moduledata['assignment'] = self::get_assignment_basic($cm->instance);
                 }
                 break;
 
