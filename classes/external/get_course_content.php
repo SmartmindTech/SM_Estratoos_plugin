@@ -147,8 +147,6 @@ class get_course_content extends external_api {
     public static function execute(array $courseids = [], array $options = []): array {
         global $DB, $CFG, $USER;
 
-        // DEBUG v1.7.66: Test basic course retrieval only (no module processing).
-
         // Validate parameters.
         $params = self::validate_parameters(self::execute_parameters(), [
             'courseids' => $courseids,
@@ -169,14 +167,12 @@ class get_course_content extends external_api {
         $warnings = [];
         $courses = [];
 
-        // TEMPORARILY DISABLED FOR DEBUGGING - checking if filtering causes the error.
         // Apply company filtering if IOMAD token.
         // NOTE: We use a union of:
         //   1. Courses in company_course table (IOMAD course assignment)
         //   2. Courses in company's category hierarchy (fallback for courses not created via IOMAD)
         // This allows access to courses in the company's category even if not explicitly
         // assigned in IOMAD (e.g., course created in SmartMind category but not via IOMAD course creator).
-        /*
         if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
             $token = \local_sm_estratoos_plugin\util::get_current_request_token();
             if ($token) {
@@ -204,7 +200,6 @@ class get_course_content extends external_api {
                 }
             }
         }
-        */
 
         // Process each course.
         foreach ($courseids as $courseid) {
@@ -359,17 +354,11 @@ class get_course_content extends external_api {
             }
         }
 
-        // DEBUG v1.7.70: Testing module-specific content - page, resource, folder, url, label, forum enabled.
         // Get module-specific content based on type.
         switch ($cm->modname) {
-            case 'page':
-                if ($options['includepagecontent']) {
-                    $pagedata = self::get_page_content($cm->instance, $modulecontext);
-                    $moduledata['pagecontent'] = $pagedata['content'];
-                    $moduledata['pagecontentformat'] = $pagedata['contentformat'];
-                }
-                if ($options['includefilecontents']) {
-                    $moduledata['contents'] = self::get_page_files($cm->instance, $modulecontext);
+            case 'scorm':
+                if ($options['includescormdetails']) {
+                    $moduledata['scorm'] = self::get_scorm_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
                 }
                 break;
 
@@ -382,6 +371,17 @@ class get_course_content extends external_api {
             case 'folder':
                 if ($options['includefilecontents']) {
                     $moduledata['contents'] = self::get_folder_files($cm->instance, $modulecontext);
+                }
+                break;
+
+            case 'page':
+                if ($options['includepagecontent']) {
+                    $pagedata = self::get_page_content($cm->instance, $modulecontext);
+                    $moduledata['pagecontent'] = $pagedata['content'];
+                    $moduledata['pagecontentformat'] = $pagedata['contentformat'];
+                }
+                if ($options['includefilecontents']) {
+                    $moduledata['contents'] = self::get_page_files($cm->instance, $modulecontext);
                 }
                 break;
 
@@ -405,25 +405,11 @@ class get_course_content extends external_api {
                 // Labels have their content in the description field (intro).
                 break;
 
-            case 'forum':
-                $forumdata = self::get_forum_data($cm->instance);
-                $moduledata['forum'] = json_encode($forumdata);
-                break;
-
             case 'assign':
-                // v1.7.72: Testing assignment data.
                 if ($options['includeassignmentdetails']) {
-                    $assigndata = self::get_assignment_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
+                    $moduledata['assignment'] = self::get_assignment_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
                 } else {
-                    $assigndata = self::get_assignment_basic($cm->instance);
-                }
-                $moduledata['assignment'] = json_encode($assigndata);
-                break;
-
-            /* DEBUG: Disabled for isolation testing - complex modules with user data
-            case 'scorm':
-                if ($options['includescormdetails']) {
-                    $moduledata['scorm'] = self::get_scorm_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
+                    $moduledata['assignment'] = self::get_assignment_basic($cm->instance);
                 }
                 break;
 
@@ -433,6 +419,10 @@ class get_course_content extends external_api {
                 } else {
                     $moduledata['quiz'] = self::get_quiz_basic($cm->instance);
                 }
+                break;
+
+            case 'forum':
+                $moduledata['forum'] = self::get_forum_data($cm->instance);
                 break;
 
             case 'book':
@@ -455,12 +445,9 @@ class get_course_content extends external_api {
                     $moduledata['contents'] = self::get_generic_module_files($cm, $modulecontext);
                 }
                 break;
-            */
         }
 
-        // DEBUG v1.7.67: Skip progress calculation since module-specific data is disabled.
         // Calculate progress based on module type and data (before JSON encoding).
-        /*
         $progressdata = [];
         $jsonfields = ['scorm', 'quiz', 'assignment', 'forum', 'book', 'lesson'];
         foreach ($jsonfields as $field) {
@@ -477,10 +464,6 @@ class get_course_content extends external_api {
                 $moduledata[$field] = json_encode($moduledata[$field]);
             }
         }
-        */
-
-        // DEBUG v1.7.67: Add default progress value since calculation is disabled.
-        $moduledata['progress'] = 0;
 
         return $moduledata;
     }

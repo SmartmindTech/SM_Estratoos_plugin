@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011973</version>
+        <version>2025011974</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.73</release>
+        <release>1.7.74</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,22 +29,21 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.73/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.74/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.73</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.74</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.67 - DEBUG: Module Processing without Module-Specific Data</h3>
+            <h3>Version 1.7.74 - Fix TEXT Comparison Error</h3>
 
-            <h4>Changes</h4>
+            <h4>Bug Fix</h4>
             <ul>
-                <li>Re-enable basic module processing (module info appears in response)</li>
-                <li>Disable module-specific data functions (SCORM, Quiz, Assignment, etc.)</li>
-                <li>Disable progress calculation</li>
-                <li>Testing if module-specific data queries cause the SQL TEXT comparison error</li>
+                <li>Fixed SQL TEXT comparison error in assignment module data retrieval</li>
+                <li>Use sql_compare_text() for assign_plugin_config.value column</li>
+                <li>All module types now work correctly with company-scoped tokens</li>
             </ul>
             ]]>
         </releasenotes>
