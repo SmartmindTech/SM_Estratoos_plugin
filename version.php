@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011946;  // YYYYMMDDXX format.
+$plugin->version = 2025011947;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.46';  // CRITICAL: Token protection during upgrade, fix redirect timing.
+$plugin->release = '1.7.47';  // Pre-select company for single-company managers.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

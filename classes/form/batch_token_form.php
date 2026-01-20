@@ -73,6 +73,13 @@ class batch_token_form extends \moodleform {
             if (empty($companies)) {
                 $mform->addElement('static', 'nocompanies', '',
                     get_string('invalidcompany', 'local_sm_estratoos_plugin'));
+            } else if (count($companies) === 1) {
+                // Only one company available - pre-select it (no "Select company" option).
+                $mform->addElement('select', 'companyid',
+                    get_string('company', 'local_sm_estratoos_plugin'),
+                    $companies);
+                $mform->setDefault('companyid', key($companies));
+                $mform->addRule('companyid', get_string('required'), 'required', null, 'client');
             } else {
                 $mform->addElement('select', 'companyid',
                     get_string('company', 'local_sm_estratoos_plugin'),
