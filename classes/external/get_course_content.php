@@ -1126,8 +1126,15 @@ class get_course_content extends external_api {
         ];
 
         // Get enabled submission types.
-        $plugins = $DB->get_records('assign_plugin_config', [
-            'assignment' => $assignid,
+        // Note: 'value' is a TEXT column, must use sql_compare_text for cross-DB compatibility.
+        $valuecompare = $DB->sql_compare_text('value');
+        $sql = "SELECT * FROM {assign_plugin_config}
+                WHERE assignment = :assignid
+                  AND subtype = :subtype
+                  AND name = :name
+                  AND {$valuecompare} = :value";
+        $plugins = $DB->get_records_sql($sql, [
+            'assignid' => $assignid,
             'subtype' => 'assignsubmission',
             'name' => 'enabled',
             'value' => '1',
