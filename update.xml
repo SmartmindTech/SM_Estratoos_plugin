@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011943</version>
+        <version>2025011944</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.43</release>
+        <release>1.7.44</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.43/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.44/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.43</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.44</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.43 - Dedicated Updates Page</h3>
+            <h3>Version 1.7.44 - Simplified Update UI</h3>
 
-            <h4>New Features</h4>
+            <h4>Changes</h4>
             <ul>
-                <li><strong>Dedicated Updates Page:</strong> New updates.php page for managing plugin versions</li>
-                <li><strong>Brick Red Card:</strong> New dashboard card for "Manage Plugin Updates"</li>
-                <li><strong>Darker Grey Card:</strong> "Manage Web Services" card now has darker grey color</li>
-                <li><strong>Version Sync:</strong> Sync company versions to installed version</li>
-                <li><strong>Visual Badges:</strong> Shows "Needs update" (red) or "Up to date" (green) status</li>
+                <li><strong>Version Badge:</strong> Plugin version now displayed on dashboard (right side of description)</li>
+                <li><strong>Simplified Updates:</strong> Removed per-company version tracking (plugin is system-wide)</li>
+                <li><strong>API Function Updated:</strong> update_company_plugin_version now returns plugin status and update info</li>
+                <li><strong>Update Button:</strong> All users who can see the plugin can now see the update button</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li><strong>v1.7.42:</strong> Improved updates section card with version sync</li>
-                <li><strong>v1.7.41:</strong> Dashboard updates section, fix manager role detection</li>
                 <li><strong>v1.7.40:</strong> Auto-update plugin version per company based on user role</li>
+                <li><strong>v1.7.35:</strong> Fix timezone issue in expiry date picker</li>
+                <li><strong>v1.7.34:</strong> Fix context validation in session APIs</li>
             </ul>
             ]]>
         </releasenotes>

@@ -105,24 +105,20 @@ if ($updateavailable) {
     echo get_string('newversion', 'local_sm_estratoos_plugin') . ': ' . $newrelease;
     echo html_writer::end_div();
 
-    // For super admin in IOMAD: link to updates page. For managers: link to update.php directly.
-    if ($issiteadmin && $isiomad) {
-        echo html_writer::link(
-            new moodle_url('/local/sm_estratoos_plugin/updates.php'),
-            get_string('updateplugin', 'local_sm_estratoos_plugin'),
-            ['class' => 'btn btn-warning']
-        );
-    } else {
-        echo html_writer::link(
-            new moodle_url('/local/sm_estratoos_plugin/update.php'),
-            get_string('updateplugin', 'local_sm_estratoos_plugin'),
-            ['class' => 'btn btn-warning']
-        );
-    }
+    // Link to update page.
+    echo html_writer::link(
+        new moodle_url('/local/sm_estratoos_plugin/update.php'),
+        get_string('updateplugin', 'local_sm_estratoos_plugin'),
+        ['class' => 'btn btn-warning']
+    );
     echo html_writer::end_div();
 }
 
-echo html_writer::tag('p', get_string('dashboarddesc', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
+// Dashboard description with version badge on the right.
+echo html_writer::start_div('d-flex justify-content-between align-items-center mb-3');
+echo html_writer::tag('p', get_string('dashboarddesc', 'local_sm_estratoos_plugin'), ['class' => 'lead mb-0']);
+echo html_writer::tag('span', 'v' . $currentversion, ['class' => 'badge badge-secondary', 'style' => 'font-size: 0.9rem;']);
+echo html_writer::end_div();
 
 // Get IOMAD status (isiomad is already set above).
 $iomadstatus = \local_sm_estratoos_plugin\util::get_iomad_status();
@@ -194,8 +190,7 @@ if ($issiteadmin) {
         'description' => get_string('manageservicesdesc', 'local_sm_estratoos_plugin'),
         'url' => new moodle_url('/local/sm_estratoos_plugin/services.php'),
         'icon' => 'i/edit',
-        'class' => 'text-white',
-        'style' => 'background-color: #495057;', // Darker grey.
+        'class' => 'bg-secondary text-white',
     ];
 }
 
@@ -207,18 +202,6 @@ if ($issiteadmin && $isiomad) {
         'url' => new moodle_url('/local/sm_estratoos_plugin/company_access.php'),
         'icon' => 'i/permissions',
         'class' => 'bg-dark text-white',
-    ];
-}
-
-// Card 6: Manage Plugin Updates (only for site admins in IOMAD mode).
-if ($issiteadmin && $isiomad) {
-    $cards[] = [
-        'title' => get_string('managepluginupdates', 'local_sm_estratoos_plugin'),
-        'description' => get_string('managepluginupdatesdesc', 'local_sm_estratoos_plugin'),
-        'url' => new moodle_url('/local/sm_estratoos_plugin/updates.php'),
-        'icon' => 'i/reload',
-        'class' => 'text-white',
-        'style' => 'background-color: #8B0000;', // Brick red.
     ];
 }
 

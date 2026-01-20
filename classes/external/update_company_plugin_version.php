@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * External function to update company plugin version.
+ * External function to get plugin version and check for updates.
  *
- * This allows external systems to track and update the plugin version
- * independently for each company, enabling gradual rollouts.
+ * This allows external systems to monitor the plugin status and
+ * check if updates are available.
  *
  * @package    local_sm_estratoos_plugin
  * @copyright  2025 SmartMind Technologies
@@ -39,7 +39,7 @@ use external_warnings;
 use local_sm_estratoos_plugin\util;
 
 /**
- * Update company plugin version for independent version tracking.
+ * Get plugin version status and check for updates.
  */
 class update_company_plugin_version extends external_api {
 
@@ -50,129 +50,68 @@ class update_company_plugin_version extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'companyid' => new external_value(PARAM_INT, 'Company ID to update'),
-            'version' => new external_value(PARAM_TEXT, 'New plugin version (e.g., "1.7.37")'),
+            'checkforupdates' => new external_value(PARAM_BOOL, 'Force check for updates (default: false)', VALUE_DEFAULT, false),
         ]);
     }
 
     /**
-     * Update the plugin version for a company.
+     * Get the plugin version status and optionally check for updates.
      *
-     * @param int $companyid Company ID.
-     * @param string $version New plugin version.
-     * @return array Result with success status.
+     * @param bool $checkforupdates Whether to force check for updates.
+     * @return array Plugin status information.
      */
-    public static function execute(int $companyid, string $version): array {
-        global $DB, $USER;
+    public static function execute(bool $checkforupdates = false): array {
+        global $DB, $CFG;
 
         $params = self::validate_parameters(self::execute_parameters(), [
-            'companyid' => $companyid,
-            'version' => $version,
+            'checkforupdates' => $checkforupdates,
         ]);
 
-        // Validate context based on token type.
-        $usercompanyid = util::get_company_id_from_token();
-        if ($usercompanyid && util::is_iomad_installed()) {
-            // IOMAD: Use company's category context.
-            $company = $DB->get_record('company', ['id' => $usercompanyid], '*', MUST_EXIST);
-            $context = \context_coursecat::instance($company->category);
-        } else if (is_siteadmin()) {
-            // Site admin: Use system context.
-            $context = \context_system::instance();
-        } else {
-            // Non-IOMAD normal user: Use top-level category context.
-            $topcategory = $DB->get_record('course_categories', ['parent' => 0], 'id', IGNORE_MULTIPLE);
-            if ($topcategory) {
-                $context = \context_coursecat::instance($topcategory->id);
-            } else {
-                $context = \context_system::instance();
-            }
-        }
+        // Validate context.
+        $context = \context_system::instance();
         self::validate_context($context);
 
-        // Validate version format (e.g., 1.7.37).
-        if (!preg_match('/^\d+\.\d+\.\d+$/', $params['version'])) {
-            return [
-                'success' => false,
-                'message' => 'Invalid version format. Expected format: X.Y.Z (e.g., 1.7.37)',
-                'companyid' => $params['companyid'],
-                'version' => '',
-                'previousversion' => '',
-                'warnings' => [],
-            ];
+        // Get current plugin info.
+        $plugin = \core_plugin_manager::instance()->get_plugin_info('local_sm_estratoos_plugin');
+        $currentversion = $plugin->versiondisk;
+        $currentrelease = $plugin->release ?? '';
+
+        // Check for updates.
+        $updateavailable = false;
+        $latestversion = 0;
+        $latestrelease = '';
+        $downloadurl = '';
+
+        if ($params['checkforupdates']) {
+            require_once(__DIR__ . '/../update_checker.php');
+            $updateinfo = \local_sm_estratoos_plugin\update_checker::fetch_update_info();
+
+            if ($updateinfo) {
+                $latestversion = $updateinfo['version'] ?? 0;
+                $latestrelease = $updateinfo['release'] ?? '';
+                $downloadurl = $updateinfo['download'] ?? '';
+                $updateavailable = ($latestversion > $currentversion);
+            }
         }
 
-        // Check if IOMAD is installed.
-        if (!util::is_iomad_installed()) {
-            return [
-                'success' => false,
-                'message' => 'IOMAD is not installed',
-                'companyid' => $params['companyid'],
-                'version' => '',
-                'previousversion' => '',
-                'warnings' => [
-                    ['warningcode' => 'iomadnotinstalled', 'message' => 'IOMAD is not installed']
-                ],
-            ];
-        }
-
-        // Check if company exists.
-        $company = $DB->get_record('company', ['id' => $params['companyid']], 'id, name, shortname');
-        if (!$company) {
-            return [
-                'success' => false,
-                'message' => 'Company not found',
-                'companyid' => $params['companyid'],
-                'version' => '',
-                'previousversion' => '',
-                'warnings' => [
-                    ['warningcode' => 'companynotfound', 'message' => 'Company with ID ' . $params['companyid'] . ' not found']
-                ],
-            ];
-        }
-
-        // Check if user's token is for this company (IOMAD security).
-        if ($usercompanyid > 0 && $usercompanyid != $params['companyid'] && !is_siteadmin()) {
-            return [
-                'success' => false,
-                'message' => 'Access denied. You can only update the version for your own company.',
-                'companyid' => $params['companyid'],
-                'version' => '',
-                'previousversion' => '',
-                'warnings' => [
-                    ['warningcode' => 'accessdenied', 'message' => 'Token is for a different company']
-                ],
-            ];
-        }
-
-        // Get or create access record.
-        $accessrecord = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $params['companyid']]);
-
-        if ($accessrecord) {
-            // Update existing record.
-            $previousversion = $accessrecord->plugin_version ?? '';
-            $accessrecord->plugin_version = $params['version'];
-            $accessrecord->timemodified = time();
-            $DB->update_record('local_sm_estratoos_plugin_access', $accessrecord);
-        } else {
-            // Create new access record with version.
-            $previousversion = '';
-            $accessrecord = new \stdClass();
-            $accessrecord->companyid = $params['companyid'];
-            $accessrecord->enabled = 1;
-            $accessrecord->plugin_version = $params['version'];
-            $accessrecord->enabledby = $USER->id;
-            $accessrecord->timecreated = time();
-            $accessrecord->timemodified = time();
-            $DB->insert_record('local_sm_estratoos_plugin_access', $accessrecord);
+        // Get IOMAD status.
+        $isiomad = util::is_iomad_installed();
+        $companycount = 0;
+        if ($isiomad) {
+            $companycount = $DB->count_records('company');
         }
 
         return [
             'success' => true,
-            'message' => 'Plugin version updated successfully for company ' . $company->shortname,
-            'companyid' => (int)$params['companyid'],
-            'version' => $params['version'],
-            'previousversion' => $previousversion,
+            'currentversion' => $currentversion,
+            'currentrelease' => $currentrelease,
+            'updateavailable' => $updateavailable,
+            'latestversion' => $latestversion,
+            'latestrelease' => $latestrelease,
+            'downloadurl' => $downloadurl,
+            'isiomad' => $isiomad,
+            'companycount' => $companycount,
+            'updateurl' => $CFG->wwwroot . '/local/sm_estratoos_plugin/update.php',
             'warnings' => [],
         ];
     }
@@ -184,11 +123,16 @@ class update_company_plugin_version extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
-            'success' => new external_value(PARAM_BOOL, 'Whether the update was successful'),
-            'message' => new external_value(PARAM_TEXT, 'Status message'),
-            'companyid' => new external_value(PARAM_INT, 'Company ID'),
-            'version' => new external_value(PARAM_TEXT, 'New plugin version'),
-            'previousversion' => new external_value(PARAM_TEXT, 'Previous plugin version'),
+            'success' => new external_value(PARAM_BOOL, 'Whether the request was successful'),
+            'currentversion' => new external_value(PARAM_INT, 'Current installed plugin version (YYYYMMDDXX format)'),
+            'currentrelease' => new external_value(PARAM_TEXT, 'Current installed plugin release (e.g., 1.7.44)'),
+            'updateavailable' => new external_value(PARAM_BOOL, 'Whether an update is available'),
+            'latestversion' => new external_value(PARAM_INT, 'Latest available version (if checked)'),
+            'latestrelease' => new external_value(PARAM_TEXT, 'Latest available release (if checked)'),
+            'downloadurl' => new external_value(PARAM_URL, 'Download URL for the latest version'),
+            'isiomad' => new external_value(PARAM_BOOL, 'Whether IOMAD is installed'),
+            'companycount' => new external_value(PARAM_INT, 'Number of IOMAD companies'),
+            'updateurl' => new external_value(PARAM_URL, 'URL to perform the update'),
             'warnings' => new external_warnings(),
         ]);
     }

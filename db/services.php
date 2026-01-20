@@ -161,14 +161,14 @@ $functions = [
         'loginrequired' => true,
     ],
 
-    // Update company plugin version for independent tracking (v1.7.37).
+    // Get plugin version status and check for updates (v1.7.44).
     'local_sm_estratoos_plugin_update_company_plugin_version' => [
         'classname' => 'local_sm_estratoos_plugin\external\update_company_plugin_version',
         'methodname' => 'execute',
-        'description' => 'Update the plugin version for a company. Allows external systems to track which version each company ' .
-                        'is running, enabling independent/gradual rollouts. Returns success status and previous version. ' .
+        'description' => 'Get plugin version status and check for updates. Returns current installed version, whether an update ' .
+                        'is available, and the URL to perform the update. Use checkforupdates=1 to force fetch latest version info. ' .
                         '[SM Estratoos API Function]',
-        'type' => 'write',
+        'type' => 'read',
         'ajax' => true,
         'capabilities' => '',
         'loginrequired' => true,

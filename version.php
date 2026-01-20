@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011943;  // YYYYMMDDXX format.
+$plugin->version = 2025011944;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.43';  // Dedicated updates page, brick red card, darker grey card.
+$plugin->release = '1.7.44';  // Remove per-company version tracking, add version badge to dashboard.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
