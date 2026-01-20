@@ -289,6 +289,11 @@ class update_plugin_version extends external_api {
             require_once($CFG->libdir . '/accesslib.php');
             require_once($CFG->libdir . '/externallib.php');
 
+            // Clear PHP OPcache to ensure new code files are loaded.
+            if (function_exists('opcache_reset')) {
+                opcache_reset();
+            }
+
             // Purge all caches to ensure new code is loaded.
             purge_all_caches();
 
