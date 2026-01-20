@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011945</version>
+        <version>2025011946</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.45</release>
+        <release>1.7.46</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,27 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.45/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.46/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.45</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.46</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.45 - Auto-redirect and UI Improvements</h3>
+            <h3>Version 1.7.46 - Critical Token Protection</h3>
 
-            <h4>Changes</h4>
+            <h4>CRITICAL FIXES</h4>
             <ul>
-                <li><strong>Auto-redirect:</strong> After install/upgrade, automatically redirects to plugin dashboard</li>
-                <li><strong>Version Label:</strong> Added "Plugin Version:" label before version badge (all languages)</li>
-                <li><strong>Darker Grey Card:</strong> Manage Services card now uses darker grey (#495057)</li>
+                <li><strong>Token Protection:</strong> Added safeguards to prevent token deletion during upgrades</li>
+                <li><strong>Service Protection:</strong> Ensures service component is cleared before Moodle cleanup runs</li>
+                <li><strong>Redirect Timing:</strong> Extended timeout to 5 minutes, skip redirect on admin pages</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li><strong>v1.7.44:</strong> Simplified updates, removed per-company tracking, added version badge</li>
-                <li><strong>v1.7.40:</strong> Auto-update plugin version per company based on user role</li>
+                <li><strong>v1.7.45:</strong> New get_plugin_status API, renamed legacy function</li>
+                <li><strong>v1.7.44:</strong> Simplified updates, version badge on dashboard</li>
                 <li><strong>v1.7.35:</strong> Fix timezone issue in expiry date picker</li>
             </ul>
             ]]>

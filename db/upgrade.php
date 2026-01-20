@@ -35,6 +35,62 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
 
     $dbman = $DB->get_manager();
 
+    // =========================================================================
+    // CRITICAL: SERVICE AND TOKEN PROTECTION - RUNS ON EVERY UPGRADE
+    // This MUST run FIRST, before any version checks, to prevent token loss
+    // and ensure all tokens have access to new API functions.
+    // =========================================================================
+
+    // 1. Ensure the service exists and has empty component (prevents Moodle from deleting it).
+    $service = $DB->get_record('external_services', ['shortname' => 'sm_estratoos_plugin']);
+    if ($service) {
+        // CRITICAL: Clear component to prevent Moodle from managing/deleting the service.
+        if (!empty($service->component)) {
+            $DB->set_field('external_services', 'component', '', ['id' => $service->id]);
+            error_log("SM_ESTRATOOS_PLUGIN UPGRADE: Cleared service component to protect tokens (was: {$service->component})");
+        }
+
+        // Ensure service is enabled and properly configured.
+        $updates = [];
+        if (!$service->enabled) {
+            $updates['enabled'] = 1;
+        }
+        if ($service->restrictedusers != 0) {
+            $updates['restrictedusers'] = 0;
+        }
+        if (!empty($updates)) {
+            $updates['id'] = $service->id;
+            $updates['timemodified'] = time();
+            $DB->update_record('external_services', (object)$updates);
+            error_log("SM_ESTRATOOS_PLUGIN UPGRADE: Updated service settings");
+        }
+
+        // Log token count for debugging.
+        $tokencount = $DB->count_records('external_tokens', ['externalserviceid' => $service->id]);
+        $plugintokencount = $DB->count_records('local_sm_estratoos_plugin');
+        error_log("SM_ESTRATOOS_PLUGIN UPGRADE: Service ID={$service->id}, Tokens in service=$tokencount, Plugin tokens=$plugintokencount");
+
+        // SAFEGUARD: If tokens exist in plugin table but not in external_tokens, log warning.
+        if ($plugintokencount > 0 && $tokencount == 0) {
+            error_log("SM_ESTRATOOS_PLUGIN UPGRADE WARNING: Plugin has $plugintokencount token records but service has 0 tokens!");
+        }
+    } else {
+        error_log("SM_ESTRATOOS_PLUGIN UPGRADE: Service not found - will be created");
+        // Create the service now to ensure it exists before Moodle processes anything.
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_ensure_service_exists();
+    }
+
+    // 2. ALWAYS rebuild service functions on EVERY upgrade to ensure tokens have access to new APIs.
+    // This is critical - tokens inherit functions from their service, so we must keep service updated.
+    require_once(__DIR__ . '/install.php');
+    xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+    error_log("SM_ESTRATOOS_PLUGIN UPGRADE: Rebuilt service functions to ensure all tokens have new API access");
+
+    // =========================================================================
+    // END OF CRITICAL PROTECTION
+    // =========================================================================
+
     // Fix token names for existing tokens (v1.2.20).
     if ($oldversion < 2025011224) {
         // Only run if IOMAD (company table) exists.
@@ -1466,6 +1522,18 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
 
         purge_all_caches();
         upgrade_plugin_savepoint(true, 2025011945, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v1.7.46: CRITICAL - Token protection during upgrades.
+    // The critical protection code runs at the START of this function (before version checks).
+    // This upgrade step just marks the version as complete.
+    if ($oldversion < 2025011946) {
+        // Token protection already runs at the top of this function.
+        // Just log that we've upgraded to this version.
+        error_log("SM_ESTRATOOS_PLUGIN: Upgraded to v1.7.46 with token protection safeguards");
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011946, 'local', 'sm_estratoos_plugin');
     }
 
     // Set flag to redirect to plugin dashboard after upgrade completes.

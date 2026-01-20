@@ -227,21 +227,26 @@ function local_sm_estratoos_plugin_extend_navigation(global_navigation $navigati
     if (is_siteadmin() && !defined('ABORT_AFTER_CONFIG') && !CLI_SCRIPT) {
         $redirectflag = get_config('local_sm_estratoos_plugin', 'redirect_to_dashboard');
         if ($redirectflag) {
-            // Only redirect if flag was set within last 60 seconds (to avoid stale redirects).
-            if ((time() - $redirectflag) < 60) {
-                // Don't redirect if already on the plugin dashboard or during AJAX/API calls.
+            // Only redirect if flag was set within last 5 minutes (upgrade can take time).
+            if ((time() - $redirectflag) < 300) {
+                // Don't redirect if already on the plugin dashboard or during AJAX/API/admin calls.
                 $currenturl = $PAGE->url->get_path();
-                if (strpos($currenturl, '/local/sm_estratoos_plugin/') === false &&
-                    strpos($currenturl, '/webservice/') === false &&
-                    !defined('AJAX_SCRIPT')) {
+                $isadminpage = strpos($currenturl, '/admin/') !== false;
+                $ispluginpage = strpos($currenturl, '/local/sm_estratoos_plugin/') !== false;
+                $iswebservice = strpos($currenturl, '/webservice/') !== false;
+                $isajax = defined('AJAX_SCRIPT') && AJAX_SCRIPT;
+
+                // Only redirect from the main site page (not admin pages, as upgrade continues there).
+                if (!$ispluginpage && !$iswebservice && !$isajax && !$isadminpage) {
                     // Clear the flag first to prevent loops.
                     unset_config('redirect_to_dashboard', 'local_sm_estratoos_plugin');
                     // Redirect to plugin dashboard.
                     redirect(new moodle_url('/local/sm_estratoos_plugin/index.php'));
                 }
+            } else {
+                // Clear stale flag.
+                unset_config('redirect_to_dashboard', 'local_sm_estratoos_plugin');
             }
-            // Clear stale flag.
-            unset_config('redirect_to_dashboard', 'local_sm_estratoos_plugin');
         }
     }
 
