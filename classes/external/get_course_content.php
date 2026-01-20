@@ -147,6 +147,9 @@ class get_course_content extends external_api {
     public static function execute(array $courseids = [], array $options = []): array {
         global $DB, $CFG, $USER;
 
+        // DEBUG: Return immediately to test if error is in our code at all.
+        return ['courses' => [], 'warnings' => [['item' => 'debug', 'itemid' => 0, 'warningcode' => 'debug', 'message' => 'DEBUG v1.7.65 - minimal test']]];
+
         // Validate parameters.
         $params = self::validate_parameters(self::execute_parameters(), [
             'courseids' => $courseids,

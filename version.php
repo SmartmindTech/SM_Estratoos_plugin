@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011964;  // YYYYMMDDXX format.
+$plugin->version = 2025011965;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.64';  // DEBUG: Disable ALL hooks to isolate SQL error source.
+$plugin->release = '1.7.65';  // DEBUG: Minimal test - return immediately without any DB queries.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
