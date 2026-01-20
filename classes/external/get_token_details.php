@@ -99,10 +99,10 @@ class get_token_details extends external_api {
         // Find the token record.
         if (!empty($params['token'])) {
             // Lookup by token hash using sql_compare_text for cross-database TEXT column compatibility.
+            // Only wrap the column, not the parameter placeholder.
             $tokencompare = $DB->sql_compare_text('token');
-            $tokenplaceholder = $DB->sql_compare_text(':token');
             $externaltoken = $DB->get_record_sql(
-                "SELECT * FROM {external_tokens} WHERE {$tokencompare} = {$tokenplaceholder}",
+                "SELECT * FROM {external_tokens} WHERE {$tokencompare} = :token",
                 ['token' => $params['token']]
             );
             if ($externaltoken) {

@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011961;  // YYYYMMDDXX format.
+$plugin->version = 2025011962;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.61';  // Fix TEXT column comparisons using sql_compare_text() for cross-database compatibility.
+$plugin->release = '1.7.62';  // Fix sql_compare_text() usage - only wrap column, not placeholder.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

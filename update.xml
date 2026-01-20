@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011961</version>
+        <version>2025011962</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.61</release>
+        <release>1.7.62</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,22 +29,21 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.61/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.62/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.61</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.62</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.61 - TEXT Column Comparison Fix</h3>
+            <h3>Version 1.7.62 - sql_compare_text() Fix</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li>Fix SQL TEXT column comparisons using $DB->sql_compare_text()</li>
-                <li>Resolves "text column comparison not allowed" error in MariaDB/MySQL</li>
-                <li>All token lookups now use cross-database compatible queries</li>
-                <li>Updated 6 SQL queries in company_token_manager.php, util.php, get_token_details.php</li>
+                <li>Fix sql_compare_text() usage - only wrap column name, not parameter placeholder</li>
+                <li>Correct pattern: WHERE sql_compare_text(column) = :param</li>
+                <li>Resolves "text column comparison not allowed" error</li>
             </ul>
             ]]>
         </releasenotes>
