@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011937</version>
+        <version>2025011938</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.37</release>
+        <release>1.7.38</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,26 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.37/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.38/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.37</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.38</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.37 - Independent Plugin Version Tracking</h3>
+            <h3>Version 1.7.38 - Fix update_company_plugin_version API Registration</h3>
 
-            <h4>New Features</h4>
+            <h4>Bug Fix</h4>
             <ul>
-                <li>Each company now has its own plugin version field, allowing independent version tracking</li>
-                <li>New API function: <code>update_company_plugin_version</code> to update version externally</li>
-                <li>The <code>get_companies_access_status</code> API now returns <code>pluginversion</code> field</li>
-                <li>Enables gradual rollouts and independent updates per company</li>
+                <li>Fixed: <code>update_company_plugin_version</code> function now properly added to web service</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li><strong>v1.7.37:</strong> Independent plugin version tracking per company</li>
                 <li><strong>v1.7.36:</strong> Auto-disable/enable company and suspend/unsuspend tokens on expiry date changes</li>
                 <li><strong>v1.7.35:</strong> Fixed timezone in expiry date picker (UTC handling)</li>
-                <li><strong>v1.7.34:</strong> Fixed context validation in session APIs</li>
             </ul>
             ]]>
         </releasenotes>

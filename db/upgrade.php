@@ -1445,5 +1445,15 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011937, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.38: Fix - Add update_company_plugin_version to service functions list.
+    // The v1.7.37 upgrade step ran but the function wasn't in $pluginfunctions array.
+    if ($oldversion < 2025011938) {
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025011938, 'local', 'sm_estratoos_plugin');
+    }
+
     return true;
 }
