@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011957</version>
+        <version>2025011958</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.57</release>
+        <release>1.7.58</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,21 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.57/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.58/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.57</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.58</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.57 - Full Database Upgrade + SQL Compatibility Fix</h3>
+            <h3>Version 1.7.58 - OPcache Fix</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li><strong>Fix:</strong> Remote update via API now performs FULL database upgrade</li>
-                <li>Syncs capabilities, services, and tasks - no more "upgrade_noncore()" message</li>
-                <li><strong>Fix:</strong> SQL LIKE query now uses sql_like() for cross-database compatibility</li>
+                <li>Force reinstall to ensure SQL LIKE fix is applied</li>
+                <li><strong>v1.7.57:</strong> Full database upgrade via API + SQL compatibility fix</li>
                 <li><strong>v1.7.56:</strong> Category fallback for get_course_content</li>
             </ul>
             ]]>
