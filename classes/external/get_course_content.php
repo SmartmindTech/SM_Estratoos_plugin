@@ -359,10 +359,22 @@ class get_course_content extends external_api {
             }
         }
 
-        // DEBUG v1.7.67: Skip module-specific content to isolate error.
+        // DEBUG v1.7.69: Testing module-specific content one by one.
         // Get module-specific content based on type.
-        /*
         switch ($cm->modname) {
+            case 'page':
+                // v1.7.69: Testing page content.
+                if ($options['includepagecontent']) {
+                    $pagedata = self::get_page_content($cm->instance, $modulecontext);
+                    $moduledata['pagecontent'] = $pagedata['content'];
+                    $moduledata['pagecontentformat'] = $pagedata['contentformat'];
+                }
+                if ($options['includefilecontents']) {
+                    $moduledata['contents'] = self::get_page_files($cm->instance, $modulecontext);
+                }
+                break;
+
+            /* DEBUG: Disabled for isolation testing
             case 'scorm':
                 if ($options['includescormdetails']) {
                     $moduledata['scorm'] = self::get_scorm_data($cm->instance, $modulecontext, $userid, $options['includeuserdata']);
@@ -378,17 +390,6 @@ class get_course_content extends external_api {
             case 'folder':
                 if ($options['includefilecontents']) {
                     $moduledata['contents'] = self::get_folder_files($cm->instance, $modulecontext);
-                }
-                break;
-
-            case 'page':
-                if ($options['includepagecontent']) {
-                    $pagedata = self::get_page_content($cm->instance, $modulecontext);
-                    $moduledata['pagecontent'] = $pagedata['content'];
-                    $moduledata['pagecontentformat'] = $pagedata['contentformat'];
-                }
-                if ($options['includefilecontents']) {
-                    $moduledata['contents'] = self::get_page_files($cm->instance, $modulecontext);
                 }
                 break;
 
@@ -452,8 +453,8 @@ class get_course_content extends external_api {
                     $moduledata['contents'] = self::get_generic_module_files($cm, $modulecontext);
                 }
                 break;
+            */
         }
-        */
 
         // DEBUG v1.7.67: Skip progress calculation since module-specific data is disabled.
         // Calculate progress based on module type and data (before JSON encoding).
