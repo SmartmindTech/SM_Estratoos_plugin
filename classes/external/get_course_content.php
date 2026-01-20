@@ -168,13 +168,32 @@ class get_course_content extends external_api {
         $courses = [];
 
         // Apply company filtering if IOMAD token.
+        // NOTE: We use a union of:
+        //   1. Courses in company_course table (IOMAD course assignment)
+        //   2. Courses in company's category hierarchy (fallback for courses not created via IOMAD)
+        // This allows access to courses in the company's category even if not explicitly
+        // assigned in IOMAD (e.g., course created in SmartMind category but not via IOMAD course creator).
         if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
             $token = \local_sm_estratoos_plugin\util::get_current_request_token();
             if ($token) {
                 $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-                if ($restrictions && !empty($restrictions->companyid)) {
+                if ($restrictions && !empty($restrictions->companyid) && $restrictions->restricttocompany) {
                     $filter = new \local_sm_estratoos_plugin\webservice_filter($restrictions);
-                    $allowedcourses = $filter->get_allowed_course_ids();
+
+                    // Get company courses from company_course table.
+                    $companycourses = $filter->get_company_course_ids();
+
+                    // Get courses in company's category hierarchy (fallback).
+                    $companycategoryids = $filter->get_company_category_ids();
+                    $categorycourses = [];
+                    if (!empty($companycategoryids)) {
+                        list($insql, $params) = $DB->get_in_or_equal($companycategoryids, SQL_PARAMS_NAMED);
+                        $categorycourses = $DB->get_fieldset_select('course', 'id', "category $insql", $params);
+                    }
+
+                    // Union: company_course table OR courses in company category.
+                    $allowedcourses = array_unique(array_merge($companycourses, $categorycourses));
+
                     if (!empty($allowedcourses)) {
                         $courseids = array_intersect($courseids, $allowedcourses);
                     }
