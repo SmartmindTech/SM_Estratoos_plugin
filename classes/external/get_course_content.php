@@ -406,7 +406,8 @@ class get_course_content extends external_api {
                 break;
 
             case 'forum':
-                $moduledata['forum'] = self::get_forum_data($cm->instance);
+                $forumdata = self::get_forum_data($cm->instance);
+                $moduledata['forum'] = json_encode($forumdata);
                 break;
 
             /* DEBUG: Disabled for isolation testing - complex modules with user data
