@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011947</version>
+        <version>2025011948</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.47</release>
+        <release>1.7.48</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,26 +29,28 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.47/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.48/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.47</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.48</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.47 - UX Improvement</h3>
+            <h3>Version 1.7.48 - Enhanced Update API</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li><strong>Company Pre-selection:</strong> For company managers with only one company, the company is now pre-selected when creating tokens</li>
+                <li><strong>update_plugin_version API:</strong> Enhanced function for external systems to check and trigger plugin updates</li>
+                <li>Returns: current/latest versions, download URL, release notes, admin update URL, token count</li>
+                <li>Useful for SmartLearning and other external systems to monitor plugin updates</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li><strong>v1.7.47:</strong> Pre-select company for single-company managers</li>
                 <li><strong>v1.7.46:</strong> Critical token protection during upgrades</li>
                 <li><strong>v1.7.45:</strong> New get_plugin_status API</li>
-                <li><strong>v1.7.44:</strong> Version badge on dashboard</li>
             </ul>
             ]]>
         </releasenotes>

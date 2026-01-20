@@ -174,11 +174,13 @@ $functions = [
         'loginrequired' => true,
     ],
 
-    // Legacy function - redirects to get_plugin_status (v1.7.44, deprecated in v1.7.45).
+    // Check for plugin updates and get update information for external systems (v1.7.48).
     'local_sm_estratoos_plugin_update_plugin_version' => [
         'classname' => 'local_sm_estratoos_plugin\external\update_plugin_version',
         'methodname' => 'execute',
-        'description' => '[DEPRECATED - Use get_plugin_status instead] Legacy function that redirects to get_plugin_status.',
+        'description' => 'Check for plugin updates and get detailed update information. Returns current/latest versions, ' .
+                        'download URL, release notes, and admin update URL. Use action="check" (default) or action="info". ' .
+                        'Useful for external systems to monitor and trigger plugin updates. [SM Estratoos API Function]',
         'type' => 'read',
         'ajax' => true,
         'capabilities' => '',

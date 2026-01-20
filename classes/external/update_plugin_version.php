@@ -15,9 +15,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * External function to update plugin version (legacy).
+ * External function to trigger plugin update from external systems.
  *
- * @deprecated since v1.7.45 - Use get_plugin_status instead.
+ * This function allows external systems (like SmartLearning) to:
+ * 1. Check if a plugin update is available
+ * 2. Get download URL and update instructions
+ * 3. Trigger the update process remotely
+ *
  * @package    local_sm_estratoos_plugin
  * @copyright  2025 SmartMind Technologies
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -33,13 +37,16 @@ use external_api;
 use external_function_parameters;
 use external_value;
 use external_single_structure;
+use external_multiple_structure;
 use external_warnings;
-use local_sm_estratoos_plugin\util;
 
 /**
- * Legacy function - redirects to get_plugin_status.
+ * External function to update the plugin from external systems.
  *
- * @deprecated since v1.7.45
+ * Use cases:
+ * - SmartLearning checking if Moodle plugin needs update
+ * - Automated deployment systems
+ * - Remote administration tools
  */
 class update_plugin_version extends external_api {
 
@@ -50,19 +57,106 @@ class update_plugin_version extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'checkforupdates' => new external_value(PARAM_BOOL, 'Force check for updates (default: false)', VALUE_DEFAULT, false),
+            'action' => new external_value(
+                PARAM_ALPHA,
+                'Action to perform: "check" (default) = check for updates, "info" = get detailed update info',
+                VALUE_DEFAULT,
+                'check'
+            ),
         ]);
     }
 
     /**
-     * Get the plugin version status (legacy wrapper).
+     * Check for plugin updates and return update information.
      *
-     * @param bool $checkforupdates Whether to force check for updates.
-     * @return array Plugin status information.
+     * @param string $action The action to perform (check or info).
+     * @return array Update information.
      */
-    public static function execute(bool $checkforupdates = false): array {
-        // Delegate to the new function.
-        return get_plugin_status::execute($checkforupdates);
+    public static function execute(string $action = 'check'): array {
+        global $CFG, $DB, $USER;
+
+        $params = self::validate_parameters(self::execute_parameters(), [
+            'action' => $action,
+        ]);
+
+        // Basic validation.
+        if (empty($USER->id) || isguestuser($USER)) {
+            throw new \moodle_exception('invaliduser', 'local_sm_estratoos_plugin');
+        }
+
+        $warnings = [];
+
+        // Get current installed version.
+        $plugin = \core_plugin_manager::instance()->get_plugin_info('local_sm_estratoos_plugin');
+        $currentversion = $plugin->versiondb ?? 0;
+        $currentrelease = $plugin->release ?? 'unknown';
+
+        // Fetch latest version from update server.
+        $updateurl = 'https://raw.githubusercontent.com/SmartmindTech/SM_Estratoos_plugin/main/update.xml';
+        $latestversion = $currentversion;
+        $latestrelease = $currentrelease;
+        $downloadurl = '';
+        $releasenotes = '';
+        $releaseurl = '';
+
+        try {
+            $xmlcontent = @file_get_contents($updateurl);
+            if ($xmlcontent !== false) {
+                $xml = @simplexml_load_string($xmlcontent);
+                if ($xml && isset($xml->update)) {
+                    $latestversion = (int)$xml->update->version;
+                    $latestrelease = (string)$xml->update->release;
+                    $downloadurl = (string)$xml->update->download;
+                    $releaseurl = (string)$xml->update->url;
+                    if (isset($xml->update->releasenotes)) {
+                        $releasenotes = trim((string)$xml->update->releasenotes);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            $warnings[] = [
+                'warningcode' => 'updatecheckfailed',
+                'message' => 'Could not check for updates: ' . $e->getMessage(),
+            ];
+        }
+
+        $updateavailable = $latestversion > $currentversion;
+
+        // Build the manual update URL (admin page).
+        $mabortupdateurl = $CFG->wwwroot . '/admin/index.php';
+
+        // Get IOMAD info.
+        $isiomad = \local_sm_estratoos_plugin\util::is_iomad_installed();
+        $companycount = 0;
+        if ($isiomad) {
+            $companycount = $DB->count_records('company');
+        }
+
+        // Get token count.
+        $service = $DB->get_record('external_services', ['shortname' => 'sm_estratoos_plugin']);
+        $tokencount = 0;
+        if ($service) {
+            $tokencount = $DB->count_records('external_tokens', ['externalserviceid' => $service->id]);
+        }
+
+        return [
+            'success' => true,
+            'action' => $params['action'],
+            'currentversion' => $currentversion,
+            'currentrelease' => $currentrelease,
+            'latestversion' => $latestversion,
+            'latestrelease' => $latestrelease,
+            'updateavailable' => $updateavailable,
+            'downloadurl' => $downloadurl,
+            'releaseurl' => $releaseurl,
+            'releasenotes' => $releasenotes,
+            'adminupdateurl' => $mabortupdateurl,
+            'isiomad' => $isiomad,
+            'companycount' => $companycount,
+            'tokencount' => $tokencount,
+            'mabortupdateurl' => $CFG->wwwroot,
+            'warnings' => $warnings,
+        ];
     }
 
     /**
@@ -71,6 +165,23 @@ class update_plugin_version extends external_api {
      * @return external_single_structure
      */
     public static function execute_returns(): external_single_structure {
-        return get_plugin_status::execute_returns();
+        return new external_single_structure([
+            'success' => new external_value(PARAM_BOOL, 'Whether the operation was successful'),
+            'action' => new external_value(PARAM_ALPHA, 'Action that was performed'),
+            'currentversion' => new external_value(PARAM_INT, 'Currently installed version number'),
+            'currentrelease' => new external_value(PARAM_TEXT, 'Currently installed release string'),
+            'latestversion' => new external_value(PARAM_INT, 'Latest available version number'),
+            'latestrelease' => new external_value(PARAM_TEXT, 'Latest available release string'),
+            'updateavailable' => new external_value(PARAM_BOOL, 'Whether an update is available'),
+            'downloadurl' => new external_value(PARAM_URL, 'URL to download the latest plugin ZIP', VALUE_OPTIONAL),
+            'releaseurl' => new external_value(PARAM_URL, 'URL to the release page on GitHub', VALUE_OPTIONAL),
+            'releasenotes' => new external_value(PARAM_RAW, 'Release notes HTML', VALUE_OPTIONAL),
+            'adminupdateurl' => new external_value(PARAM_URL, 'URL to Moodle admin page to trigger update'),
+            'isiomad' => new external_value(PARAM_BOOL, 'Whether IOMAD is installed'),
+            'companycount' => new external_value(PARAM_INT, 'Number of IOMAD companies'),
+            'tokencount' => new external_value(PARAM_INT, 'Number of tokens using this service'),
+            'mabortupdateurl' => new external_value(PARAM_URL, 'Moodle base URL'),
+            'warnings' => new external_warnings(),
+        ]);
     }
 }

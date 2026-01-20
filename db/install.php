@@ -359,10 +359,10 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         // v1.7.29: Token details and company access status.
         'local_sm_estratoos_plugin_get_token_details',
         'local_sm_estratoos_plugin_get_companies_access_status',
-        // v1.7.45: Update plugin version (legacy, deprecated - use get_plugin_status instead).
-        'local_sm_estratoos_plugin_update_plugin_version',
-        // v1.7.45: Get plugin status (new recommended function).
+        // v1.7.45: Get plugin status (quick status check).
         'local_sm_estratoos_plugin_get_plugin_status',
+        // v1.7.48: Update plugin version (detailed update info for external systems).
+        'local_sm_estratoos_plugin_update_plugin_version',
     ];
 
     foreach ($pluginfunctions as $functionname) {
