@@ -36,6 +36,41 @@ require_once(__DIR__ . '/classes/update_checker.php');
 $issiteadmin = is_siteadmin();
 $canmanageupdates = $issiteadmin || \local_sm_estratoos_plugin\util::has_admin_or_manager_role();
 
+// Handle version sync actions (site admin only).
+$syncversions = optional_param('syncversions', 0, PARAM_BOOL);
+$synccompany = optional_param('synccompany', 0, PARAM_INT);
+
+if ($issiteadmin && confirm_sesskey()) {
+    $plugin = core_plugin_manager::instance()->get_plugin_info('local_sm_estratoos_plugin');
+    $installedversion = $plugin->release ?? $plugin->versiondisk;
+
+    if ($syncversions) {
+        // Sync all companies to the installed version.
+        $result = \local_sm_estratoos_plugin\util::update_plugin_version_after_upgrade($installedversion);
+        redirect(
+            new moodle_url('/local/sm_estratoos_plugin/index.php'),
+            $result['message'],
+            null,
+            $result['success'] ? \core\output\notification::NOTIFY_SUCCESS : \core\output\notification::NOTIFY_ERROR
+        );
+    } elseif ($synccompany > 0) {
+        // Sync a specific company to the installed version.
+        $result = \local_sm_estratoos_plugin\util::set_company_plugin_version($synccompany, $installedversion);
+        global $DB;
+        $company = $DB->get_record('company', ['id' => $synccompany], 'name, shortname');
+        $companyname = $company ? $company->name . ' (' . $company->shortname . ')' : $synccompany;
+        $message = $result
+            ? get_string('versionsynced', 'local_sm_estratoos_plugin', $companyname)
+            : get_string('versionsyncfailed', 'local_sm_estratoos_plugin', $companyname);
+        redirect(
+            new moodle_url('/local/sm_estratoos_plugin/index.php'),
+            $message,
+            null,
+            $result ? \core\output\notification::NOTIFY_SUCCESS : \core\output\notification::NOTIFY_ERROR
+        );
+    }
+}
+
 // Handle manual update check (for site admins and admin/manager roles).
 $checkupdates = optional_param('checkupdates', 0, PARAM_BOOL);
 $updatechecked = false;
@@ -93,10 +128,14 @@ $plugin = core_plugin_manager::instance()->get_plugin_info('local_sm_estratoos_p
 $currentversion = $plugin->release ?? $plugin->versiondisk;
 $isiomad = \local_sm_estratoos_plugin\util::is_iomad_installed();
 
-// Determine the latest available version (either from update check or current installed).
-$latestversion = $currentversion;
+// Determine the target version for companies (always the installed version, or newer if available).
+$targetversion = $currentversion;
 if ($updateavailable) {
-    $latestversion = $updateavailable->release ?? $updateavailable->version;
+    $newversion = $updateavailable->release ?? $updateavailable->version;
+    // Use the newer version if available.
+    if (version_compare($newversion, $currentversion, '>')) {
+        $targetversion = $newversion;
+    }
 }
 
 // Get companies with versions and check which need updates.
@@ -110,7 +149,8 @@ if ($isiomad && $canmanageupdates) {
     } else {
         $companiesWithVersions = \local_sm_estratoos_plugin\util::get_companies_with_versions($USER->id);
     }
-    $companiesNeedingUpdate = \local_sm_estratoos_plugin\util::get_companies_needing_update($latestversion, $issiteadmin ? null : $USER->id);
+    // Check companies against the INSTALLED version (not just new available version).
+    $companiesNeedingUpdate = \local_sm_estratoos_plugin\util::get_companies_needing_update($currentversion, $issiteadmin ? null : $USER->id);
     $allUpToDate = empty($companiesNeedingUpdate);
 }
 
@@ -165,30 +205,42 @@ if ($canmanageupdates && (!$isiomad || !$allUpToDate || !$updateavailable)) {
 echo html_writer::end_div();
 
 // =====================================================================
-// UPDATES SECTION (for super admin in IOMAD mode)
+// UPDATES SECTION CARD (for super admin in IOMAD mode)
 // =====================================================================
 if ($issiteadmin && $isiomad && !empty($companiesWithVersions)) {
-    echo html_writer::start_div('card mb-4', ['id' => 'updates-section']);
-    echo html_writer::start_div('card-header bg-secondary text-white');
-    echo html_writer::tag('h5', $OUTPUT->pix_icon('i/reload', '', 'moodle', ['class' => 'mr-2']) .
-         get_string('pluginversion', 'local_sm_estratoos_plugin') . ' - ' . get_string('companiesaccessstatus', 'local_sm_estratoos_plugin'),
-         ['class' => 'mb-0']);
-    echo html_writer::end_div();
+    echo html_writer::start_div('card mb-4 bg-warning', ['id' => 'updates-section']);
     echo html_writer::start_div('card-body');
 
+    // Header with icon.
+    echo html_writer::start_div('text-center mb-3');
+    echo html_writer::tag('div',
+        $OUTPUT->pix_icon('i/reload', '', 'moodle', ['class' => 'icon-large']),
+        ['style' => 'font-size: 2.5rem;']
+    );
+    echo html_writer::tag('h4', get_string('managepluginupdates', 'local_sm_estratoos_plugin'), ['class' => 'card-title']);
+    echo html_writer::tag('p', get_string('managepluginupdatesdesc', 'local_sm_estratoos_plugin'), ['class' => 'text-dark']);
+    echo html_writer::end_div();
+
+    // Show current installed version.
+    echo html_writer::div(
+        html_writer::tag('strong', get_string('installedversion', 'local_sm_estratoos_plugin') . ': ') . $currentversion,
+        'text-center mb-3'
+    );
+
     // Show "Update All" button if there are companies needing updates.
-    if (!$allUpToDate && $updateavailable) {
-        $updateallurl = new moodle_url('/local/sm_estratoos_plugin/update.php');
-        echo html_writer::start_div('mb-3');
-        echo html_writer::link($updateallurl,
-            $OUTPUT->pix_icon('i/reload', '', 'moodle') . ' ' . get_string('updateplugin', 'local_sm_estratoos_plugin') . ' (' . count($companiesNeedingUpdate) . ' companies)',
-            ['class' => 'btn btn-warning']);
+    if (!$allUpToDate) {
+        echo html_writer::start_div('text-center mb-3');
+        echo html_writer::link(
+            new moodle_url('/local/sm_estratoos_plugin/index.php', ['syncversions' => 1, 'sesskey' => sesskey()]),
+            $OUTPUT->pix_icon('i/reload', '', 'moodle') . ' ' . get_string('updateallcompanies', 'local_sm_estratoos_plugin') . ' (' . count($companiesNeedingUpdate) . ')',
+            ['class' => 'btn btn-dark btn-lg']
+        );
         echo html_writer::end_div();
     }
 
     // Table of companies with versions.
     $table = new html_table();
-    $table->attributes['class'] = 'table table-striped table-hover';
+    $table->attributes['class'] = 'table table-striped table-hover bg-white';
     $table->head = [
         get_string('company', 'local_sm_estratoos_plugin'),
         get_string('pluginversion', 'local_sm_estratoos_plugin'),
@@ -200,11 +252,11 @@ if ($issiteadmin && $isiomad && !empty($companiesWithVersions)) {
         $versioncell = $company->plugin_version ?: '-';
         $needsupdate = isset($companiesNeedingUpdate[$company->id]);
 
-        // Add badge if needs update.
-        if ($needsupdate && $updateavailable) {
-            $versioncell .= ' ' . html_writer::tag('span', get_string('updateavailable', 'local_sm_estratoos_plugin'),
-                ['class' => 'badge badge-warning ml-2']);
-        } elseif ($company->plugin_version === $latestversion) {
+        // Add badge if needs update (behind installed version).
+        if ($needsupdate) {
+            $versioncell .= ' ' . html_writer::tag('span', get_string('needsupdate', 'local_sm_estratoos_plugin'),
+                ['class' => 'badge badge-danger ml-2']);
+        } elseif ($company->plugin_version === $currentversion) {
             $versioncell .= ' ' . html_writer::tag('span', '✓', ['class' => 'badge badge-success ml-2']);
         }
 
@@ -213,12 +265,18 @@ if ($issiteadmin && $isiomad && !empty($companiesWithVersions)) {
             ? html_writer::tag('span', get_string('enabled', 'local_sm_estratoos_plugin'), ['class' => 'badge badge-success'])
             : html_writer::tag('span', get_string('disabled', 'local_sm_estratoos_plugin'), ['class' => 'badge badge-danger']);
 
-        // Actions - individual update button.
+        // Actions - individual update button (sync to installed version).
         $actions = '';
-        if ($needsupdate && $updateavailable) {
-            $updateurl = new moodle_url('/local/sm_estratoos_plugin/update.php', ['companyid' => $company->id]);
-            $actions = html_writer::link($updateurl, get_string('updateplugin', 'local_sm_estratoos_plugin'),
-                ['class' => 'btn btn-sm btn-outline-warning']);
+        if ($needsupdate) {
+            $syncurl = new moodle_url('/local/sm_estratoos_plugin/index.php', [
+                'synccompany' => $company->id,
+                'sesskey' => sesskey(),
+            ]);
+            $actions = html_writer::link($syncurl, get_string('syncversion', 'local_sm_estratoos_plugin'),
+                ['class' => 'btn btn-sm btn-dark']);
+        } else {
+            $actions = html_writer::tag('span', '✓ ' . get_string('uptodate', 'local_sm_estratoos_plugin'),
+                ['class' => 'text-success']);
         }
 
         $table->data[] = [
@@ -234,8 +292,8 @@ if ($issiteadmin && $isiomad && !empty($companiesWithVersions)) {
     // Show message if all up to date.
     if ($allUpToDate) {
         echo html_writer::div(
-            $OUTPUT->pix_icon('i/valid', '', 'moodle') . ' ' . get_string('alreadyuptodate', 'local_sm_estratoos_plugin'),
-            'alert alert-success'
+            $OUTPUT->pix_icon('i/valid', '', 'moodle') . ' ' . get_string('allcompaniesuptodate', 'local_sm_estratoos_plugin'),
+            'alert alert-success text-center'
         );
     }
 

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011941</version>
+        <version>2025011942</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.41</release>
+        <release>1.7.42</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,30 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.41/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.42/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.41</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.42</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.41 - Dashboard Updates Section & Manager Role Fix</h3>
+            <h3>Version 1.7.42 - Improved Updates Section</h3>
 
             <h4>New Features</h4>
             <ul>
-                <li><strong>Dashboard Updates Section:</strong> Super admin sees all companies with plugin versions and update buttons</li>
-                <li><strong>Individual Company Updates:</strong> Super admin can update specific companies from dashboard</li>
-                <li><strong>Fixed Manager Role Detection:</strong> IOMAD managers (managertype > 0) can now see update button</li>
-                <li><strong>Smart Update Button:</strong> Super admin doesn't see update if all companies are updated</li>
+                <li><strong>Updates Card Section:</strong> Yellow card showing all companies with plugin versions</li>
+                <li><strong>Version Sync:</strong> Sync company versions to installed version without needing new GitHub release</li>
+                <li><strong>Sync All Button:</strong> One-click sync for all companies at once</li>
+                <li><strong>Individual Sync:</strong> Sync button for each company needing update</li>
+                <li><strong>Visual Badges:</strong> Shows "Needs update" (red) or "Up to date" (green) status</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li><strong>v1.7.41:</strong> Dashboard updates section, fix manager role detection</li>
                 <li><strong>v1.7.40:</strong> Auto-update plugin version per company based on user role</li>
                 <li><strong>v1.7.39:</strong> Allow admin/manager roles to see update button</li>
-                <li><strong>v1.7.38:</strong> Fix update_company_plugin_version API registration</li>
             </ul>
             ]]>
         </releasenotes>

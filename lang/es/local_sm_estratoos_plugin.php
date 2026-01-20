@@ -392,3 +392,15 @@ $string['pluginversion_help'] = 'La versión del plugin para esta empresa. Permi
 $string['updatecompanypluginversion'] = 'Actualizar versión del plugin de la empresa';
 $string['versionupdated'] = 'Versión del plugin actualizada correctamente';
 $string['invalidversionformat'] = 'Formato de versión inválido. Formato esperado: X.Y.Z (ej: 1.7.37)';
+
+// Sección de actualizaciones del dashboard (v1.7.42).
+$string['managepluginupdates'] = 'Gestionar Actualizaciones del Plugin';
+$string['managepluginupdatesdesc'] = 'Ver y sincronizar versiones del plugin en todas las empresas.';
+$string['installedversion'] = 'Versión instalada';
+$string['updateallcompanies'] = 'Sincronizar Todas las Empresas';
+$string['syncversion'] = 'Sincronizar';
+$string['needsupdate'] = 'Necesita actualización';
+$string['uptodate'] = 'Actualizado';
+$string['allcompaniesuptodate'] = 'Todas las empresas están usando la última versión';
+$string['versionsynced'] = 'Versión sincronizada para {$a}';
+$string['versionsyncfailed'] = 'Error al sincronizar la versión para {$a}';

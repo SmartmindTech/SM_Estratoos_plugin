@@ -393,3 +393,15 @@ $string['pluginversion_help'] = 'The plugin version for this company. Allows ind
 $string['updatecompanypluginversion'] = 'Update company plugin version';
 $string['versionupdated'] = 'Plugin version updated successfully';
 $string['invalidversionformat'] = 'Invalid version format. Expected format: X.Y.Z (e.g., 1.7.37)';
+
+// Updates dashboard section (v1.7.42).
+$string['managepluginupdates'] = 'Manage Plugin Updates';
+$string['managepluginupdatesdesc'] = 'View and synchronize plugin versions across all companies.';
+$string['installedversion'] = 'Installed version';
+$string['updateallcompanies'] = 'Sync All Companies';
+$string['syncversion'] = 'Sync';
+$string['needsupdate'] = 'Needs update';
+$string['uptodate'] = 'Up to date';
+$string['allcompaniesuptodate'] = 'All companies are using the latest version';
+$string['versionsynced'] = 'Version synchronized for {$a}';
+$string['versionsyncfailed'] = 'Failed to sync version for {$a}';
