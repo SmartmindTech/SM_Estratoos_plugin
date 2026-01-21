@@ -78,67 +78,34 @@ class get_course_students extends external_api {
         // Check capability - user must be able to view participants.
         require_capability('moodle/course:viewparticipants', $context);
 
-        // Apply company filtering if IOMAD token.
-        $companyuserids = null;
-        if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
-            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
-            if ($token) {
-                $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-                if ($restrictions && !empty($restrictions->companyid) && $restrictions->restricttocompany) {
-                    $filter = new \local_sm_estratoos_plugin\webservice_filter($restrictions);
-                    $companyuserids = $filter->get_company_user_ids();
-                }
-            }
-        }
-
-        // Get student role IDs.
+        // Get student role IDs using Moodle's archetype system.
         $studentroleids = self::get_student_role_ids();
 
         if (empty($studentroleids)) {
             return ['students' => [], 'count' => 0];
         }
 
-        // Build query to get enrolled students.
-        list($roleinsql, $roleparams) = $DB->get_in_or_equal($studentroleids, SQL_PARAMS_NAMED, 'role');
+        // Use Moodle's enrolment API to get enrolled users with student roles.
+        // This is more reliable than manual queries and respects all enrolment plugins.
+        $enrolledusers = get_enrolled_users($context, '', 0, 'u.*', 'u.lastname, u.firstname');
 
-        $sql = "SELECT DISTINCT u.id, u.username, u.email, u.firstname, u.lastname,
-                       u.idnumber, u.institution, u.department, u.phone1, u.phone2,
-                       u.city, u.country, u.timezone, u.lang, u.lastaccess,
-                       u.picture, u.imagealt, u.firstnamephonetic, u.lastnamephonetic,
-                       u.middlename, u.alternatename
-                FROM {user} u
-                JOIN {role_assignments} ra ON ra.userid = u.id
-                JOIN {context} ctx ON ctx.id = ra.contextid
-                WHERE ctx.contextlevel = :contextlevel
-                  AND ctx.instanceid = :courseid
-                  AND ra.roleid $roleinsql
-                  AND u.deleted = 0
-                  AND u.suspended = 0";
-
-        $queryparams = array_merge([
-            'contextlevel' => \CONTEXT_COURSE,
-            'courseid' => $params['courseid'],
-        ], $roleparams);
-
-        // Add company filtering if applicable.
-        if ($companyuserids !== null) {
-            if (empty($companyuserids)) {
-                return ['students' => [], 'count' => 0];
-            }
-            list($userinsql, $userparams) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED, 'user');
-            $sql .= " AND u.id $userinsql";
-            $queryparams = array_merge($queryparams, $userparams);
-        }
-
-        $sql .= " ORDER BY u.lastname, u.firstname";
-
-        $users = $DB->get_records_sql($sql, $queryparams);
-
-        // Format results.
+        // Filter users to only those with student roles in this course.
         $students = [];
-        foreach ($users as $user) {
-            $studentdata = self::format_user_data($user, $params['courseid'], $params['includeprofile'], $params['includegroups']);
-            $students[] = $studentdata;
+        foreach ($enrolledusers as $user) {
+            // Check if user has a student role in this course.
+            $userroles = get_user_roles($context, $user->id, false);
+            $isstudent = false;
+            foreach ($userroles as $role) {
+                if (in_array($role->roleid, $studentroleids)) {
+                    $isstudent = true;
+                    break;
+                }
+            }
+
+            if ($isstudent) {
+                $studentdata = self::format_user_data($user, $params['courseid'], $params['includeprofile'], $params['includegroups']);
+                $students[] = $studentdata;
+            }
         }
 
         return [

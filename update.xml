@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012178</version>
+        <version>2025012179</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.78</release>
+        <release>1.7.79</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,27 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.78/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.79/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.78</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.79</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.78 - Fix Course Participants API</h3>
+            <h3>Version 1.7.79 - Improved Course Participants API</h3>
 
-            <h4>Bug Fix</h4>
+            <h4>Improvements</h4>
             <ul>
-                <li>Fixed CONTEXT_COURSE constant reference in namespaced PHP files</li>
-                <li>get_course_students and get_course_teachers now correctly return enrolled users</li>
-                <li>PHP namespace requires backslash prefix for global constants</li>
+                <li>Rewrote get_course_students and get_course_teachers to use Moodle's core enrolment API</li>
+                <li>Uses <code>get_enrolled_users()</code> and <code>get_user_roles()</code> for reliable detection</li>
+                <li>Respects all enrolment plugins and Moodle access controls</li>
+                <li>More compatible with IOMAD multi-tenant environments</li>
             </ul>
 
-            <h4>Affected Functions</h4>
+            <h4>Technical Details</h4>
             <ul>
-                <li><code>get_course_students</code> - Now correctly returns students enrolled in the course</li>
-                <li><code>get_course_teachers</code> - Now correctly returns teachers enrolled in the course</li>
+                <li>Replaced manual SQL queries with Moodle core API calls</li>
+                <li>Proper role filtering per course context</li>
+                <li>Removed unused helper functions</li>
             </ul>
             ]]>
         </releasenotes>

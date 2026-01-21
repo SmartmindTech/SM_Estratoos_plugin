@@ -78,19 +78,6 @@ class get_course_teachers extends external_api {
         // Check capability - user must be able to view participants.
         require_capability('moodle/course:viewparticipants', $context);
 
-        // Apply company filtering if IOMAD token.
-        $companyuserids = null;
-        if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
-            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
-            if ($token) {
-                $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-                if ($restrictions && !empty($restrictions->companyid) && $restrictions->restricttocompany) {
-                    $filter = new \local_sm_estratoos_plugin\webservice_filter($restrictions);
-                    $companyuserids = $filter->get_company_user_ids();
-                }
-            }
-        }
-
         // Get teacher role IDs.
         $teacherroleids = self::get_teacher_role_ids();
 
@@ -98,51 +85,37 @@ class get_course_teachers extends external_api {
             return ['teachers' => [], 'count' => 0];
         }
 
-        // Build query to get enrolled teachers.
-        list($roleinsql, $roleparams) = $DB->get_in_or_equal($teacherroleids, SQL_PARAMS_NAMED, 'role');
+        // Use Moodle's enrolment API to get enrolled users.
+        // This is more reliable than manual queries and respects all enrolment plugins.
+        $enrolledusers = get_enrolled_users($context, '', 0, 'u.*', 'u.lastname, u.firstname');
 
-        $sql = "SELECT DISTINCT u.id, u.username, u.email, u.firstname, u.lastname,
-                       u.idnumber, u.institution, u.department, u.phone1, u.phone2,
-                       u.city, u.country, u.timezone, u.lang, u.lastaccess,
-                       u.picture, u.imagealt, u.firstnamephonetic, u.lastnamephonetic,
-                       u.middlename, u.alternatename
-                FROM {user} u
-                JOIN {role_assignments} ra ON ra.userid = u.id
-                JOIN {context} ctx ON ctx.id = ra.contextid
-                WHERE ctx.contextlevel = :contextlevel
-                  AND ctx.instanceid = :courseid
-                  AND ra.roleid $roleinsql
-                  AND u.deleted = 0
-                  AND u.suspended = 0";
-
-        $queryparams = array_merge([
-            'contextlevel' => \CONTEXT_COURSE,
-            'courseid' => $params['courseid'],
-        ], $roleparams);
-
-        // Add company filtering if applicable.
-        if ($companyuserids !== null) {
-            if (empty($companyuserids)) {
-                return ['teachers' => [], 'count' => 0];
-            }
-            list($userinsql, $userparams) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED, 'user');
-            $sql .= " AND u.id $userinsql";
-            $queryparams = array_merge($queryparams, $userparams);
-        }
-
-        $sql .= " ORDER BY u.lastname, u.firstname";
-
-        $users = $DB->get_records_sql($sql, $queryparams);
-
-        // Format results.
+        // Filter users to only those with teacher roles in this course.
         $teachers = [];
-        foreach ($users as $user) {
-            $teacherdata = self::format_user_data($user, $params['courseid'], $params['includeprofile'], $params['includegroups']);
+        foreach ($enrolledusers as $user) {
+            // Check if user has a teacher role in this course.
+            $userroles = get_user_roles($context, $user->id, false);
+            $teacherrole = null;
+            foreach ($userroles as $role) {
+                if (in_array($role->roleid, $teacherroleids)) {
+                    $teacherrole = $role;
+                    break;
+                }
+            }
 
-            // Get the specific teacher role for this user in this course.
-            $teacherdata['role'] = self::get_user_teacher_role($user->id, $params['courseid'], $teacherroleids);
+            if ($teacherrole) {
+                $teacherdata = self::format_user_data($user, $params['courseid'], $params['includeprofile'], $params['includegroups']);
 
-            $teachers[] = $teacherdata;
+                // Get role details.
+                $rolerecord = $DB->get_record('role', ['id' => $teacherrole->roleid]);
+                $teacherdata['role'] = [
+                    'id' => (int)$teacherrole->roleid,
+                    'shortname' => $rolerecord->shortname,
+                    'name' => $rolerecord->name ?: role_get_name($rolerecord),
+                    'archetype' => $rolerecord->archetype,
+                ];
+
+                $teachers[] = $teacherdata;
+            }
         }
 
         return [
@@ -173,53 +146,6 @@ class get_course_teachers extends external_api {
 
         $roles = $DB->get_records_sql($sql);
         return array_keys($roles);
-    }
-
-    /**
-     * Get the teacher role name for a user in a course.
-     *
-     * @param int $userid User ID.
-     * @param int $courseid Course ID.
-     * @param array $teacherroleids Teacher role IDs.
-     * @return array Role information.
-     */
-    private static function get_user_teacher_role(int $userid, int $courseid, array $teacherroleids): array {
-        global $DB;
-
-        $context = context_course::instance($courseid);
-
-        list($roleinsql, $roleparams) = $DB->get_in_or_equal($teacherroleids, SQL_PARAMS_NAMED, 'role');
-
-        $sql = "SELECT r.id, r.shortname, r.name, r.archetype
-                FROM {role} r
-                JOIN {role_assignments} ra ON ra.roleid = r.id
-                WHERE ra.userid = :userid
-                  AND ra.contextid = :contextid
-                  AND ra.roleid $roleinsql
-                LIMIT 1";
-
-        $params = array_merge([
-            'userid' => $userid,
-            'contextid' => $context->id,
-        ], $roleparams);
-
-        $role = $DB->get_record_sql($sql, $params);
-
-        if ($role) {
-            return [
-                'id' => $role->id,
-                'shortname' => $role->shortname,
-                'name' => $role->name ?: role_get_name($role),
-                'archetype' => $role->archetype,
-            ];
-        }
-
-        return [
-            'id' => 0,
-            'shortname' => 'teacher',
-            'name' => get_string('teacher'),
-            'archetype' => 'teacher',
-        ];
     }
 
     /**

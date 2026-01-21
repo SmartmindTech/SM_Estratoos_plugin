@@ -95,16 +95,13 @@ class get_course_managers extends external_api {
         // Get course to find its category.
         $course = $DB->get_record('course', ['id' => $params['courseid']], 'id, category', MUST_EXIST);
 
-        // Apply company filtering if IOMAD token.
-        $companyuserids = null;
+        // Get IOMAD company ID if applicable (for company managers).
         $companyid = null;
         if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
             $token = \local_sm_estratoos_plugin\util::get_current_request_token();
             if ($token) {
                 $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
-                if ($restrictions && !empty($restrictions->companyid) && $restrictions->restricttocompany) {
-                    $filter = new \local_sm_estratoos_plugin\webservice_filter($restrictions);
-                    $companyuserids = $filter->get_company_user_ids();
+                if ($restrictions && !empty($restrictions->companyid)) {
                     $companyid = $restrictions->companyid;
                 }
             }
@@ -116,33 +113,51 @@ class get_course_managers extends external_api {
         $managers = [];
         $addedUserIds = [];
 
-        // 1. Get course-level managers.
+        // 1. Get course-level managers using Moodle's enrolment API.
         if (!empty($managerroleids)) {
-            $coursemanagers = self::get_context_managers(
-                $context->id,
-                $managerroleids,
-                $companyuserids,
-                'course'
-            );
+            $enrolledusers = get_enrolled_users($context, '', 0, 'u.*', 'u.lastname, u.firstname');
 
-            foreach ($coursemanagers as $manager) {
-                if (!isset($addedUserIds[$manager['id']])) {
-                    $manager['scope'] = 'course';
+            foreach ($enrolledusers as $user) {
+                // Check if user has a manager role in this course.
+                $userroles = get_user_roles($context, $user->id, false);
+                $managerrole = null;
+                foreach ($userroles as $role) {
+                    if (in_array($role->roleid, $managerroleids)) {
+                        $managerrole = $role;
+                        break;
+                    }
+                }
+
+                if ($managerrole && !isset($addedUserIds[$user->id])) {
+                    $rolerecord = $DB->get_record('role', ['id' => $managerrole->roleid]);
+                    $manager = [
+                        'id' => $user->id,
+                        'username' => $user->username,
+                        'email' => $user->email,
+                        'firstname' => $user->firstname,
+                        'lastname' => $user->lastname,
+                        'fullname' => fullname($user),
+                        'idnumber' => $user->idnumber ?? '',
+                        'lastaccess' => $user->lastaccess ?? 0,
+                        'scope' => 'course',
+                        'role' => [
+                            'id' => (int)$managerrole->roleid,
+                            'shortname' => $rolerecord->shortname,
+                            'name' => $rolerecord->name ?: role_get_name($rolerecord),
+                            'archetype' => $rolerecord->archetype,
+                        ],
+                        'user' => $user,
+                    ];
                     $managers[] = self::enrich_manager_data($manager, $params['courseid'], $params['includeprofile']);
-                    $addedUserIds[$manager['id']] = true;
+                    $addedUserIds[$user->id] = true;
                 }
             }
         }
 
-        // 2. Get category-level managers.
+        // 2. Get category-level managers (using role_assignments - not enrolled in course).
         if ($params['includecategorymanagers'] && !empty($managerroleids) && $course->category > 0) {
             $categorycontext = context_coursecat::instance($course->category);
-            $categorymanagers = self::get_context_managers(
-                $categorycontext->id,
-                $managerroleids,
-                $companyuserids,
-                'category'
-            );
+            $categorymanagers = self::get_context_managers($categorycontext->id, $managerroleids);
 
             foreach ($categorymanagers as $manager) {
                 if (!isset($addedUserIds[$manager['id']])) {
@@ -156,12 +171,7 @@ class get_course_managers extends external_api {
             $parentcats = self::get_parent_category_ids($course->category);
             foreach ($parentcats as $parentcatid) {
                 $parentcontext = context_coursecat::instance($parentcatid);
-                $parentmanagers = self::get_context_managers(
-                    $parentcontext->id,
-                    $managerroleids,
-                    $companyuserids,
-                    'category'
-                );
+                $parentmanagers = self::get_context_managers($parentcontext->id, $managerroleids);
 
                 foreach ($parentmanagers as $manager) {
                     if (!isset($addedUserIds[$manager['id']])) {
@@ -175,7 +185,7 @@ class get_course_managers extends external_api {
 
         // 3. Get IOMAD company managers.
         if ($params['includecompanymanagers'] && \local_sm_estratoos_plugin\util::is_iomad_installed()) {
-            $iomadmanagers = self::get_iomad_company_managers($params['courseid'], $companyid, $companyuserids);
+            $iomadmanagers = self::get_iomad_company_managers($params['courseid'], $companyid);
 
             foreach ($iomadmanagers as $manager) {
                 if (!isset($addedUserIds[$manager['id']])) {
@@ -217,15 +227,13 @@ class get_course_managers extends external_api {
     }
 
     /**
-     * Get managers from a specific context.
+     * Get managers from a specific context (for category-level managers).
      *
      * @param int $contextid Context ID.
      * @param array $managerroleids Manager role IDs.
-     * @param array|null $companyuserids Company user IDs filter.
-     * @param string $scopetype Scope type for logging.
      * @return array Managers.
      */
-    private static function get_context_managers(int $contextid, array $managerroleids, ?array $companyuserids, string $scopetype): array {
+    private static function get_context_managers(int $contextid, array $managerroleids): array {
         global $DB;
 
         list($roleinsql, $roleparams) = $DB->get_in_or_equal($managerroleids, SQL_PARAMS_NAMED, 'role');
@@ -242,21 +250,10 @@ class get_course_managers extends external_api {
                 WHERE ra.contextid = :contextid
                   AND ra.roleid $roleinsql
                   AND u.deleted = 0
-                  AND u.suspended = 0";
+                  AND u.suspended = 0
+                ORDER BY u.lastname, u.firstname";
 
         $queryparams = array_merge(['contextid' => $contextid], $roleparams);
-
-        // Add company filtering if applicable.
-        if ($companyuserids !== null) {
-            if (empty($companyuserids)) {
-                return [];
-            }
-            list($userinsql, $userparams) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED, 'user');
-            $sql .= " AND u.id $userinsql";
-            $queryparams = array_merge($queryparams, $userparams);
-        }
-
-        $sql .= " ORDER BY u.lastname, u.firstname";
 
         $records = $DB->get_records_sql($sql, $queryparams);
 
@@ -309,10 +306,9 @@ class get_course_managers extends external_api {
      *
      * @param int $courseid Course ID.
      * @param int|null $companyid Company ID to filter by.
-     * @param array|null $companyuserids Company user IDs filter.
      * @return array Company managers.
      */
-    private static function get_iomad_company_managers(int $courseid, ?int $companyid, ?array $companyuserids): array {
+    private static function get_iomad_company_managers(int $courseid, ?int $companyid): array {
         global $DB;
 
         // Get company that owns this course.
@@ -343,23 +339,10 @@ class get_course_managers extends external_api {
                 WHERE cu.companyid = :companyid
                   AND cu.managertype > 0
                   AND u.deleted = 0
-                  AND u.suspended = 0";
+                  AND u.suspended = 0
+                ORDER BY u.lastname, u.firstname";
 
-        $queryparams = ['companyid' => $coursecompanyid];
-
-        // Add company user filtering if applicable.
-        if ($companyuserids !== null) {
-            if (empty($companyuserids)) {
-                return [];
-            }
-            list($userinsql, $userparams) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED, 'user');
-            $sql .= " AND u.id $userinsql";
-            $queryparams = array_merge($queryparams, $userparams);
-        }
-
-        $sql .= " ORDER BY u.lastname, u.firstname";
-
-        $records = $DB->get_records_sql($sql, $queryparams);
+        $records = $DB->get_records_sql($sql, ['companyid' => $coursecompanyid]);
 
         $managers = [];
         foreach ($records as $record) {

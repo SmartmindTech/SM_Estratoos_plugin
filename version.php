@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012178;  // YYYYMMDDXX format.
+$plugin->version = 2025012179;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.78';  // Fix CONTEXT_COURSE constant reference in namespaced PHP files.
+$plugin->release = '1.7.79';  // Use Moodle core enrolment API for reliable role detection.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
