@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012177;  // YYYYMMDDXX format.
+$plugin->version = 2025012178;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.77';  // Improved SCORM slide detection with generic fallback for unknown tools.
+$plugin->release = '1.7.78';  // Fix CONTEXT_COURSE constant reference in namespaced PHP files.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

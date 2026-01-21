@@ -116,7 +116,7 @@ class get_course_students extends external_api {
                   AND u.suspended = 0";
 
         $queryparams = array_merge([
-            'contextlevel' => CONTEXT_COURSE,
+            'contextlevel' => \CONTEXT_COURSE,
             'courseid' => $params['courseid'],
         ], $roleparams);
 

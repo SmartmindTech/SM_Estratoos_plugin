@@ -458,6 +458,14 @@ class get_course_content extends external_api {
         }
         $moduledata['progress'] = self::calculate_module_progress($cm->modname, $progressdata, $moduledata['completionstate']);
 
+        // Add progress to the module-specific data object as well for frontend consistency.
+        foreach ($jsonfields as $field) {
+            if (isset($moduledata[$field]) && is_array($moduledata[$field])) {
+                $moduledata[$field]['progress'] = $moduledata['progress'];
+                break;
+            }
+        }
+
         // JSON encode complex module data fields (return structure expects PARAM_RAW strings).
         foreach ($jsonfields as $field) {
             if (isset($moduledata[$field]) && is_array($moduledata[$field])) {
