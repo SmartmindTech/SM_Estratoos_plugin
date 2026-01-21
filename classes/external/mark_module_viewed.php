@@ -74,8 +74,13 @@ class mark_module_viewed extends external_api {
         $context = context_module::instance($cm->id);
         self::validate_context($context);
 
-        // Check if user can view the module.
-        require_capability('moodle/course:view', $context);
+        // Check if user is enrolled in the course (more reliable than capability check).
+        // The capability check can fail for hidden courses even if user is enrolled.
+        $coursecontext = \context_course::instance($course->id);
+        if (!is_enrolled($coursecontext, $USER->id, '', true)) {
+            // User is not enrolled - check capability as fallback (for admins).
+            require_capability('moodle/course:view', $context);
+        }
 
         // Get course module info.
         $modinfo = get_fast_modinfo($course);

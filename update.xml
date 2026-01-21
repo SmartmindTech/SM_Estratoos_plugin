@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012181</version>
+        <version>2025012182</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.81</release>
+        <release>1.7.82</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.81/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.82/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.81</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.82</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.81 - JWKS Table Index Fix</h3>
+            <h3>Version 1.7.82 - Fix mark_module_viewed Permission</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixed JWKS cache table installation error on MySQL databases</li>
-                <li>MySQL has a 255 character limit for indexed fields - changed issuer_url from indexed CHAR(512) to TEXT</li>
-                <li>Added issuer_url_hash (SHA256, 64 chars) column for unique indexing</li>
+                <li>Fixed mark_module_viewed API for enrolled users</li>
+                <li>Changed from capability check to enrollment check</li>
+                <li>Enrolled users can now mark modules viewed even with restrictive course visibility</li>
             </ul>
 
-            <h4>Previous Version (1.7.80) Features</h4>
+            <h4>Previous Versions</h4>
             <ul>
-                <li>OAuth2/OIDC JWT validation for chromeless iframe embedding</li>
-                <li>JWKS caching for efficient public key retrieval</li>
-                <li>Chromeless activity renderer for seamless SmartLearning integration</li>
-                <li>Support for all activity types: SCORM, Quiz, Assignment, Lesson, Book, Page, Resource, URL, Folder</li>
+                <li>v1.7.81: Fixed JWKS table index for MySQL compatibility</li>
+                <li>v1.7.80: OAuth2/OIDC JWT validation for chromeless iframe embedding</li>
             </ul>
             ]]>
         </releasenotes>

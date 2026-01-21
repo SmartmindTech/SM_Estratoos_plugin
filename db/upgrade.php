@@ -1591,6 +1591,16 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025012181, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.82: Fix mark_module_viewed permission check for enrolled users.
+    // Changed from capability check to enrollment check - enrolled users can now
+    // mark modules as viewed even if the course visibility settings are restrictive.
+    if ($oldversion < 2025012182) {
+        // No database changes - just PHP code fix.
+        // Purge caches to ensure new code is loaded.
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025012182, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 
