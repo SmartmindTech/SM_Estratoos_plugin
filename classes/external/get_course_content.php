@@ -710,6 +710,19 @@ class get_course_content extends external_api {
             return $result;
         }
 
+        // Try generic slide file detection (fallback for unknown tools).
+        $genericcount = self::detect_generic_slides($contentfilesmap);
+        if ($genericcount > 0) {
+            $result['method'] = 'generic_slide_files';
+            $result['slidecount'] = $genericcount;
+            // Try to identify the tool from file markers.
+            $tool = self::detect_authoring_tool_from_files($contentfilesmap);
+            if ($tool) {
+                $result['authoringtool'] = $tool;
+            }
+            return $result;
+        }
+
         // Check for authoring tool markers even if we can't get slide count.
         $tool = self::detect_authoring_tool_from_files($contentfilesmap);
         if ($tool) {
@@ -717,6 +730,42 @@ class get_course_content extends external_api {
         }
 
         return $result;
+    }
+
+    /**
+     * Detect slides using generic file patterns.
+     *
+     * This is a fallback for tools we don't specifically recognize.
+     * Looks for common slide file patterns like slide1.js, slide2.js, etc.
+     *
+     * @param array $contentfilesmap Map of filepath => stored_file objects.
+     * @return int Slide count (0 if not detected).
+     */
+    private static function detect_generic_slides(array $contentfilesmap): int {
+        $slidenumbers = [];
+
+        foreach ($contentfilesmap as $path => $file) {
+            // Match various slide file patterns:
+            // /res/data/slide123.js (Genially, custom tools)
+            // /slides/slide123.html
+            // /content/slide123.js
+            // /data/slide123.js
+            if (preg_match('#/(?:res/data|slides|content|data)/slide(\d+)\.(js|html|css)$#i', $path, $matches)) {
+                $slidenumbers[$matches[1]] = true;
+            }
+            // Match scene patterns (some tools use scenes instead of slides)
+            // /scenes/scene1.js
+            if (preg_match('#/scenes?/scene(\d+)\.(js|html)$#i', $path, $matches)) {
+                $slidenumbers[$matches[1]] = true;
+            }
+            // Match page patterns
+            // /pages/page1.html
+            if (preg_match('#/pages?/page(\d+)\.(js|html)$#i', $path, $matches)) {
+                $slidenumbers[$matches[1]] = true;
+            }
+        }
+
+        return count($slidenumbers);
     }
 
     /**

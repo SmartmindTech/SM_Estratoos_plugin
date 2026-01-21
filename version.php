@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012176;  // YYYYMMDDXX format.
+$plugin->version = 2025012177;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.76';  // Add course participants API: get_course_students, get_course_teachers, get_course_managers.
+$plugin->release = '1.7.77';  // Improved SCORM slide detection with generic fallback for unknown tools.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

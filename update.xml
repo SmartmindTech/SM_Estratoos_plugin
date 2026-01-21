@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012176</version>
+        <version>2025012177</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.76</release>
+        <release>1.7.77</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.76/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.77/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.76</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.77</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.76 - Course Participants API</h3>
+            <h3>Version 1.7.77 - Improved SCORM Slide Detection</h3>
 
-            <h4>New API Functions</h4>
+            <h4>Bug Fix</h4>
             <ul>
-                <li><code>get_course_students</code>: Retrieve students enrolled in a course with optional profile fields and groups</li>
-                <li><code>get_course_teachers</code>: Retrieve teachers with their specific teaching role (editingteacher, teacher, tutor, etc.)</li>
-                <li><code>get_course_managers</code>: Retrieve managers at course, category, and IOMAD company levels</li>
+                <li>Added generic slide file detection as fallback for unknown authoring tools</li>
+                <li>Now detects slides from patterns like <code>/res/data/slideXX.js</code> (Genially, custom tools)</li>
+                <li>Also detects scene and page patterns used by various tools</li>
             </ul>
 
-            <h4>Features</h4>
+            <h4>Detection Patterns Added</h4>
             <ul>
-                <li>All functions support IOMAD company filtering for multi-tenant environments</li>
-                <li>Multilingual role detection (English, Spanish, Portuguese role names)</li>
-                <li>Optional extended profile fields (institution, department, phone, city, country)</li>
-                <li>Optional group membership information for students and teachers</li>
-                <li>Manager scope identification (course, category, or company level)</li>
+                <li><code>/res/data/slide*.js</code> - Generic HTML5 tools</li>
+                <li><code>/slides/slide*.html</code> - Custom SCORM builders</li>
+                <li><code>/scenes/scene*.js</code> - Scene-based tools</li>
+                <li><code>/pages/page*.html</code> - Page-based tools</li>
+            </ul>
+
+            <h4>New Detection Method</h4>
+            <ul>
+                <li><code>slidedetection: "generic_slide_files"</code> - When slides detected from file patterns</li>
             </ul>
             ]]>
         </releasenotes>
