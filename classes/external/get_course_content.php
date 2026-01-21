@@ -508,7 +508,14 @@ class get_course_content extends external_api {
             // Enhanced fields for SmartLearning.
             'score' => null,
             'attempts' => 0,
+            // SCO count: number of launchable SCOs in Moodle's database.
+            'scocount' => 0,
+            // Slide count: best-effort detection of actual slides/pages in the content.
             'slidescount' => 0,
+            // Slide detection method: 'sco_count', 'articulate_storyline', 'adobe_captivate', 'isspring', 'unknown'.
+            'slidedetection' => 'unknown',
+            // Authoring tool detected (if any).
+            'authoringtool' => null,
             'currentslide' => null,
         ];
 
@@ -533,11 +540,15 @@ class get_course_content extends external_api {
         }
 
         // Get all SCORM content files (extracted package contents).
+        // Also build a lookup for slide detection.
         $contentfiles = $fs->get_area_files($context->id, 'mod_scorm', 'content', 0, 'sortorder', false);
+        $contentfilesmap = []; // filepath => stored_file for quick lookup.
         foreach ($contentfiles as $file) {
             if ($file->is_directory()) {
                 continue;
             }
+            $fullpath = $file->get_filepath() . $file->get_filename();
+            $contentfilesmap[$fullpath] = $file;
             $data['contentfiles'][] = [
                 'filename' => $file->get_filename(),
                 'filepath' => $file->get_filepath(),
@@ -558,7 +569,7 @@ class get_course_content extends external_api {
         $scos = $DB->get_records('scorm_scoes', ['scorm' => $scormid], 'sortorder, id');
         $currentslide = null;
         $bestscore = null;
-        $slidescount = 0;
+        $scocount = 0;
 
         foreach ($scos as $sco) {
             $scodata = [
@@ -574,7 +585,7 @@ class get_course_content extends external_api {
 
             // Count launchable SCOs.
             if (!empty($sco->scormtype) && $sco->scormtype === 'sco' && !empty($sco->launch)) {
-                $slidescount++;
+                $scocount++;
             }
 
             // Get additional SCO data.
@@ -614,8 +625,24 @@ class get_course_content extends external_api {
             $data['scos'][] = $scodata;
         }
 
-        // Set enhanced fields.
-        $data['slidescount'] = $slidescount;
+        // Set SCO count (always available from Moodle DB).
+        $data['scocount'] = $scocount;
+
+        // Detect authoring tool and try to get actual slide count.
+        $slideinfo = self::detect_scorm_slides($contentfilesmap);
+        $data['authoringtool'] = $slideinfo['authoringtool'];
+        $data['slidedetection'] = $slideinfo['method'];
+
+        // Use detected slide count if available, otherwise fall back to SCO count.
+        if ($slideinfo['slidecount'] > 0) {
+            $data['slidescount'] = $slideinfo['slidecount'];
+        } else {
+            // Fall back to SCO count.
+            $data['slidescount'] = $scocount;
+            if ($data['slidedetection'] === 'unknown') {
+                $data['slidedetection'] = 'sco_count';
+            }
+        }
 
         // Get overall user data.
         if ($includeuserdata) {
@@ -626,6 +653,336 @@ class get_course_content extends external_api {
         }
 
         return $data;
+    }
+
+    /**
+     * Detect authoring tool and slide count from SCORM content files.
+     *
+     * Supports detection for:
+     * - Articulate Storyline (story_content/slides.xml)
+     * - Articulate Rise (multiple scene/block patterns)
+     * - Adobe Captivate (Captivate.js, cpLibrary)
+     * - iSpring (data/presentation.xml)
+     *
+     * @param array $contentfilesmap Map of filepath => stored_file objects.
+     * @return array ['authoringtool' => string|null, 'method' => string, 'slidecount' => int]
+     */
+    private static function detect_scorm_slides(array $contentfilesmap): array {
+        $result = [
+            'authoringtool' => null,
+            'method' => 'unknown',
+            'slidecount' => 0,
+        ];
+
+        // Try Articulate Storyline detection first (most common).
+        $storylinecount = self::detect_articulate_storyline_slides($contentfilesmap);
+        if ($storylinecount > 0) {
+            $result['authoringtool'] = 'Articulate Storyline';
+            $result['method'] = 'articulate_storyline';
+            $result['slidecount'] = $storylinecount;
+            return $result;
+        }
+
+        // Try Articulate Rise detection.
+        $risecount = self::detect_articulate_rise_slides($contentfilesmap);
+        if ($risecount > 0) {
+            $result['authoringtool'] = 'Articulate Rise';
+            $result['method'] = 'articulate_rise';
+            $result['slidecount'] = $risecount;
+            return $result;
+        }
+
+        // Try Adobe Captivate detection.
+        $captivatecount = self::detect_adobe_captivate_slides($contentfilesmap);
+        if ($captivatecount > 0) {
+            $result['authoringtool'] = 'Adobe Captivate';
+            $result['method'] = 'adobe_captivate';
+            $result['slidecount'] = $captivatecount;
+            return $result;
+        }
+
+        // Try iSpring detection.
+        $ispringcount = self::detect_ispring_slides($contentfilesmap);
+        if ($ispringcount > 0) {
+            $result['authoringtool'] = 'iSpring';
+            $result['method'] = 'ispring';
+            $result['slidecount'] = $ispringcount;
+            return $result;
+        }
+
+        // Check for authoring tool markers even if we can't get slide count.
+        $tool = self::detect_authoring_tool_from_files($contentfilesmap);
+        if ($tool) {
+            $result['authoringtool'] = $tool;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Detect Articulate Storyline slides from story_content/slides.xml.
+     *
+     * @param array $contentfilesmap Map of filepath => stored_file objects.
+     * @return int Slide count (0 if not detected).
+     */
+    private static function detect_articulate_storyline_slides(array $contentfilesmap): int {
+        // Look for story_content/slides.xml (primary method).
+        $slidesxmlpaths = [
+            '/story_content/slides.xml',
+            '/slides.xml',
+        ];
+
+        foreach ($slidesxmlpaths as $path) {
+            if (isset($contentfilesmap[$path])) {
+                $content = $contentfilesmap[$path]->get_content();
+                if (!empty($content)) {
+                    // Count <sld> elements (Storyline slide markers).
+                    $slidecount = preg_match_all('/<sld\s/i', $content);
+                    if ($slidecount > 0) {
+                        return $slidecount;
+                    }
+                    // Alternative: count <slide> elements.
+                    $slidecount = preg_match_all('/<slide\s/i', $content);
+                    if ($slidecount > 0) {
+                        return $slidecount;
+                    }
+                }
+            }
+        }
+
+        // Alternative: count slide*.xml files in story_content folder.
+        $slidefilecount = 0;
+        foreach ($contentfilesmap as $path => $file) {
+            if (preg_match('#/story_content/slide\d+\.xml$#i', $path)) {
+                $slidefilecount++;
+            }
+        }
+        if ($slidefilecount > 0) {
+            return $slidefilecount;
+        }
+
+        // Check for story.js and try to extract slide count from it.
+        $storyjspaths = ['/story.js', '/html5/data/js/story.js'];
+        foreach ($storyjspaths as $path) {
+            if (isset($contentfilesmap[$path])) {
+                $content = $contentfilesmap[$path]->get_content();
+                if (!empty($content)) {
+                    // Look for slide array definitions.
+                    if (preg_match('/slides\s*:\s*\[([^\]]+)\]/i', $content, $matches)) {
+                        // Count items in the array.
+                        $slidecount = preg_match_all('/\{[^}]+\}/', $matches[1]);
+                        if ($slidecount > 0) {
+                            return $slidecount;
+                        }
+                    }
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Detect Articulate Rise slides/lessons from content structure.
+     *
+     * @param array $contentfilesmap Map of filepath => stored_file objects.
+     * @return int Slide count (0 if not detected).
+     */
+    private static function detect_articulate_rise_slides(array $contentfilesmap): int {
+        // Rise uses scormdriver/indexAPI.html and has lesson data in JSON.
+        if (!isset($contentfilesmap['/scormdriver/indexAPI.html'])) {
+            return 0;
+        }
+
+        // Look for Rise content data file.
+        foreach ($contentfilesmap as $path => $file) {
+            if (preg_match('#/scormcontent/data\.js$#i', $path) ||
+                preg_match('#/content/data\.json$#i', $path)) {
+                $content = $file->get_content();
+                if (!empty($content)) {
+                    // Count lesson/block objects.
+                    $lessoncount = preg_match_all('/"type"\s*:\s*"lesson"/i', $content);
+                    if ($lessoncount > 0) {
+                        return $lessoncount;
+                    }
+                    // Alternative: count block objects.
+                    $blockcount = preg_match_all('/"type"\s*:\s*"block"/i', $content);
+                    if ($blockcount > 0) {
+                        return $blockcount;
+                    }
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Detect Adobe Captivate slides from project structure.
+     *
+     * @param array $contentfilesmap Map of filepath => stored_file objects.
+     * @return int Slide count (0 if not detected).
+     */
+    private static function detect_adobe_captivate_slides(array $contentfilesmap): int {
+        // Look for Captivate markers.
+        $captivatefiles = [
+            '/Captivate.js',
+            '/captivate.js',
+            '/assets/js/CPM.js',
+            '/ar/js/cpcmn.js',
+        ];
+
+        $iscaptivate = false;
+        foreach ($captivatefiles as $path) {
+            if (isset($contentfilesmap[$path])) {
+                $iscaptivate = true;
+                break;
+            }
+        }
+
+        // Also check for cpLibrary folder.
+        foreach ($contentfilesmap as $path => $file) {
+            if (strpos($path, '/cpLibrary/') !== false) {
+                $iscaptivate = true;
+                break;
+            }
+        }
+
+        if (!$iscaptivate) {
+            return 0;
+        }
+
+        // Try to find project.txt or CPProjInit.js for slide info.
+        $projfiles = ['/project.txt', '/CPProjInit.js', '/dr/cpprojinit.js'];
+        foreach ($projfiles as $path) {
+            foreach ($contentfilesmap as $filepath => $file) {
+                if (stripos($filepath, basename($path)) !== false) {
+                    $content = $file->get_content();
+                    if (!empty($content)) {
+                        // Look for slide count variable.
+                        if (preg_match('/cpInfoSlideCount\s*=\s*(\d+)/i', $content, $matches)) {
+                            return (int) $matches[1];
+                        }
+                        if (preg_match('/totalSlides\s*[=:]\s*(\d+)/i', $content, $matches)) {
+                            return (int) $matches[1];
+                        }
+                        // Count slide definitions.
+                        $slidecount = preg_match_all('/cp\.movie\.slides\[\d+\]/i', $content);
+                        if ($slidecount > 0) {
+                            return $slidecount;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Count slide HTML files (drXX.html pattern for Captivate).
+        $slidefilecount = 0;
+        foreach ($contentfilesmap as $path => $file) {
+            if (preg_match('#/dr/dr\d+\.html$#i', $path) ||
+                preg_match('#/slides/slide\d+\.html$#i', $path)) {
+                $slidefilecount++;
+            }
+        }
+
+        return $slidefilecount;
+    }
+
+    /**
+     * Detect iSpring slides from presentation.xml.
+     *
+     * @param array $contentfilesmap Map of filepath => stored_file objects.
+     * @return int Slide count (0 if not detected).
+     */
+    private static function detect_ispring_slides(array $contentfilesmap): int {
+        // Look for iSpring markers.
+        $ispringpaths = [
+            '/data/presentation.xml',
+            '/data/player.xml',
+            '/ispring/',
+        ];
+
+        $isispring = false;
+        foreach ($contentfilesmap as $path => $file) {
+            foreach ($ispringpaths as $marker) {
+                if (strpos($path, $marker) !== false) {
+                    $isispring = true;
+                    break 2;
+                }
+            }
+        }
+
+        if (!$isispring) {
+            return 0;
+        }
+
+        // Try to parse presentation.xml.
+        if (isset($contentfilesmap['/data/presentation.xml'])) {
+            $content = $contentfilesmap['/data/presentation.xml']->get_content();
+            if (!empty($content)) {
+                // Count <slide> elements.
+                $slidecount = preg_match_all('/<slide\s/i', $content);
+                if ($slidecount > 0) {
+                    return $slidecount;
+                }
+            }
+        }
+
+        // Count slide PNG/SWF files.
+        $slidefilecount = 0;
+        foreach ($contentfilesmap as $path => $file) {
+            if (preg_match('#/data/slide\d+\.(png|swf|jpg)$#i', $path)) {
+                $slidefilecount++;
+            }
+        }
+
+        return $slidefilecount;
+    }
+
+    /**
+     * Detect authoring tool from file markers (without slide count).
+     *
+     * @param array $contentfilesmap Map of filepath => stored_file objects.
+     * @return string|null Authoring tool name or null.
+     */
+    private static function detect_authoring_tool_from_files(array $contentfilesmap): ?string {
+        // Check for various authoring tool markers.
+        $toolmarkers = [
+            // Articulate Storyline.
+            '/story_content/' => 'Articulate Storyline',
+            '/story.html' => 'Articulate Storyline',
+            // Articulate Rise.
+            '/scormdriver/' => 'Articulate Rise',
+            // Adobe Captivate.
+            '/Captivate.js' => 'Adobe Captivate',
+            '/cpLibrary/' => 'Adobe Captivate',
+            // iSpring.
+            '/ispring/' => 'iSpring',
+            '/data/presentation.xml' => 'iSpring',
+            // Lectora.
+            '/a001index.html' => 'Lectora',
+            '/trivantis/' => 'Lectora',
+            // Camtasia.
+            '/techsmith/' => 'Camtasia',
+            // Adobe Presenter.
+            '/presenter/' => 'Adobe Presenter',
+            // Elucidat.
+            '/elucidat/' => 'Elucidat',
+            // Gomo.
+            '/gomo/' => 'Gomo',
+            // Adapt.
+            '/adapt/css/' => 'Adapt',
+        ];
+
+        foreach ($contentfilesmap as $path => $file) {
+            foreach ($toolmarkers as $marker => $toolname) {
+                if (strpos($path, $marker) !== false) {
+                    return $toolname;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025011974;  // YYYYMMDDXX format.
+$plugin->version = 2025012175;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.74';  // Fix TEXT comparison in assign_plugin_config.value.
+$plugin->release = '1.7.75';  // Enhanced SCORM slide detection for authoring tools (Articulate, Captivate, iSpring).
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

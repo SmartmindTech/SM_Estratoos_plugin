@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025011974</version>
+        <version>2025012175</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.74</release>
+        <release>1.7.75</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,21 +29,31 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.74/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.75/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.74</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.75</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.74 - Fix TEXT Comparison Error</h3>
+            <h3>Version 1.7.75 - Enhanced SCORM Slide Detection</h3>
 
-            <h4>Bug Fix</h4>
+            <h4>New Features</h4>
             <ul>
-                <li>Fixed SQL TEXT comparison error in assignment module data retrieval</li>
-                <li>Use sql_compare_text() for assign_plugin_config.value column</li>
-                <li>All module types now work correctly with company-scoped tokens</li>
+                <li>Added <code>scocount</code> field: reliable count of launchable SCOs from Moodle database</li>
+                <li>Added <code>slidescount</code> field: best-effort detection of actual slides/pages in SCORM content</li>
+                <li>Added <code>slidedetection</code> field: indicates detection method used</li>
+                <li>Added <code>authoringtool</code> field: detected authoring tool name</li>
+            </ul>
+
+            <h4>Authoring Tool Support</h4>
+            <ul>
+                <li>Articulate Storyline: parses slides.xml or counts slide files</li>
+                <li>Articulate Rise: counts lessons/blocks from content data</li>
+                <li>Adobe Captivate: parses cpInfoSlideCount or counts dr*.html files</li>
+                <li>iSpring: parses presentation.xml or counts slide images</li>
+                <li>Tool detection for: Lectora, Camtasia, Adobe Presenter, Elucidat, Gomo, Adapt</li>
             </ul>
             ]]>
         </releasenotes>
