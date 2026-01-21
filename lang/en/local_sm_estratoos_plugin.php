@@ -408,3 +408,14 @@ $string['versionsyncfailed'] = 'Failed to sync version for {$a}';
 
 // Version label (v1.7.45).
 $string['pluginversionlabel'] = 'Plugin Version:';
+
+// OAuth2/OIDC Embed Authentication (v1.7.80).
+$string['oauth2settings'] = 'OAuth2/OIDC Embed Authentication';
+$string['oauth2settings_desc'] = 'Configure OAuth2/OIDC settings for SmartLearning iframe embedding. This allows users to access Moodle activities in an iframe without separate login.';
+$string['oauth2issuerurl'] = 'SmartLearning Issuer URL';
+$string['oauth2issuerurl_desc'] = 'The SmartLearning backend URL that issues JWT tokens (e.g., https://smartlearning.smartmind.net).';
+$string['oauth2allowedorigins'] = 'Allowed Embed Origins';
+$string['oauth2allowedorigins_desc'] = 'URLs allowed to embed Moodle activities in iframes (one per line). Supports wildcards like https://*.smartmind.net.';
+$string['oauth2jwkscachettl'] = 'JWKS Cache TTL (seconds)';
+$string['oauth2jwkscachettl_desc'] = 'How long to cache the JWKS (JSON Web Key Set) from SmartLearning. Default: 3600 (1 hour).';
+

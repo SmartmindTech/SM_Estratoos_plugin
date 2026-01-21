@@ -72,6 +72,39 @@ if ($hassiteconfig) {
         1
     ));
 
+    // --- OAuth2/OIDC Embed Authentication Settings ---
+    $settings->add(new admin_setting_heading(
+        'local_sm_estratoos_plugin/oauth2_heading',
+        get_string('oauth2settings', 'local_sm_estratoos_plugin'),
+        get_string('oauth2settings_desc', 'local_sm_estratoos_plugin')
+    ));
+
+    // SmartLearning OAuth2 Issuer URL.
+    $settings->add(new admin_setting_configtext(
+        'local_sm_estratoos_plugin/oauth2_issuer_url',
+        get_string('oauth2issuerurl', 'local_sm_estratoos_plugin'),
+        get_string('oauth2issuerurl_desc', 'local_sm_estratoos_plugin'),
+        'https://smartlearning.smartmind.net',
+        PARAM_URL
+    ));
+
+    // Allowed embed origins (for CSP header).
+    $settings->add(new admin_setting_configtextarea(
+        'local_sm_estratoos_plugin/oauth2_allowed_origins',
+        get_string('oauth2allowedorigins', 'local_sm_estratoos_plugin'),
+        get_string('oauth2allowedorigins_desc', 'local_sm_estratoos_plugin'),
+        "https://smartlearning.smartmind.net\nhttps://*.smartmind.net\nhttp://localhost:3000"
+    ));
+
+    // JWKS cache TTL (in seconds).
+    $settings->add(new admin_setting_configtext(
+        'local_sm_estratoos_plugin/oauth2_jwks_cache_ttl',
+        get_string('oauth2jwkscachettl', 'local_sm_estratoos_plugin'),
+        get_string('oauth2jwkscachettl_desc', 'local_sm_estratoos_plugin'),
+        3600,
+        PARAM_INT
+    ));
+
     // Add external pages for token management (only visible to site admins).
     $ADMIN->add('localplugins', new admin_externalpage(
         'local_sm_estratoos_plugin_dashboard',

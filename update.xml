@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012179</version>
+        <version>2025012180</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.79</release>
+        <release>1.7.80</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,36 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.79/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.80/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.79</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.80</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.79 - Improved Course Participants API</h3>
+            <h3>Version 1.7.80 - OAuth2/OIDC Embed Authentication</h3>
 
-            <h4>Improvements</h4>
+            <h4>New Features</h4>
             <ul>
-                <li>Rewrote get_course_students and get_course_teachers to use Moodle's core enrolment API</li>
-                <li>Uses <code>get_enrolled_users()</code> and <code>get_user_roles()</code> for reliable detection</li>
-                <li>Respects all enrolment plugins and Moodle access controls</li>
-                <li>More compatible with IOMAD multi-tenant environments</li>
+                <li>OAuth2/OIDC JWT validation for chromeless iframe embedding</li>
+                <li>JWKS caching for efficient public key retrieval</li>
+                <li>Chromeless activity renderer for seamless SmartLearning integration</li>
+                <li>Support for all activity types: SCORM, Quiz, Assignment, Lesson, Book, Page, Resource, URL, Folder</li>
             </ul>
 
-            <h4>Technical Details</h4>
+            <h4>New Files</h4>
             <ul>
-                <li>Replaced manual SQL queries with Moodle core API calls</li>
-                <li>Proper role filtering per course context</li>
-                <li>Removed unused helper functions</li>
+                <li><code>embed.php</code> - Main embed endpoint for iframe integration</li>
+                <li><code>classes/oauth2_validator.php</code> - JWT validation with RS256 signature verification</li>
+                <li><code>classes/embed_renderer.php</code> - Activity rendering without Moodle navigation</li>
+            </ul>
+
+            <h4>Admin Settings</h4>
+            <ul>
+                <li>OAuth2 Issuer URL configuration</li>
+                <li>Allowed embed origins for CSP headers</li>
+                <li>JWKS cache TTL setting</li>
             </ul>
             ]]>
         </releasenotes>

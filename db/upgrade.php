@@ -1548,6 +1548,35 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025012176, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.80: Add JWKS cache table for OAuth2/OIDC embed authentication.
+    // This table caches JWKS (JSON Web Key Set) from SmartLearning for JWT validation.
+    if ($oldversion < 2025012180) {
+        // Define the JWKS cache table.
+        $table = new xmldb_table('local_sm_estratoos_jwks');
+
+        // Adding fields.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('issuer_url', XMLDB_TYPE_CHAR, '512', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('jwks_json', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('fetched_at', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('expires_at', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+        // Adding keys.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+
+        // Adding indexes.
+        $table->add_index('issuer_url_unique', XMLDB_INDEX_UNIQUE, ['issuer_url']);
+        $table->add_index('expires_at_idx', XMLDB_INDEX_NOTUNIQUE, ['expires_at']);
+
+        // Create the table if it doesn't exist.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025012180, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

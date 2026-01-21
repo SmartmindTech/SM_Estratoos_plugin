@@ -103,5 +103,22 @@
         <INDEX NAME="enabled_idx" UNIQUE="false" FIELDS="enabled"/>
       </INDEXES>
     </TABLE>
+
+    <TABLE NAME="local_sm_estratoos_jwks" COMMENT="JWKS cache for SmartLearning OAuth2 token validation">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="issuer_url" TYPE="char" LENGTH="512" NOTNULL="true" COMMENT="SmartLearning issuer URL"/>
+        <FIELD NAME="jwks_json" TYPE="text" NOTNULL="true" COMMENT="Cached JWKS JSON"/>
+        <FIELD NAME="fetched_at" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Timestamp when JWKS was fetched"/>
+        <FIELD NAME="expires_at" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Timestamp when cache expires"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="issuer_url_unique" UNIQUE="true" FIELDS="issuer_url"/>
+        <INDEX NAME="expires_at_idx" UNIQUE="false" FIELDS="expires_at"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>
