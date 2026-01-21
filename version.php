@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012180;  // YYYYMMDDXX format.
+$plugin->version = 2025012181;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.80';  // OAuth2/OIDC embed authentication support for SmartLearning iframe integration.
+$plugin->release = '1.7.81';  // Fix JWKS table index: use SHA256 hash for MySQL compatibility.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

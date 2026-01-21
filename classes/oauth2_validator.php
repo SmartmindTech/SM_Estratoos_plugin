@@ -218,9 +218,12 @@ class oauth2_validator {
     public function get_jwks(): array {
         global $DB;
 
-        // Check cache first.
+        // Compute hash for indexing (MySQL has 255 char limit for indexed fields).
+        $issuerHash = $this->hash_issuer_url($this->issuer);
+
+        // Check cache first using the hash column.
         $cached = $DB->get_record('local_sm_estratoos_jwks', [
-            'issuer_url' => $this->issuer,
+            'issuer_url_hash' => $issuerHash,
         ]);
 
         if ($cached && $cached->expires_at > time()) {
@@ -265,6 +268,7 @@ class oauth2_validator {
         $now = time();
         $record = (object)[
             'issuer_url' => $this->issuer,
+            'issuer_url_hash' => $issuerHash,
             'jwks_json' => $response,
             'fetched_at' => $now,
             'expires_at' => $now + self::JWKS_CACHE_TTL,
@@ -278,6 +282,19 @@ class oauth2_validator {
         }
 
         return $jwks;
+    }
+
+    /**
+     * Compute SHA256 hash of issuer URL for indexing.
+     *
+     * MySQL has a 255 character limit for indexed fields, so we use a SHA256 hash
+     * (64 characters) for the unique index on issuer_url.
+     *
+     * @param string $issuerUrl The issuer URL to hash
+     * @return string 64-character hexadecimal hash
+     */
+    private function hash_issuer_url(string $issuerUrl): string {
+        return hash('sha256', $issuerUrl);
     }
 
     /**

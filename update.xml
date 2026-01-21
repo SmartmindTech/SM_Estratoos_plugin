@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012180</version>
+        <version>2025012181</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.80</release>
+        <release>1.7.81</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,36 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.80/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.81/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.80</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.81</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.80 - OAuth2/OIDC Embed Authentication</h3>
+            <h3>Version 1.7.81 - JWKS Table Index Fix</h3>
 
-            <h4>New Features</h4>
+            <h4>Bug Fix</h4>
+            <ul>
+                <li>Fixed JWKS cache table installation error on MySQL databases</li>
+                <li>MySQL has a 255 character limit for indexed fields - changed issuer_url from indexed CHAR(512) to TEXT</li>
+                <li>Added issuer_url_hash (SHA256, 64 chars) column for unique indexing</li>
+            </ul>
+
+            <h4>Previous Version (1.7.80) Features</h4>
             <ul>
                 <li>OAuth2/OIDC JWT validation for chromeless iframe embedding</li>
                 <li>JWKS caching for efficient public key retrieval</li>
                 <li>Chromeless activity renderer for seamless SmartLearning integration</li>
                 <li>Support for all activity types: SCORM, Quiz, Assignment, Lesson, Book, Page, Resource, URL, Folder</li>
-            </ul>
-
-            <h4>New Files</h4>
-            <ul>
-                <li><code>embed.php</code> - Main embed endpoint for iframe integration</li>
-                <li><code>classes/oauth2_validator.php</code> - JWT validation with RS256 signature verification</li>
-                <li><code>classes/embed_renderer.php</code> - Activity rendering without Moodle navigation</li>
-            </ul>
-
-            <h4>Admin Settings</h4>
-            <ul>
-                <li>OAuth2 Issuer URL configuration</li>
-                <li>Allowed embed origins for CSP headers</li>
-                <li>JWKS cache TTL setting</li>
             </ul>
             ]]>
         </releasenotes>

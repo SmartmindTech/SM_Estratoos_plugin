@@ -1549,14 +1549,30 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
     }
 
     // v1.7.80: Add JWKS cache table for OAuth2/OIDC embed authentication.
-    // This table caches JWKS (JSON Web Key Set) from SmartLearning for JWT validation.
+    // NOTE: This version had a bug - issuer_url CHAR(512) cannot be indexed in MySQL (255 char limit).
+    // The fix is in v1.7.81 which uses TEXT + issuer_url_hash for indexing.
+    // This step is now a no-op for safety - the table will be created in v1.7.81.
     if ($oldversion < 2025012180) {
-        // Define the JWKS cache table.
+        // Skip table creation - will be done correctly in v1.7.81.
+        upgrade_plugin_savepoint(true, 2025012180, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v1.7.81: Fix JWKS cache table - use TEXT for issuer_url with hash-based indexing.
+    // MySQL has a 255 character limit for indexed fields, so we use a SHA256 hash column
+    // for unique indexing instead of indexing the URL directly.
+    if ($oldversion < 2025012181) {
+        // Define the JWKS cache table with correct schema.
         $table = new xmldb_table('local_sm_estratoos_jwks');
+
+        // If the table already exists (from a failed v1.7.80 attempt), drop it first.
+        if ($dbman->table_exists($table)) {
+            $dbman->drop_table($table);
+        }
 
         // Adding fields.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
-        $table->add_field('issuer_url', XMLDB_TYPE_CHAR, '512', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('issuer_url', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('issuer_url_hash', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
         $table->add_field('jwks_json', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
         $table->add_field('fetched_at', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
         $table->add_field('expires_at', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
@@ -1564,17 +1580,15 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         // Adding keys.
         $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
 
-        // Adding indexes.
-        $table->add_index('issuer_url_unique', XMLDB_INDEX_UNIQUE, ['issuer_url']);
+        // Adding indexes - use hash column for unique index (64 chars fits MySQL limit).
+        $table->add_index('issuer_url_hash_unique', XMLDB_INDEX_UNIQUE, ['issuer_url_hash']);
         $table->add_index('expires_at_idx', XMLDB_INDEX_NOTUNIQUE, ['expires_at']);
 
-        // Create the table if it doesn't exist.
-        if (!$dbman->table_exists($table)) {
-            $dbman->create_table($table);
-        }
+        // Create the table.
+        $dbman->create_table($table);
 
         purge_all_caches();
-        upgrade_plugin_savepoint(true, 2025012180, 'local', 'sm_estratoos_plugin');
+        upgrade_plugin_savepoint(true, 2025012181, 'local', 'sm_estratoos_plugin');
     }
 
     // Set flag to redirect to plugin dashboard after upgrade completes.
