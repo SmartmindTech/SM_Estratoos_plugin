@@ -1536,6 +1536,18 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011946, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.76: Add course participants API functions (get_course_students, get_course_teachers, get_course_managers).
+    // These functions retrieve students, teachers, and managers enrolled in a course with IOMAD company filtering.
+    if ($oldversion < 2025012176) {
+        require_once(__DIR__ . '/install.php');
+
+        // Add the new course participants functions to the service.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025012176, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

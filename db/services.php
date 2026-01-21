@@ -390,6 +390,44 @@ $functions = [
         'loginrequired' => true,
     ],
 
+    // Get students enrolled in a course.
+    'local_sm_estratoos_plugin_get_course_students' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_course_students',
+        'methodname' => 'execute',
+        'description' => 'Retrieve students enrolled in a course. Returns user details, optional profile fields, ' .
+                        'and group memberships. Supports IOMAD company filtering. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'moodle/course:viewparticipants',
+        'loginrequired' => true,
+    ],
+
+    // Get teachers enrolled in a course.
+    'local_sm_estratoos_plugin_get_course_teachers' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_course_teachers',
+        'methodname' => 'execute',
+        'description' => 'Retrieve teachers enrolled in a course. Returns user details with their teaching role, ' .
+                        'optional profile fields, and group memberships. Supports IOMAD company filtering. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'moodle/course:viewparticipants',
+        'loginrequired' => true,
+    ],
+
+    // Get managers for a course.
+    'local_sm_estratoos_plugin_get_course_managers' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_course_managers',
+        'methodname' => 'execute',
+        'description' => 'Retrieve managers for a course including course-level, category-level, and IOMAD company ' .
+                        'managers. Returns user details with role and scope information. Supports IOMAD company ' .
+                        'filtering. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'moodle/course:viewparticipants',
+        'loginrequired' => true,
+    ],
+
     // =========================================================================
     // COMPLETION AND TRACKING FUNCTIONS
     // =========================================================================

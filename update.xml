@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012175</version>
+        <version>2025012176</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.75</release>
+        <release>1.7.76</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,31 +29,30 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.75/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.76/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.75</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.76</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.75 - Enhanced SCORM Slide Detection</h3>
+            <h3>Version 1.7.76 - Course Participants API</h3>
 
-            <h4>New Features</h4>
+            <h4>New API Functions</h4>
             <ul>
-                <li>Added <code>scocount</code> field: reliable count of launchable SCOs from Moodle database</li>
-                <li>Added <code>slidescount</code> field: best-effort detection of actual slides/pages in SCORM content</li>
-                <li>Added <code>slidedetection</code> field: indicates detection method used</li>
-                <li>Added <code>authoringtool</code> field: detected authoring tool name</li>
+                <li><code>get_course_students</code>: Retrieve students enrolled in a course with optional profile fields and groups</li>
+                <li><code>get_course_teachers</code>: Retrieve teachers with their specific teaching role (editingteacher, teacher, tutor, etc.)</li>
+                <li><code>get_course_managers</code>: Retrieve managers at course, category, and IOMAD company levels</li>
             </ul>
 
-            <h4>Authoring Tool Support</h4>
+            <h4>Features</h4>
             <ul>
-                <li>Articulate Storyline: parses slides.xml or counts slide files</li>
-                <li>Articulate Rise: counts lessons/blocks from content data</li>
-                <li>Adobe Captivate: parses cpInfoSlideCount or counts dr*.html files</li>
-                <li>iSpring: parses presentation.xml or counts slide images</li>
-                <li>Tool detection for: Lectora, Camtasia, Adobe Presenter, Elucidat, Gomo, Adapt</li>
+                <li>All functions support IOMAD company filtering for multi-tenant environments</li>
+                <li>Multilingual role detection (English, Spanish, Portuguese role names)</li>
+                <li>Optional extended profile fields (institution, department, phone, city, country)</li>
+                <li>Optional group membership information for students and teachers</li>
+                <li>Manager scope identification (course, category, or company level)</li>
             </ul>
             ]]>
         </releasenotes>
