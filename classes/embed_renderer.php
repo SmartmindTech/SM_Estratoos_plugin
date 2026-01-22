@@ -428,6 +428,29 @@ class embed_renderer {
         $html .= '<meta charset="UTF-8">';
         $html .= '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
         $html .= '<title>' . format_string($this->cm->name) . '</title>';
+
+        // Initialize minimal Moodle JS framework BEFORE any other scripts.
+        // This MUST be in <head> before Moodle's CSS/JS loads because some
+        // inline scripts in get_head_code() expect M.cfg to exist.
+        $html .= '<script>';
+        $html .= 'var M = window.M || {};';
+        $html .= 'M.cfg = M.cfg || {};';
+        $html .= 'M.cfg.wwwroot = ' . json_encode($CFG->wwwroot) . ';';
+        $html .= 'M.cfg.sesskey = ' . json_encode(sesskey()) . ';';
+        $html .= 'M.cfg.loadingicon = ' . json_encode($CFG->wwwroot . '/pix/i/loading_small.gif') . ';';
+        $html .= 'M.cfg.themerev = ' . json_encode(theme_get_revision()) . ';';
+        $html .= 'M.cfg.slasharguments = ' . json_encode($CFG->slasharguments ?? 1) . ';';
+        $html .= 'M.cfg.theme = ' . json_encode($PAGE->theme->name) . ';';
+        $html .= 'M.cfg.jsrev = ' . json_encode($CFG->jsrev ?? -1) . ';';
+        $html .= 'M.cfg.svgicons = true;';
+        $html .= 'M.cfg.developerdebug = false;';
+        $html .= 'M.cfg.js_pending = [];';
+        $html .= 'M.util = M.util || {};';
+        $html .= 'M.util.pending_js = [];';
+        $html .= 'M.util.js_pending = function() { return (M.cfg.js_pending ? M.cfg.js_pending.length : 0) + (M.util.pending_js ? M.util.pending_js.length : 0); };';
+        $html .= 'M.util.js_complete = function(s) { if(M.cfg.js_pending){var i=M.cfg.js_pending.indexOf(s);if(i>=0)M.cfg.js_pending.splice(i,1);} };';
+        $html .= '</script>';
+
         $html .= $css;
         $html .= '<style>';
         $html .= 'body { margin: 0; padding: 0; overflow: hidden; }';
@@ -438,29 +461,6 @@ class embed_renderer {
         $html .= '<main class="embed-container">';
         $html .= $content;
         $html .= '</main>';
-
-        // Initialize minimal Moodle JS framework before any other scripts.
-        // This is needed because embed.php uses NO_MOODLE_COOKIES which skips
-        // normal Moodle JS initialization, but some scripts expect M.cfg to exist.
-        $html .= '<script>';
-        $html .= 'var M = M || {};';
-        $html .= 'M.cfg = M.cfg || {';
-        $html .= '  wwwroot: ' . json_encode($CFG->wwwroot) . ',';
-        $html .= '  sesskey: ' . json_encode(sesskey()) . ',';
-        $html .= '  loadingicon: ' . json_encode($CFG->wwwroot . '/pix/i/loading_small.gif') . ',';
-        $html .= '  themerev: ' . json_encode(theme_get_revision()) . ',';
-        $html .= '  slasharguments: ' . json_encode($CFG->slasharguments) . ',';
-        $html .= '  theme: ' . json_encode($PAGE->theme->name) . ',';
-        $html .= '  jsrev: ' . json_encode($CFG->jsrev) . ',';
-        $html .= '  svgicons: true,';
-        $html .= '  developerdebug: false,';
-        $html .= '  js_pending: []';  // This is what was causing the error
-        $html .= '};';
-        $html .= 'M.util = M.util || {};';
-        $html .= 'M.util.pending_js = M.util.pending_js || [];';
-        $html .= 'M.util.js_pending = function() { return M.cfg.js_pending.length || M.util.pending_js.length; };';
-        $html .= 'M.util.js_complete = function(s) { var i = M.cfg.js_pending.indexOf(s); if(i>=0) M.cfg.js_pending.splice(i,1); };';
-        $html .= '</script>';
 
         try {
             $html .= $PAGE->requires->get_end_code();
