@@ -300,24 +300,161 @@ function local_sm_estratoos_plugin_extend_settings_navigation(settings_navigatio
 
 /**
  * Hook that runs before the footer on every page.
- * Used to trigger update checks for site administrators.
+ * Used to trigger update checks for site administrators and inject embed CSS for SCORM.
  */
 function local_sm_estratoos_plugin_before_footer() {
-    global $CFG;
+    global $CFG, $PAGE;
 
-    // Only check for site administrators.
+    // Inject CSS for SCORM player when accessed via embed endpoint.
+    $pagepath = $PAGE->url->get_path() ?? '';
+    $isscormplayer = strpos($pagepath, '/mod/scorm/player.php') !== false;
+
+    if ($isscormplayer && !empty($_COOKIE['sm_estratoos_embed'])) {
+        echo local_sm_estratoos_plugin_get_embed_css_js();
+    }
+
+    // Update check for site administrators.
     if (!is_siteadmin()) {
         return;
     }
 
-    // Use our custom update checker (it handles timing internally).
     try {
         require_once($CFG->dirroot . '/local/sm_estratoos_plugin/classes/update_checker.php');
         \local_sm_estratoos_plugin\update_checker::check();
     } catch (\Exception $e) {
-        // Silently fail - don't break the page.
         debugging('SmartMind update check failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
     }
+}
+
+/**
+ * Get the CSS and JS to hide SCORM navigation in embed mode.
+ *
+ * @return string HTML with style and script tags.
+ */
+function local_sm_estratoos_plugin_get_embed_css_js() {
+    return <<<HTML
+<style type="text/css">
+/* Hide SCORM navigation when in SmartLearning embed mode */
+/* IMPORTANT: Do NOT hide #tocbox or #toctree - they contain the content! */
+
+/* Hide the top bar with TOC dropdown */
+#scormtop {
+    display: none !important;
+}
+
+/* Hide the SCO navigation dropdown */
+#scormnav,
+.scorm-right {
+    display: none !important;
+}
+
+/* Hide the TOC sidebar (left panel) but NOT its parent containers */
+#scorm_toc {
+    display: none !important;
+}
+
+/* Hide TOC toggle button */
+#scorm_toc_toggle,
+#scorm_toc_toggle_btn {
+    display: none !important;
+}
+
+/* Hide the floating navigation panel */
+#scorm_navpanel {
+    display: none !important;
+}
+
+/* Hide any visible toast/notifications */
+.toast-wrapper {
+    display: none !important;
+}
+
+/* Make the left column in layout invisible */
+#scorm_layout > .yui3-u-1-5 {
+    display: none !important;
+    width: 0 !important;
+}
+
+/* Make html and body fill viewport */
+html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+/* Remove all Moodle wrapper padding/margins and make them fill viewport */
+#page, .embedded-main, [role="main"] {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* SCORM container chain - all must fill viewport with absolute positioning */
+#scormpage, #tocbox, #toctree, #scorm_layout {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Make the SCORM content area fill the entire viewport */
+#scorm_content {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Make the SCORM iframe fill its container */
+#scorm_object,
+.scoframe,
+#scorm_content iframe {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+}
+</style>
+<script>
+// Apply embed mode styles via JavaScript
+(function() {
+    document.body.classList.add('sm-embed-mode');
+
+    // Hide only navigation elements (NOT content containers)
+    ['scormtop', 'scormnav', 'scorm_toc', 'scorm_toc_toggle', 'scorm_toc_toggle_btn', 'scorm_navpanel'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    // Hide .scorm-right elements
+    document.querySelectorAll('.scorm-right').forEach(function(el) {
+        el.style.display = 'none';
+    });
+
+    // Make content full width
+    var content = document.getElementById('scorm_content');
+    if (content) {
+        content.style.width = '100%';
+        content.style.left = '0';
+        content.style.marginLeft = '0';
+    }
+})();
+</script>
+HTML;
 }
 
 /**

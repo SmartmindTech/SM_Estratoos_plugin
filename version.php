@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012191;  // YYYYMMDDXX format.
+$plugin->version = 2025012293;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.91';  // Force clean session before JWT login to fix session conflicts.
+$plugin->release = '1.7.93';  // SCORM embed: fullscreen display with hidden navigation, code cleanup.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

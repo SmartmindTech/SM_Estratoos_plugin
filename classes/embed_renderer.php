@@ -118,10 +118,14 @@ class embed_renderer {
     }
 
     /**
-     * Redirect to SCORM player.
+     * Render SCORM player in an iframe with navigation hidden.
+     *
+     * Instead of redirecting to the SCORM player, we render it in an iframe
+     * within our own page. This allows us to inject CSS via JavaScript to
+     * hide the navigation elements (since same-origin allows iframe manipulation).
      */
     private function redirect_to_scorm(): string {
-        global $DB, $CFG, $USER;
+        global $DB, $CFG;
 
         require_once($CFG->dirroot . '/mod/scorm/locallib.php');
 
@@ -135,12 +139,229 @@ class embed_renderer {
 
         $sco = reset($scoes);
 
-        // Redirect to SCORM player with TOC hidden for cleaner embed experience.
-        // hidetoc=1 hides the Table of Contents sidebar
-        // display=popup uses the popup layout (minimal chrome)
-        $url = $CFG->wwwroot . '/mod/scorm/player.php?a=' . $scorm->id . '&scoid=' . $sco->id . '&display=popup&hidetoc=1';
-        header('Location: ' . $url);
-        exit;
+        // Force TOC and navigation to be hidden in SCORM settings.
+        $updates = [];
+        if ($scorm->hidetoc != 2) {
+            $updates['hidetoc'] = 2;
+        }
+        if (isset($scorm->nav) && $scorm->nav != 0) {
+            $updates['nav'] = 0;
+        }
+        if (!empty($updates)) {
+            $updates['id'] = $scorm->id;
+            $DB->update_record('scorm', (object)$updates);
+        }
+
+        // Build SCORM player URL and render iframe wrapper.
+        $playerUrl = $CFG->wwwroot . '/mod/scorm/player.php?a=' . $scorm->id . '&scoid=' . $sco->id . '&display=popup';
+        return $this->render_scorm_iframe($playerUrl, $scorm->name);
+    }
+
+    /**
+     * Render SCORM player in iframe with CSS injection to hide navigation.
+     *
+     * @param string $playerUrl SCORM player URL
+     * @param string $title Activity title
+     * @return string HTML content
+     */
+    private function render_scorm_iframe(string $playerUrl, string $title): string {
+        global $CFG;
+
+        $html = '<!DOCTYPE html>
+<html lang="' . current_language() . '">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>' . s($title) . '</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #scorm-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="scorm-frame" src="' . s($playerUrl) . '" allowfullscreen></iframe>
+    <script>
+    (function() {
+        var iframe = document.getElementById("scorm-frame");
+
+        function hideNavigation() {
+            try {
+                var doc = iframe.contentDocument || iframe.contentWindow.document;
+                if (!doc || !doc.body) return;
+
+                // Inject CSS - only hide nav elements, NOT toctree or tocbox (they contain content)
+                var styleId = "sm-embed-css";
+                if (!doc.getElementById(styleId)) {
+                    var style = doc.createElement("style");
+                    style.id = styleId;
+                    style.textContent = [
+                        "/* Hide only navigation, not content containers */",
+                        "#scormtop { display: none !important; }",
+                        "#scormnav { display: none !important; }",
+                        ".scorm-right { display: none !important; }",
+                        "#scorm_toc { display: none !important; }",
+                        "#scorm_toc_toggle { display: none !important; }",
+                        "#scorm_toc_toggle_btn { display: none !important; }",
+                        "#scorm_navpanel { display: none !important; }",
+                        ".toast-wrapper { display: none !important; }",
+                        "/* Make content area full width */",
+                        "#scorm_layout { width: 100% !important; }",
+                        "#scorm_layout > .yui3-u-1-5 { display: none !important; width: 0 !important; }",
+                        "#scorm_content { width: 100% !important; left: 0 !important; margin: 0 !important; }",
+                        "/* Full viewport */",
+                        "body, #page, .embedded-main, #scormpage, #tocbox, #toctree { margin: 0 !important; padding: 0 !important; width: 100% !important; height: 100% !important; }",
+                        "body { overflow: hidden !important; }"
+                    ].join("\\n");
+                    doc.head.appendChild(style);
+                }
+
+                // Direct hide
+                ["scormtop", "scormnav", "scorm_toc", "scorm_toc_toggle", "scorm_toc_toggle_btn", "scorm_navpanel"].forEach(function(id) {
+                    var el = doc.getElementById(id);
+                    if (el) el.style.display = "none";
+                });
+
+            } catch (e) {
+                // Cross-origin - ignore
+            }
+        }
+
+        iframe.onload = function() {
+            hideNavigation();
+            setTimeout(hideNavigation, 300);
+            setTimeout(hideNavigation, 1000);
+            setTimeout(hideNavigation, 2000);
+        };
+    })();
+    </script>
+</body>
+</html>';
+
+        return $html;
+    }
+
+    /**
+     * Get JavaScript code to inject CSS into the SCORM player iframe.
+     *
+     * @return string JavaScript code
+     */
+    private function get_iframe_css_injection_script(): string {
+        return <<<'JS'
+(function() {
+    var iframe = document.getElementById('scorm-frame');
+
+    function injectCSS() {
+        try {
+            var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+            // Check if we can access the iframe (same-origin)
+            if (!iframeDoc) {
+                console.log('SM Embed: Cannot access iframe document');
+                return;
+            }
+
+            console.log('SM Embed: Injecting CSS into iframe');
+
+            // Create style element
+            var style = iframeDoc.createElement('style');
+            style.id = 'sm-embed-styles';
+            style.type = 'text/css';
+            style.innerHTML = `
+                /* Hide SCORM navigation elements */
+                #scormtop { display: none !important; }
+                #scormnav { display: none !important; }
+                .scorm-right { display: none !important; }
+                #scorm_toc { display: none !important; width: 0 !important; }
+                #scorm_toc_toggle { display: none !important; }
+                #scorm_toc_toggle_btn { display: none !important; }
+                #scorm_navpanel { display: none !important; }
+                .toast-wrapper { display: none !important; }
+
+                /* Hide the left column in the layout */
+                #scorm_layout > .yui3-u-1-5 { display: none !important; width: 0 !important; }
+
+                /* Make the content area take full width */
+                #scorm_content {
+                    width: 100% !important;
+                    left: 0 !important;
+                    margin-left: 0 !important;
+                }
+
+                /* Ensure scormpage fills the viewport */
+                #scormpage {
+                    width: 100% !important;
+                    height: 100% !important;
+                }
+
+                #page, .embedded-main {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                }
+
+                body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: auto !important;
+                }
+
+                /* Hide tocbox but keep scormpage visible */
+                #tocbox > *:not(#toctree) { display: none !important; }
+                #toctree > *:not(#scorm_layout) { display: none !important; }
+            `;
+
+            // Remove old style if exists
+            var oldStyle = iframeDoc.getElementById('sm-embed-styles');
+            if (oldStyle) oldStyle.remove();
+
+            iframeDoc.head.appendChild(style);
+
+            // Hide specific elements directly
+            var hideIds = ['scormtop', 'scormnav', 'scorm_toc', 'scorm_toc_toggle', 'scorm_toc_toggle_btn', 'scorm_navpanel'];
+            hideIds.forEach(function(id) {
+                var el = iframeDoc.getElementById(id);
+                if (el) {
+                    el.style.display = 'none';
+                    console.log('SM Embed: Hidden element #' + id);
+                }
+            });
+
+            // Hide .scorm-right elements
+            var scormRights = iframeDoc.querySelectorAll('.scorm-right');
+            scormRights.forEach(function(el) {
+                el.style.display = 'none';
+            });
+
+            console.log('SM Embed: CSS injection complete');
+
+        } catch (e) {
+            // Cross-origin error - can't inject CSS
+            console.log('SM Embed: Could not inject CSS into iframe', e);
+        }
+    }
+
+    // Inject on load and also after delays (for dynamic content)
+    iframe.onload = function() {
+        console.log('SM Embed: iframe loaded');
+        injectCSS();
+        setTimeout(injectCSS, 500);
+        setTimeout(injectCSS, 1000);
+        setTimeout(injectCSS, 2000);
+    };
+})();
+JS;
     }
 
     /**

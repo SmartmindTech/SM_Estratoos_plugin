@@ -84,6 +84,16 @@ class oauth2_validator {
             return $_GET['token'];
         }
 
+        // Also check POST parameter (for long tokens that exceed URL length limits).
+        if (empty($headers['Authorization']) && isset($_POST['token'])) {
+            return $_POST['token'];
+        }
+
+        // Also check REQUEST (covers both GET and POST).
+        if (empty($headers['Authorization']) && isset($_REQUEST['token'])) {
+            return $_REQUEST['token'];
+        }
+
         if (empty($headers['Authorization'])) {
             return null;
         }

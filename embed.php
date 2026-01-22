@@ -81,11 +81,89 @@ if (empty($token)) {
     exit;
 }
 
+// Debug mode - add ?debug=1 to URL or POST debug=1 to see token validation details.
+// Use $_REQUEST to check both GET and POST.
+$debug = (isset($_GET['debug']) && $_GET['debug'] == '1') || (isset($_POST['debug']) && $_POST['debug'] == '1');
+
+if ($debug) {
+    echo "<pre>DEBUG: Token Details\n";
+    echo "====================\n\n";
+
+    echo "Raw token length: " . strlen($token) . "\n";
+    echo "Raw token (first 100 chars): " . substr($token, 0, 100) . "\n";
+    echo "Raw token (last 50 chars): " . substr($token, -50) . "\n\n";
+
+    // Decode token payload (without verification) to see what we're working with.
+    $parts = explode('.', $token);
+    echo "Token parts count: " . count($parts) . "\n";
+    if (count($parts) >= 1) echo "Part 1 length: " . strlen($parts[0]) . "\n";
+    if (count($parts) >= 2) echo "Part 2 length: " . strlen($parts[1]) . "\n";
+    if (count($parts) >= 3) echo "Part 3 length: " . strlen($parts[2]) . "\n";
+    echo "\n";
+
+    if (count($parts) === 3) {
+        $payloadJson = base64_decode(strtr($parts[1], '-_', '+/'));
+        $tokenPayload = json_decode($payloadJson);
+
+        echo "Token issuer (iss): " . ($tokenPayload->iss ?? 'not set') . "\n";
+        echo "Expected issuer: " . $issuerUrl . "\n";
+        echo "Issuer Match: " . (rtrim($tokenPayload->iss ?? '', '/') === rtrim($issuerUrl, '/') ? 'YES' : 'NO') . "\n\n";
+
+        echo "Token audience (aud): " . ($tokenPayload->aud ?? 'not set') . "\n";
+        echo "Expected audience: " . rtrim($CFG->wwwroot, '/') . "\n";
+        echo "Audience Match: " . (rtrim($tokenPayload->aud ?? '', '/') === rtrim($CFG->wwwroot, '/') ? 'YES' : 'NO') . "\n\n";
+
+        echo "Token exp: " . ($tokenPayload->exp ?? 'not set') . "\n";
+        echo "Current time: " . time() . "\n";
+        echo "Expired: " . (($tokenPayload->exp ?? 0) < time() ? 'YES' : 'NO') . "\n\n";
+
+        echo "Moodle user ID: " . ($tokenPayload->moodle_user_id ?? 'not set') . "\n\n";
+
+        // Token header
+        $headerJson = base64_decode(strtr($parts[0], '-_', '+/'));
+        $tokenHeader = json_decode($headerJson);
+        echo "Token kid: " . ($tokenHeader->kid ?? 'not set') . "\n";
+        echo "Token alg: " . ($tokenHeader->alg ?? 'not set') . "\n\n";
+
+        // JWKS fetch test
+        echo "--- JWKS Test ---\n";
+        $jwksUrl = rtrim($issuerUrl, '/') . '/.well-known/jwks.json';
+        echo "URL: " . $jwksUrl . "\n";
+
+        $context = stream_context_create(['http' => ['timeout' => 5]]);
+        $jwksResponse = @file_get_contents($jwksUrl, false, $context);
+        if ($jwksResponse === false) {
+            echo "JWKS fetch FAILED - cannot reach " . $jwksUrl . "\n";
+        } else {
+            $jwks = json_decode($jwksResponse, true);
+            if ($jwks && isset($jwks['keys'])) {
+                echo "JWKS fetch OK - " . count($jwks['keys']) . " keys found\n";
+                foreach ($jwks['keys'] as $key) {
+                    echo "  kid: " . ($key['kid'] ?? 'none') . "\n";
+                }
+            } else {
+                echo "JWKS invalid response\n";
+            }
+        }
+    } else {
+        echo "Token has invalid format (not 3 parts)\n";
+    }
+    echo "</pre>\n";
+}
+
 // Validate token.
 $validator = new oauth2_validator($issuerUrl);
 $payload = $validator->validate_jwt($token);
 
 if (!$payload) {
+    if ($debug) {
+        // In debug mode, show detailed error and exit (don't output JSON).
+        echo "<pre>DEBUG: Token validation FAILED\n";
+        echo "Check the mismatches above.\n";
+        echo "To fix issuer mismatch, set 'oauth2_issuer_url' in plugin settings.\n";
+        echo "</pre>";
+        exit;
+    }
     http_response_code(401);
     header('Content-Type: application/json');
     echo json_encode(['error' => 'invalid_token', 'message' => 'Invalid or expired token']);
@@ -145,26 +223,33 @@ if (isset($payload->activity_id) && $payload->activity_id != $cmid) {
 // Session Setup.
 // =============================================================================
 
-// Always force a clean session to avoid conflicts with existing/expired sessions.
-// This is necessary because:
-// 1. User might have an expired session cookie
-// 2. User might be logged in as a different user
-// 3. The existing session might have invalid state
+// Check if we're already logged in as the correct user.
+$alreadyLoggedIn = isloggedin() && !isguestuser() && $USER->id == $user->id;
 
-// First, destroy any existing session completely.
-if (isloggedin()) {
-    require_logout();
+// Set embed mode cookie for CSS injection (cookies persist across redirects).
+// Use SameSite=None for cross-origin iframe support (requires HTTPS).
+$secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+$cookieOptions = [
+    'expires' => time() + 3600,
+    'path' => '/',
+    'secure' => $secure,
+    'httponly' => false,
+    'samesite' => $secure ? 'None' : 'Lax'
+];
+setcookie('sm_estratoos_embed', '1', $cookieOptions);
+
+if (!$alreadyLoggedIn) {
+    // Logout if logged in as a different user.
+    if (isloggedin() && !isguestuser()) {
+        require_logout();
+    }
+
+    // Create a fresh session for the JWT-authenticated user.
+    complete_user_login($user);
+
+    // Force session write to ensure cookie is sent before redirect.
+    \core\session\manager::write_close();
 }
-
-// Now create a fresh session for the JWT-authenticated user.
-// complete_user_login() creates a proper Moodle session with cookies.
-complete_user_login($user);
-
-// Ensure $USER is set correctly after login.
-$USER = $user;
-
-// Force session write to ensure cookie is sent before redirect.
-\core\session\manager::write_close();
 
 // Set up course context.
 $PAGE->set_course($course);

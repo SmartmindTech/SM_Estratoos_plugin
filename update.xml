@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012191</version>
+        <version>2025012293</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.91</release>
+        <release>1.7.93</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.91/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.93/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.91</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.93</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.87 - OAuth2/OIDC Embed Authentication</h3>
+            <h3>Version 1.7.93 - SCORM Embed Fullscreen Display</h3>
 
             <h4>Features</h4>
             <ul>
-                <li>Seamless SSO authentication for SmartLearning iframe embedding</li>
-                <li>JWT token validation with JWKS endpoint support</li>
-                <li>Chromeless activity rendering (SCORM, Quiz, Assignment, Lesson, etc.)</li>
-                <li>Automatic completion tracking for embedded activities</li>
+                <li>SCORM activities now display fullscreen without navigation elements</li>
+                <li>CSS injection via before_footer hook for reliable navigation hiding</li>
+                <li>Cross-origin cookie support with SameSite=None for HTTPS</li>
+            </ul>
+
+            <h4>Improvements</h4>
+            <ul>
+                <li>Code cleanup: removed unused before_standard_html_head function</li>
+                <li>Removed debug code and error_log statements</li>
+                <li>Simplified session setup in embed.php</li>
+                <li>Cleaner embed_renderer.php without verbose logging</li>
             </ul>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fixed Moodle JS framework initialization in embed mode</li>
-                <li>Fixed renderer compatibility with NO_MOODLE_COOKIES bootstrap</li>
-                <li>Proper M.cfg initialization before Moodle scripts load</li>
-            </ul>
-
-            <h4>Configuration</h4>
-            <ul>
-                <li>oauth2_issuer_url: SmartLearning backend URL for JWT validation</li>
-                <li>oauth2_allowed_origins: Allowed iframe parent origins</li>
+                <li>Fixed SCORM content not filling viewport (was showing tiny centered)</li>
+                <li>Fixed CSS hiding content containers instead of just navigation</li>
             </ul>
             ]]>
         </releasenotes>
