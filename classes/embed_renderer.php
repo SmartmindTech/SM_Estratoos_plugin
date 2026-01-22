@@ -404,23 +404,20 @@ class embed_renderer {
     /**
      * Wrap content with minimal HTML structure.
      *
+     * For embed mode, we intentionally skip Moodle's get_head_code() and get_end_code()
+     * because they include JavaScript that expects the full Moodle JS framework to be
+     * loaded. Instead, we only include the theme CSS and a minimal M.cfg object.
+     *
      * @param string $content Inner content
      * @return string Complete HTML document
      */
     private function wrap_content(string $content): string {
-        global $CFG, $PAGE, $OUTPUT;
+        global $CFG, $PAGE;
 
-        // Ensure the page is properly initialized before getting head code.
-        // This is needed because embed.php uses NO_MOODLE_COOKIES which results
-        // in a bootstrap_renderer instead of core_renderer.
-        try {
-            // Force proper output initialization by getting the renderer.
-            $output = $PAGE->get_renderer('core');
-            $css = $PAGE->requires->get_head_code($PAGE, $output);
-        } catch (\Throwable $e) {
-            // Fallback: include basic Moodle CSS without full renderer.
-            $css = '<link rel="stylesheet" href="' . $CFG->wwwroot . '/theme/styles.php/' . $PAGE->theme->name . '/' . theme_get_revision() . '/all" />';
-        }
+        // Build the theme CSS URL directly - skip get_head_code() to avoid JS conflicts.
+        $themename = $PAGE->theme->name ?? 'boost';
+        $themerev = theme_get_revision();
+        $cssurl = $CFG->wwwroot . '/theme/styles.php/' . $themename . '/' . $themerev . '/all';
 
         $html = '<!DOCTYPE html>';
         $html .= '<html lang="' . current_language() . '">';
@@ -429,29 +426,34 @@ class embed_renderer {
         $html .= '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
         $html .= '<title>' . format_string($this->cm->name) . '</title>';
 
-        // Initialize minimal Moodle JS framework BEFORE any other scripts.
-        // This MUST be in <head> before Moodle's CSS/JS loads because some
-        // inline scripts in get_head_code() expect M.cfg to exist.
+        // Include only theme CSS - no Moodle JavaScript framework.
+        $html .= '<link rel="stylesheet" href="' . s($cssurl) . '" />';
+
+        // Minimal M.cfg for any scripts that might check for it.
         $html .= '<script>';
-        $html .= 'var M = window.M || {};';
-        $html .= 'M.cfg = M.cfg || {};';
-        $html .= 'M.cfg.wwwroot = ' . json_encode($CFG->wwwroot) . ';';
-        $html .= 'M.cfg.sesskey = ' . json_encode(sesskey()) . ';';
-        $html .= 'M.cfg.loadingicon = ' . json_encode($CFG->wwwroot . '/pix/i/loading_small.gif') . ';';
-        $html .= 'M.cfg.themerev = ' . json_encode(theme_get_revision()) . ';';
-        $html .= 'M.cfg.slasharguments = ' . json_encode($CFG->slasharguments ?? 1) . ';';
-        $html .= 'M.cfg.theme = ' . json_encode($PAGE->theme->name) . ';';
-        $html .= 'M.cfg.jsrev = ' . json_encode($CFG->jsrev ?? -1) . ';';
-        $html .= 'M.cfg.svgicons = true;';
-        $html .= 'M.cfg.developerdebug = false;';
-        $html .= 'M.cfg.js_pending = [];';
-        $html .= 'M.util = M.util || {};';
-        $html .= 'M.util.pending_js = [];';
-        $html .= 'M.util.js_pending = function() { return (M.cfg.js_pending ? M.cfg.js_pending.length : 0) + (M.util.pending_js ? M.util.pending_js.length : 0); };';
-        $html .= 'M.util.js_complete = function(s) { if(M.cfg.js_pending){var i=M.cfg.js_pending.indexOf(s);if(i>=0)M.cfg.js_pending.splice(i,1);} };';
+        $html .= 'window.M = window.M || {};';
+        $html .= 'M.cfg = {';
+        $html .= 'wwwroot: ' . json_encode($CFG->wwwroot) . ',';
+        $html .= 'sesskey: ' . json_encode(sesskey()) . ',';
+        $html .= 'themerev: ' . json_encode($themerev) . ',';
+        $html .= 'slasharguments: ' . json_encode($CFG->slasharguments ?? 1) . ',';
+        $html .= 'theme: ' . json_encode($themename) . ',';
+        $html .= 'jsrev: ' . json_encode($CFG->jsrev ?? -1) . ',';
+        $html .= 'svgicons: true,';
+        $html .= 'developerdebug: false,';
+        $html .= 'loadingicon: ' . json_encode($CFG->wwwroot . '/pix/i/loading_small.gif') . ',';
+        $html .= 'js_pending: []';
+        $html .= '};';
+        $html .= 'M.util = {';
+        $html .= 'pending_js: [],';
+        $html .= 'js_pending: function() { return 0; },';
+        $html .= 'js_complete: function() {},';
+        $html .= 'image_url: function(name, component) { return M.cfg.wwwroot + "/pix/" + name + ".svg"; }';
+        $html .= '};';
+        $html .= 'M.str = M.str || {};';
+        $html .= 'M.yui = M.yui || {};';
         $html .= '</script>';
 
-        $html .= $css;
         $html .= '<style>';
         $html .= 'body { margin: 0; padding: 0; overflow: hidden; }';
         $html .= '.embed-container { width: 100%; height: 100vh; }';
@@ -461,13 +463,6 @@ class embed_renderer {
         $html .= '<main class="embed-container">';
         $html .= $content;
         $html .= '</main>';
-
-        try {
-            $html .= $PAGE->requires->get_end_code();
-        } catch (\Throwable $e) {
-            // Fallback: no additional scripts.
-            $html .= '<!-- end code unavailable -->';
-        }
         $html .= '</body>';
         $html .= '</html>';
 
