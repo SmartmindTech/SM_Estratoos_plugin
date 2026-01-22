@@ -145,23 +145,26 @@ if (isset($payload->activity_id) && $payload->activity_id != $cmid) {
 // Session Setup.
 // =============================================================================
 
-// Check if user is already logged in with the correct user.
-if (isloggedin() && $USER->id == $user->id) {
-    // Already logged in as the correct user, no need to re-login.
-} else if (isloggedin() && $USER->id != $user->id) {
-    // Logged in as different user - this shouldn't happen with JWT auth.
-    // Log out and re-login as the correct user.
+// Always force a clean session to avoid conflicts with existing/expired sessions.
+// This is necessary because:
+// 1. User might have an expired session cookie
+// 2. User might be logged in as a different user
+// 3. The existing session might have invalid state
+
+// First, destroy any existing session completely.
+if (isloggedin()) {
     require_logout();
-    complete_user_login($user);
-} else {
-    // Not logged in - create a session for this user.
-    // complete_user_login() creates a proper Moodle session with cookies,
-    // which allows the inner iframes (SCORM player, etc.) to work.
-    complete_user_login($user);
 }
 
-// Ensure $USER is set correctly.
+// Now create a fresh session for the JWT-authenticated user.
+// complete_user_login() creates a proper Moodle session with cookies.
+complete_user_login($user);
+
+// Ensure $USER is set correctly after login.
 $USER = $user;
+
+// Force session write to ensure cookie is sent before redirect.
+\core\session\manager::write_close();
 
 // Set up course context.
 $PAGE->set_course($course);

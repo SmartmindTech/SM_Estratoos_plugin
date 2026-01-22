@@ -135,8 +135,10 @@ class embed_renderer {
 
         $sco = reset($scoes);
 
-        // Redirect to SCORM player.
-        $url = $CFG->wwwroot . '/mod/scorm/player.php?a=' . $scorm->id . '&scoid=' . $sco->id . '&display=popup';
+        // Redirect to SCORM player with TOC hidden for cleaner embed experience.
+        // hidetoc=1 hides the Table of Contents sidebar
+        // display=popup uses the popup layout (minimal chrome)
+        $url = $CFG->wwwroot . '/mod/scorm/player.php?a=' . $scorm->id . '&scoid=' . $sco->id . '&display=popup&hidetoc=1';
         header('Location: ' . $url);
         exit;
     }
