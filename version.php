@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012182;  // YYYYMMDDXX format.
+$plugin->version = 2025012183;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.82';  // Fix mark_module_viewed for enrolled users.
+$plugin->release = '1.7.83';  // Enable iframe embedding for SmartLearning integration.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

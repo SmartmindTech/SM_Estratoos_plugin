@@ -1601,6 +1601,20 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025012182, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.7.83: Enable iframe embedding for SmartLearning integration.
+    // This allows Moodle content (SCORM, activities, etc.) to be embedded in external platforms.
+    if ($oldversion < 2025012183) {
+        if (!get_config('core', 'allowframembedding')) {
+            set_config('allowframembedding', 1);
+        }
+        // TODO: For better security, use allowedframembedders instead (Moodle 3.10+):
+        // set_config('allowedframembedders', 'https://smartlearning.example.com https://app.smartlxp.com');
+        // This sets Content-Security-Policy frame-ancestors to whitelist specific domains.
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025012183, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

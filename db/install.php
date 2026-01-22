@@ -42,6 +42,15 @@ function xmldb_local_sm_estratoos_plugin_install() {
     // Auto-configure web services for the plugin to work properly.
     xmldb_local_sm_estratoos_plugin_configure_webservices();
 
+    // Enable iframe embedding for SmartLearning integration.
+    // This allows Moodle content (SCORM, activities, etc.) to be embedded in external platforms.
+    if (!get_config('core', 'allowframembedding')) {
+        set_config('allowframembedding', 1);
+    }
+    // TODO: For better security, use allowedframembedders instead (Moodle 3.10+):
+    // set_config('allowedframembedders', 'https://smartlearning.example.com https://app.smartlxp.com');
+    // This sets Content-Security-Policy frame-ancestors to whitelist specific domains.
+
     // Add plugin functions to Moodle mobile web service.
     xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
 
