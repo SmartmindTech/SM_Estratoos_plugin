@@ -410,8 +410,17 @@ class embed_renderer {
     private function wrap_content(string $content): string {
         global $CFG, $PAGE, $OUTPUT;
 
-        // Get Moodle CSS.
-        $css = $PAGE->requires->get_head_code($PAGE, $OUTPUT);
+        // Ensure the page is properly initialized before getting head code.
+        // This is needed because embed.php uses NO_MOODLE_COOKIES which results
+        // in a bootstrap_renderer instead of core_renderer.
+        try {
+            // Force proper output initialization by getting the renderer.
+            $output = $PAGE->get_renderer('core');
+            $css = $PAGE->requires->get_head_code($PAGE, $output);
+        } catch (\Throwable $e) {
+            // Fallback: include basic Moodle CSS without full renderer.
+            $css = '<link rel="stylesheet" href="' . $CFG->wwwroot . '/theme/styles.php/' . $PAGE->theme->name . '/' . theme_get_revision() . '/all" />';
+        }
 
         $html = '<!DOCTYPE html>';
         $html .= '<html lang="' . current_language() . '">';
@@ -429,7 +438,12 @@ class embed_renderer {
         $html .= '<main class="embed-container">';
         $html .= $content;
         $html .= '</main>';
-        $html .= $PAGE->requires->get_end_code();
+        try {
+            $html .= $PAGE->requires->get_end_code();
+        } catch (\Throwable $e) {
+            // Fallback: no additional scripts.
+            $html .= '<!-- end code unavailable -->';
+        }
         $html .= '</body>';
         $html .= '</html>';
 
