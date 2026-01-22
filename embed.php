@@ -31,8 +31,9 @@
 // Disable Moodle's standard output buffering for this page.
 define('NO_OUTPUT_BUFFERING', true);
 
-// Use minimal Moodle setup (no session redirect, etc.).
-define('NO_MOODLE_COOKIES', true);
+// IMPORTANT: We do NOT use NO_MOODLE_COOKIES here because we need to create
+// a real Moodle session for the inner iframes (SCORM player, quiz, etc.) to work.
+// The JWT token is validated first, then we create a session for that user.
 
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/completionlib.php');
@@ -144,8 +145,22 @@ if (isset($payload->activity_id) && $payload->activity_id != $cmid) {
 // Session Setup.
 // =============================================================================
 
-// Create a temporary session for this user (required for Moodle to function).
-\core\session\manager::set_user($user);
+// Check if user is already logged in with the correct user.
+if (isloggedin() && $USER->id == $user->id) {
+    // Already logged in as the correct user, no need to re-login.
+} else if (isloggedin() && $USER->id != $user->id) {
+    // Logged in as different user - this shouldn't happen with JWT auth.
+    // Log out and re-login as the correct user.
+    require_logout();
+    complete_user_login($user);
+} else {
+    // Not logged in - create a session for this user.
+    // complete_user_login() creates a proper Moodle session with cookies,
+    // which allows the inner iframes (SCORM player, etc.) to work.
+    complete_user_login($user);
+}
+
+// Ensure $USER is set correctly.
 $USER = $user;
 
 // Set up course context.
