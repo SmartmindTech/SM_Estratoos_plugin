@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012295;  // YYYYMMDDXX format.
+$plugin->version = 2025012296;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.95';  // Strict production config: inbox.smartlxp.com only.
+$plugin->release = '1.7.96';  // Configurable OAuth2 settings via admin UI.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

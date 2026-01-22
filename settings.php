@@ -84,7 +84,7 @@ if ($hassiteconfig) {
         'local_sm_estratoos_plugin/oauth2_issuer_url',
         get_string('oauth2issuerurl', 'local_sm_estratoos_plugin'),
         get_string('oauth2issuerurl_desc', 'local_sm_estratoos_plugin'),
-        'https://smartlearning.smartmind.net',
+        'https://inbox.smartlxp.com',
         PARAM_URL
     ));
 
@@ -93,7 +93,7 @@ if ($hassiteconfig) {
         'local_sm_estratoos_plugin/oauth2_allowed_origins',
         get_string('oauth2allowedorigins', 'local_sm_estratoos_plugin'),
         get_string('oauth2allowedorigins_desc', 'local_sm_estratoos_plugin'),
-        "https://smartlearning.smartmind.net\nhttps://*.smartmind.net\nhttp://localhost:3000"
+        'https://inbox.smartlxp.com'
     ));
 
     // JWKS cache TTL (in seconds).
