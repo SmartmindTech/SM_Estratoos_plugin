@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012184</version>
+        <version>2025012185</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.84</release>
+        <release>1.7.85</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,27 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.84/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.85/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.84</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.85</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.84 - Fix Embed Renderer Compatibility</h3>
+            <h3>Version 1.7.85 - Initialize Moodle JS for Embed Mode</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixed TypeError in embed_renderer when using NO_MOODLE_COOKIES</li>
-                <li>Properly initialize page renderer before getting head/end code</li>
-                <li>Added fallback for CSS inclusion when renderer is unavailable</li>
+                <li>Fixed "Cannot read properties of undefined (reading 'js_pending')" error</li>
+                <li>Initialize minimal M.cfg and M.util objects for scripts that expect Moodle JS</li>
+                <li>SCORM and other activities now load correctly in embed iframe</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v1.7.84: Fix embed renderer compatibility with NO_MOODLE_COOKIES</li>
                 <li>v1.7.83: Enable iframe embedding for SmartLearning integration</li>
-                <li>v1.7.82: Fixed mark_module_viewed for enrolled users</li>
             </ul>
             ]]>
         </releasenotes>

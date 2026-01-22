@@ -438,6 +438,30 @@ class embed_renderer {
         $html .= '<main class="embed-container">';
         $html .= $content;
         $html .= '</main>';
+
+        // Initialize minimal Moodle JS framework before any other scripts.
+        // This is needed because embed.php uses NO_MOODLE_COOKIES which skips
+        // normal Moodle JS initialization, but some scripts expect M.cfg to exist.
+        $html .= '<script>';
+        $html .= 'var M = M || {};';
+        $html .= 'M.cfg = M.cfg || {';
+        $html .= '  wwwroot: ' . json_encode($CFG->wwwroot) . ',';
+        $html .= '  sesskey: ' . json_encode(sesskey()) . ',';
+        $html .= '  loadingicon: ' . json_encode($CFG->wwwroot . '/pix/i/loading_small.gif') . ',';
+        $html .= '  themerev: ' . json_encode(theme_get_revision()) . ',';
+        $html .= '  slasharguments: ' . json_encode($CFG->slasharguments) . ',';
+        $html .= '  theme: ' . json_encode($PAGE->theme->name) . ',';
+        $html .= '  jsrev: ' . json_encode($CFG->jsrev) . ',';
+        $html .= '  svgicons: true,';
+        $html .= '  developerdebug: false,';
+        $html .= '  js_pending: []';  // This is what was causing the error
+        $html .= '};';
+        $html .= 'M.util = M.util || {};';
+        $html .= 'M.util.pending_js = M.util.pending_js || [];';
+        $html .= 'M.util.js_pending = function() { return M.cfg.js_pending.length || M.util.pending_js.length; };';
+        $html .= 'M.util.js_complete = function(s) { var i = M.cfg.js_pending.indexOf(s); if(i>=0) M.cfg.js_pending.splice(i,1); };';
+        $html .= '</script>';
+
         try {
             $html .= $PAGE->requires->get_end_code();
         } catch (\Throwable $e) {
