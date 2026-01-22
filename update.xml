@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012186</version>
+        <version>2025012187</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.86</release>
+        <release>1.7.87</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,27 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.86/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.87/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.86</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.87</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.86 - Fix Moodle JS Load Order</h3>
+            <h3>Version 1.7.87 - OAuth2/OIDC Embed Authentication</h3>
 
-            <h4>Bug Fix</h4>
+            <h4>Features</h4>
             <ul>
-                <li>Move M.cfg initialization to &lt;head&gt; section before other scripts</li>
-                <li>Fixed JS errors from scripts running before M object was initialized</li>
-                <li>Added null checks to js_pending function for robustness</li>
+                <li>Seamless SSO authentication for SmartLearning iframe embedding</li>
+                <li>JWT token validation with JWKS endpoint support</li>
+                <li>Chromeless activity rendering (SCORM, Quiz, Assignment, Lesson, etc.)</li>
+                <li>Automatic completion tracking for embedded activities</li>
             </ul>
 
-            <h4>Previous Versions</h4>
+            <h4>Bug Fixes</h4>
             <ul>
-                <li>v1.7.85: Initialize Moodle JS framework for embed mode</li>
-                <li>v1.7.84: Fix embed renderer compatibility with NO_MOODLE_COOKIES</li>
+                <li>Fixed Moodle JS framework initialization in embed mode</li>
+                <li>Fixed renderer compatibility with NO_MOODLE_COOKIES bootstrap</li>
+                <li>Proper M.cfg initialization before Moodle scripts load</li>
+            </ul>
+
+            <h4>Configuration</h4>
+            <ul>
+                <li>oauth2_issuer_url: SmartLearning backend URL for JWT validation</li>
+                <li>oauth2_allowed_origins: Allowed iframe parent origins</li>
             </ul>
             ]]>
         </releasenotes>
