@@ -45,17 +45,17 @@ use local_sm_estratoos_plugin\embed_renderer;
 // Configuration - Should be moved to plugin settings in production.
 // =============================================================================
 
-// SmartLearning OAuth2 issuer URL.
+// SmartLearning OAuth2 issuer URL (where JWT tokens are issued from).
 $issuerUrl = get_config('local_sm_estratoos_plugin', 'oauth2_issuer_url');
 if (empty($issuerUrl)) {
-    // Default to common SmartLearning URLs.
-    $issuerUrl = 'https://smartlearning.smartmind.net';
+    // Default to SmartLearning production URL.
+    $issuerUrl = 'https://inbox.smartlxp.com';
 }
 
-// Allowed embed origins for CSP header.
+// Allowed embed origins for CSP header (domains allowed to embed Moodle in iframe).
 $allowedOrigins = get_config('local_sm_estratoos_plugin', 'oauth2_allowed_origins');
 if (empty($allowedOrigins)) {
-    $allowedOrigins = 'https://smartlearning.smartmind.net https://*.smartmind.net http://localhost:3000';
+    $allowedOrigins = 'https://inbox.smartlxp.com https://*.smartlxp.com https://*.smartmind.net http://localhost:3000';
 }
 
 // =============================================================================
