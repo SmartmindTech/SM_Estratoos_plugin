@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012182</version>
+        <version>2025012183</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.82</release>
+        <release>1.7.83</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,27 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.82/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.83/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.82</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.83</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.82 - Fix mark_module_viewed Permission</h3>
+            <h3>Version 1.7.83 - Enable Iframe Embedding</h3>
 
-            <h4>Bug Fix</h4>
+            <h4>Enhancement</h4>
             <ul>
-                <li>Fixed mark_module_viewed API for enrolled users</li>
-                <li>Changed from capability check to enrollment check</li>
-                <li>Enrolled users can now mark modules viewed even with restrictive course visibility</li>
+                <li>Automatically enable iframe embedding for SmartLearning integration</li>
+                <li>Allows Moodle content (SCORM, activities) to be embedded in external platforms</li>
+                <li>Applied on both fresh installs and upgrades</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v1.7.82: Fixed mark_module_viewed for enrolled users</li>
                 <li>v1.7.81: Fixed JWKS table index for MySQL compatibility</li>
-                <li>v1.7.80: OAuth2/OIDC JWT validation for chromeless iframe embedding</li>
             </ul>
             ]]>
         </releasenotes>
