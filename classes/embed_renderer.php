@@ -60,7 +60,11 @@ class embed_renderer {
     /**
      * Render the activity content without Moodle chrome.
      *
-     * @return string HTML content
+     * For activities that require full Moodle functionality (SCORM, Quiz, etc.),
+     * we redirect to the native Moodle page instead of using iframes. This avoids
+     * cross-origin cookie issues that prevent session sharing in iframes.
+     *
+     * @return string HTML content or performs redirect
      */
     public function render(): string {
         global $PAGE, $OUTPUT, $CFG;
@@ -74,18 +78,20 @@ class embed_renderer {
         // Trigger module viewed event (for completion tracking).
         $this->trigger_module_viewed();
 
-        // Render based on activity type.
+        // For complex activities, redirect to native Moodle page.
+        // This avoids cross-origin iframe cookie issues.
         switch ($this->activityType) {
             case 'scorm':
-                return $this->render_scorm();
+                return $this->redirect_to_scorm();
             case 'quiz':
-                return $this->render_quiz();
+                return $this->redirect_to_activity();
             case 'assign':
-                return $this->render_assignment();
+                return $this->redirect_to_activity();
             case 'lesson':
-                return $this->render_lesson();
+                return $this->redirect_to_activity();
             case 'book':
-                return $this->render_book();
+                return $this->redirect_to_activity();
+            // Simple content types can be rendered inline.
             case 'page':
                 return $this->render_page();
             case 'resource':
@@ -93,8 +99,46 @@ class embed_renderer {
             case 'url':
                 return $this->render_url();
             default:
-                return $this->render_generic();
+                return $this->redirect_to_activity();
         }
+    }
+
+    /**
+     * Redirect to the native Moodle activity page.
+     *
+     * This is used for activities that need full Moodle session/JS support.
+     * Redirecting instead of using iframe avoids cross-origin cookie issues.
+     */
+    private function redirect_to_activity(): string {
+        global $CFG;
+
+        $url = $CFG->wwwroot . '/mod/' . $this->activityType . '/view.php?id=' . $this->cm->id;
+        header('Location: ' . $url);
+        exit;
+    }
+
+    /**
+     * Redirect to SCORM player.
+     */
+    private function redirect_to_scorm(): string {
+        global $DB, $CFG, $USER;
+
+        require_once($CFG->dirroot . '/mod/scorm/locallib.php');
+
+        $scorm = $DB->get_record('scorm', ['id' => $this->cm->instance], '*', MUST_EXIST);
+
+        // Get first SCO.
+        $scoes = $DB->get_records('scorm_scoes', ['scorm' => $scorm->id, 'scormtype' => 'sco']);
+        if (empty($scoes)) {
+            return $this->render_error('No SCOs found in this SCORM package.');
+        }
+
+        $sco = reset($scoes);
+
+        // Redirect to SCORM player.
+        $url = $CFG->wwwroot . '/mod/scorm/player.php?a=' . $scorm->id . '&scoid=' . $sco->id . '&display=popup';
+        header('Location: ' . $url);
+        exit;
     }
 
     /**
@@ -122,139 +166,6 @@ class embed_renderer {
         if ($completion->is_enabled($this->cm) && $this->cm->completion == COMPLETION_TRACKING_AUTOMATIC) {
             $completion->update_state($this->cm, COMPLETION_COMPLETE);
         }
-    }
-
-    /**
-     * Render SCORM player.
-     *
-     * @return string HTML content
-     */
-    private function render_scorm(): string {
-        global $DB, $CFG, $USER, $PAGE;
-
-        require_once($CFG->dirroot . '/mod/scorm/locallib.php');
-
-        $scorm = $DB->get_record('scorm', ['id' => $this->cm->instance], '*', MUST_EXIST);
-
-        // Get current SCO and attempt.
-        $scoes = $DB->get_records('scorm_scoes', ['scorm' => $scorm->id, 'scormtype' => 'sco']);
-        if (empty($scoes)) {
-            return $this->render_error('No SCOs found in this SCORM package.');
-        }
-
-        $sco = reset($scoes);
-
-        // Get or create attempt.
-        $attempt = scorm_get_last_attempt($scorm->id, $USER->id);
-        if (empty($attempt)) {
-            $attempt = 1;
-        }
-
-        // Build SCORM player URL (use Moodle's native player).
-        $playerUrl = new \moodle_url('/mod/scorm/player.php', [
-            'a' => $scorm->id,
-            'currentorg' => '',
-            'scoid' => $sco->id,
-            'display' => 'popup',
-        ]);
-
-        // Load required JavaScript.
-        $PAGE->requires->js_call_amd('mod_scorm/scorm_player', 'init');
-
-        $html = '<div class="embed-scorm-container" style="width:100%;height:100vh;">';
-        $html .= '<iframe src="' . $playerUrl->out(false) . '" ';
-        $html .= 'style="width:100%;height:100%;border:none;" ';
-        $html .= 'allowfullscreen allow="autoplay; fullscreen">';
-        $html .= '</iframe>';
-        $html .= '</div>';
-
-        return $this->wrap_content($html);
-    }
-
-    /**
-     * Render Quiz.
-     *
-     * @return string HTML content
-     */
-    private function render_quiz(): string {
-        global $DB, $CFG;
-
-        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
-
-        $quiz = $DB->get_record('quiz', ['id' => $this->cm->instance], '*', MUST_EXIST);
-
-        // Redirect to quiz view page (within iframe).
-        $quizUrl = new \moodle_url('/mod/quiz/view.php', ['id' => $this->cm->id]);
-
-        $html = '<div class="embed-quiz-container" style="width:100%;height:100vh;">';
-        $html .= '<iframe src="' . $quizUrl->out(false) . '" ';
-        $html .= 'style="width:100%;height:100%;border:none;">';
-        $html .= '</iframe>';
-        $html .= '</div>';
-
-        return $this->wrap_content($html);
-    }
-
-    /**
-     * Render Assignment.
-     *
-     * @return string HTML content
-     */
-    private function render_assignment(): string {
-        $assignUrl = new \moodle_url('/mod/assign/view.php', ['id' => $this->cm->id]);
-
-        $html = '<div class="embed-assign-container" style="width:100%;height:100vh;">';
-        $html .= '<iframe src="' . $assignUrl->out(false) . '" ';
-        $html .= 'style="width:100%;height:100%;border:none;">';
-        $html .= '</iframe>';
-        $html .= '</div>';
-
-        return $this->wrap_content($html);
-    }
-
-    /**
-     * Render Lesson.
-     *
-     * @return string HTML content
-     */
-    private function render_lesson(): string {
-        $lessonUrl = new \moodle_url('/mod/lesson/view.php', ['id' => $this->cm->id]);
-
-        $html = '<div class="embed-lesson-container" style="width:100%;height:100vh;">';
-        $html .= '<iframe src="' . $lessonUrl->out(false) . '" ';
-        $html .= 'style="width:100%;height:100%;border:none;">';
-        $html .= '</iframe>';
-        $html .= '</div>';
-
-        return $this->wrap_content($html);
-    }
-
-    /**
-     * Render Book.
-     *
-     * @return string HTML content
-     */
-    private function render_book(): string {
-        global $DB;
-
-        $book = $DB->get_record('book', ['id' => $this->cm->instance], '*', MUST_EXIST);
-
-        // Get first chapter.
-        $chapters = $DB->get_records('book_chapters', ['bookid' => $book->id, 'hidden' => 0], 'pagenum ASC');
-        $chapter = reset($chapters);
-
-        $bookUrl = new \moodle_url('/mod/book/view.php', [
-            'id' => $this->cm->id,
-            'chapterid' => $chapter ? $chapter->id : 0,
-        ]);
-
-        $html = '<div class="embed-book-container" style="width:100%;height:100vh;">';
-        $html .= '<iframe src="' . $bookUrl->out(false) . '" ';
-        $html .= 'style="width:100%;height:100%;border:none;">';
-        $html .= '</iframe>';
-        $html .= '</div>';
-
-        return $this->wrap_content($html);
     }
 
     /**
@@ -366,23 +277,6 @@ class embed_renderer {
             $html .= get_string('clicktoopen', 'url') . '</a></p>';
             $html .= '</div>';
         }
-
-        return $this->wrap_content($html);
-    }
-
-    /**
-     * Render generic activity (fallback).
-     *
-     * @return string HTML content
-     */
-    private function render_generic(): string {
-        $activityUrl = new \moodle_url('/mod/' . $this->activityType . '/view.php', ['id' => $this->cm->id]);
-
-        $html = '<div class="embed-generic-container" style="width:100%;height:100vh;">';
-        $html .= '<iframe src="' . $activityUrl->out(false) . '" ';
-        $html .= 'style="width:100%;height:100%;border:none;">';
-        $html .= '</iframe>';
-        $html .= '</div>';
 
         return $this->wrap_content($html);
     }
