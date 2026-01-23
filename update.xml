@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012297</version>
+        <version>2025012298</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.97</release>
+        <release>1.7.98</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,21 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.97/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.98/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.97</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.98</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.97 - CSP Default Domains Update</h3>
+            <h3>Version 1.7.98 - Correct OAuth2 Defaults</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li>Default CSP frame-ancestors now includes both frontend and API domains</li>
-                <li>https://inbox.smartlxp.com (frontend)</li>
-                <li>https://api-inbox.smartlxp.com (API)</li>
+                <li>Issuer URL default: https://api-inbox.smartlxp.com (backend that signs JWTs)</li>
+                <li>Allowed Origins default: https://inbox.smartlxp.com (frontend that embeds iframes)</li>
                 <li>Users can still customize via admin settings</li>
             </ul>
 

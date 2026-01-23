@@ -79,21 +79,21 @@ if ($hassiteconfig) {
         get_string('oauth2settings_desc', 'local_sm_estratoos_plugin')
     ));
 
-    // SmartLearning OAuth2 Issuer URL.
+    // SmartLearning OAuth2 Issuer URL (backend that signs JWT tokens).
     $settings->add(new admin_setting_configtext(
         'local_sm_estratoos_plugin/oauth2_issuer_url',
         get_string('oauth2issuerurl', 'local_sm_estratoos_plugin'),
         get_string('oauth2issuerurl_desc', 'local_sm_estratoos_plugin'),
-        'https://inbox.smartlxp.com',
+        'https://api-inbox.smartlxp.com',
         PARAM_URL
     ));
 
-    // Allowed embed origins (for CSP header).
+    // Allowed embed origins (for CSP header - frontend that displays iframes).
     $settings->add(new admin_setting_configtextarea(
         'local_sm_estratoos_plugin/oauth2_allowed_origins',
         get_string('oauth2allowedorigins', 'local_sm_estratoos_plugin'),
         get_string('oauth2allowedorigins_desc', 'local_sm_estratoos_plugin'),
-        "https://inbox.smartlxp.com\nhttps://api-inbox.smartlxp.com"
+        'https://inbox.smartlxp.com'
     ));
 
     // JWKS cache TTL (in seconds).
