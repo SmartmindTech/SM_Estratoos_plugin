@@ -93,7 +93,7 @@ if ($hassiteconfig) {
         'local_sm_estratoos_plugin/oauth2_allowed_origins',
         get_string('oauth2allowedorigins', 'local_sm_estratoos_plugin'),
         get_string('oauth2allowedorigins_desc', 'local_sm_estratoos_plugin'),
-        'https://inbox.smartlxp.com'
+        "https://inbox.smartlxp.com\nhttps://api-inbox.smartlxp.com"
     ));
 
     // JWKS cache TTL (in seconds).

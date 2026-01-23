@@ -58,7 +58,7 @@ $issuerUrl = trim(preg_replace('/[\r\n]+/', '', $issuerUrl));
 // Configurable via: Site admin > Plugins > Local plugins > SmartMind Estratoos Plugin
 $allowedOrigins = get_config('local_sm_estratoos_plugin', 'oauth2_allowed_origins');
 if (empty($allowedOrigins)) {
-    $allowedOrigins = 'https://inbox.smartlxp.com';
+    $allowedOrigins = "https://inbox.smartlxp.com\nhttps://api-inbox.smartlxp.com";
 }
 // Convert newlines to spaces (textarea format → CSP format).
 $allowedOrigins = preg_replace('/[\r\n]+/', ' ', trim($allowedOrigins));

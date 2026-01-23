@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012296</version>
+        <version>2025012297</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.96</release>
+        <release>1.7.97</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,28 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.96/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.97/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.96</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.97</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.93 - SCORM Embed Fullscreen Display</h3>
+            <h3>Version 1.7.97 - CSP Default Domains Update</h3>
 
-            <h4>Features</h4>
+            <h4>Changes</h4>
             <ul>
-                <li>SCORM activities now display fullscreen without navigation elements</li>
-                <li>CSS injection via before_footer hook for reliable navigation hiding</li>
-                <li>Cross-origin cookie support with SameSite=None for HTTPS</li>
+                <li>Default CSP frame-ancestors now includes both frontend and API domains</li>
+                <li>https://inbox.smartlxp.com (frontend)</li>
+                <li>https://api-inbox.smartlxp.com (API)</li>
+                <li>Users can still customize via admin settings</li>
             </ul>
 
-            <h4>Improvements</h4>
+            <h4>Previous Versions</h4>
             <ul>
-                <li>Code cleanup: removed unused before_standard_html_head function</li>
-                <li>Removed debug code and error_log statements</li>
-                <li>Simplified session setup in embed.php</li>
-                <li>Cleaner embed_renderer.php without verbose logging</li>
-            </ul>
-
-            <h4>Bug Fixes</h4>
-            <ul>
-                <li>Fixed SCORM content not filling viewport (was showing tiny centered)</li>
-                <li>Fixed CSS hiding content containers instead of just navigation</li>
+                <li>v1.7.96: Configurable OAuth2 settings via admin UI</li>
+                <li>v1.7.93: SCORM embed fullscreen display with hidden navigation</li>
             </ul>
             ]]>
         </releasenotes>
