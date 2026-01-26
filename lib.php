@@ -300,17 +300,40 @@ function local_sm_estratoos_plugin_extend_settings_navigation(settings_navigatio
 
 /**
  * Hook that runs before the footer on every page.
- * Used to trigger update checks for site administrators and inject embed CSS for SCORM.
+ * Used to trigger update checks for site administrators, inject embed CSS for SCORM,
+ * and inject PostMessage tracking script for real-time SCORM progress.
  */
 function local_sm_estratoos_plugin_before_footer() {
-    global $CFG, $PAGE;
+    global $CFG, $PAGE, $DB;
 
     // Inject CSS for SCORM player when accessed via embed endpoint.
     $pagepath = $PAGE->url->get_path() ?? '';
     $isscormplayer = strpos($pagepath, '/mod/scorm/player.php') !== false;
 
-    if ($isscormplayer && !empty($_COOKIE['sm_estratoos_embed'])) {
-        echo local_sm_estratoos_plugin_get_embed_css_js();
+    if ($isscormplayer) {
+        // Inject embed CSS if in embed mode.
+        if (!empty($_COOKIE['sm_estratoos_embed'])) {
+            echo local_sm_estratoos_plugin_get_embed_css_js();
+        }
+
+        // Always inject PostMessage tracking script for real-time progress updates.
+        // This allows SmartLearning to receive slide changes without polling.
+        $cmid = optional_param('cm', 0, PARAM_INT);
+        if (!$cmid) {
+            $cmid = optional_param('id', 0, PARAM_INT);
+        }
+
+        $scormid = 0;
+        $slidescount = 0;
+        if ($cmid) {
+            $cm = $DB->get_record('course_modules', ['id' => $cmid]);
+            if ($cm) {
+                $scormid = $cm->instance;
+                $slidescount = local_sm_estratoos_plugin_get_scorm_slidecount($cmid, $scormid);
+            }
+        }
+
+        echo local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, $slidescount);
     }
 
     // Update check for site administrators.
@@ -324,6 +347,222 @@ function local_sm_estratoos_plugin_before_footer() {
     } catch (\Exception $e) {
         debugging('SmartMind update check failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
     }
+}
+
+/**
+ * Get slide count for a SCORM module.
+ *
+ * @param int $cmid Course module ID.
+ * @param int $scormid SCORM instance ID.
+ * @return int Slide count.
+ */
+function local_sm_estratoos_plugin_get_scorm_slidecount($cmid, $scormid) {
+    global $DB;
+
+    // First try SCO count.
+    $scocount = $DB->count_records('scorm_scoes', ['scorm' => $scormid, 'scormtype' => 'sco']);
+
+    // Try to detect slides from content files.
+    try {
+        $context = context_module::instance($cmid);
+        $fs = get_file_storage();
+        $files = $fs->get_area_files($context->id, 'mod_scorm', 'content', 0, 'sortorder', false);
+
+        $slidenumbers = [];
+        $slidesxmlfile = null;
+
+        foreach ($files as $file) {
+            $path = $file->get_filepath() . $file->get_filename();
+
+            // Articulate Storyline: story_content/slideXXX.xml
+            if (preg_match('#/story_content/slide(\d+)\.xml$#i', $path, $m)) {
+                $slidenumbers[$m[1]] = true;
+            }
+            // Generic slide files.
+            if (preg_match('#/(?:res/data|slides|content|data)/slide(\d+)\.(js|html|css)$#i', $path, $m)) {
+                $slidenumbers[$m[1]] = true;
+            }
+
+            // Keep track of slides.xml for Storyline.
+            if ($path === '/story_content/slides.xml') {
+                $slidesxmlfile = $file;
+            }
+        }
+
+        if (!empty($slidenumbers)) {
+            return count($slidenumbers);
+        }
+
+        // Try reading slides.xml for Storyline.
+        if ($slidesxmlfile) {
+            $content = $slidesxmlfile->get_content();
+            $count = preg_match_all('/<sld\s/i', $content);
+            if ($count > 0) {
+                return $count;
+            }
+        }
+    } catch (\Exception $e) {
+        debugging('Error detecting SCORM slides: ' . $e->getMessage(), DEBUG_DEVELOPER);
+    }
+
+    return $scocount ?: 1;
+}
+
+/**
+ * Get PostMessage tracking JavaScript for real-time SCORM progress.
+ *
+ * @param int $cmid Course module ID.
+ * @param int $scormid SCORM instance ID.
+ * @param int $slidescount Total slides count.
+ * @return string JavaScript code.
+ */
+function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, $slidescount) {
+    return <<<JS
+<script>
+(function() {
+    var cmid = {$cmid};
+    var scormid = {$scormid};
+    var slidescount = {$slidescount};
+    var lastLocation = null;
+    var lastStatus = null;
+
+    // Function to parse slide number from various formats.
+    function parseSlideNumber(location) {
+        if (!location || location === '') return null;
+
+        // Pure number: "5"
+        if (/^\d+$/.test(location)) {
+            return parseInt(location, 10);
+        }
+        // Trailing number: "slide_5", "scene1_slide5"
+        var match = location.match(/(\d+)$/);
+        if (match) {
+            return parseInt(match[1], 10);
+        }
+        // Fraction format: "5/10"
+        match = location.match(/^(\d+)\//);
+        if (match) {
+            return parseInt(match[1], 10);
+        }
+        // Articulate format: "slide5" or "#/slides/xxx"
+        match = location.match(/slide(\d+)/i);
+        if (match) {
+            return parseInt(match[1], 10);
+        }
+        return null;
+    }
+
+    // Function to send progress to parent window.
+    function sendProgressUpdate(location, status, score) {
+        var currentSlide = parseSlideNumber(location);
+
+        // Build message object.
+        var message = {
+            type: 'scorm-progress',
+            cmid: cmid,
+            scormid: scormid,
+            currentSlide: currentSlide,
+            totalSlides: slidescount,
+            lessonLocation: location || lastLocation,
+            lessonStatus: status || lastStatus,
+            score: score,
+            timestamp: Date.now()
+        };
+
+        // Calculate progress percentage if we have slide info.
+        if (currentSlide !== null && slidescount > 0) {
+            message.progressPercent = Math.round((currentSlide / slidescount) * 100);
+        }
+
+        // Send to parent (SmartLearning app).
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage(message, '*');
+        }
+        // Also try top window in case of nested iframes.
+        if (window.top && window.top !== window && window.top !== window.parent) {
+            window.top.postMessage(message, '*');
+        }
+
+        console.log('[SM_Estratoos] SCORM progress:', message);
+    }
+
+    // Wait for SCORM API to be available, then wrap it.
+    function wrapScormApi() {
+        // SCORM 1.2 API
+        if (typeof window.API !== 'undefined' && window.API.LMSSetValue) {
+            var originalSetValue = window.API.LMSSetValue;
+            window.API.LMSSetValue = function(element, value) {
+                var result = originalSetValue.call(window.API, element, value);
+
+                // Track lesson_location changes.
+                if (element === 'cmi.core.lesson_location' && value !== lastLocation) {
+                    lastLocation = value;
+                    sendProgressUpdate(value, lastStatus, null);
+                }
+                // Track lesson_status changes.
+                if (element === 'cmi.core.lesson_status') {
+                    lastStatus = value;
+                    sendProgressUpdate(lastLocation, value, null);
+                }
+                // Track score changes.
+                if (element === 'cmi.core.score.raw') {
+                    sendProgressUpdate(lastLocation, lastStatus, value);
+                }
+
+                return result;
+            };
+            console.log('[SM_Estratoos] SCORM 1.2 API wrapped for progress tracking');
+            return true;
+        }
+
+        // SCORM 2004 API
+        if (typeof window.API_1484_11 !== 'undefined' && window.API_1484_11.SetValue) {
+            var originalSetValue2004 = window.API_1484_11.SetValue;
+            window.API_1484_11.SetValue = function(element, value) {
+                var result = originalSetValue2004.call(window.API_1484_11, element, value);
+
+                // Track location changes.
+                if (element === 'cmi.location' && value !== lastLocation) {
+                    lastLocation = value;
+                    sendProgressUpdate(value, lastStatus, null);
+                }
+                // Track completion_status changes.
+                if (element === 'cmi.completion_status') {
+                    lastStatus = value;
+                    sendProgressUpdate(lastLocation, value, null);
+                }
+                // Track score changes.
+                if (element === 'cmi.score.raw') {
+                    sendProgressUpdate(lastLocation, lastStatus, value);
+                }
+
+                return result;
+            };
+            console.log('[SM_Estratoos] SCORM 2004 API wrapped for progress tracking');
+            return true;
+        }
+
+        return false;
+    }
+
+    // Try to wrap immediately, then retry with intervals.
+    if (!wrapScormApi()) {
+        var attempts = 0;
+        var interval = setInterval(function() {
+            attempts++;
+            if (wrapScormApi() || attempts > 50) {
+                clearInterval(interval);
+            }
+        }, 200);
+    }
+
+    // Send initial progress message when page loads.
+    setTimeout(function() {
+        sendProgressUpdate(null, null, null);
+    }, 1000);
+})();
+</script>
+JS;
 }
 
 /**
