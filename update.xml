@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012606</version>
+        <version>2025012607</version>
 
         <!-- Human-readable release version -->
-        <release>1.8.6</release>
+        <release>1.8.7</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.8.6/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.8.7/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.8.6</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.8.7</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.8.6 - Debug Logging for SCORM CMI Elements</h3>
+            <h3>Version 1.8.7 - Calculate currentSlide from score.raw Percentage</h3>
 
-            <h4>Debug Features</h4>
+            <h4>Enhancements</h4>
             <ul>
-                <li><strong>Debug logging:</strong> Added console.log for ALL LMSSetValue/SetValue calls</li>
-                <li>Logs element name and value for debugging which CMI elements SCORM packages use</li>
-                <li>Added initialization log showing cmid, scormid, and slidescount</li>
-                <li>Added warning if SCORM API not found after 50 attempts</li>
+                <li><strong>Score-based slide calculation:</strong> Some SCORM packages (like Articulate Storyline) use <code>cmi.core.score.raw</code> as progress percentage instead of actual score</li>
+                <li>When score &le; 100, calculates currentSlide: <code>Math.round((score / 100) * totalSlides)</code></li>
+                <li>Example: score=10.79 with 139 slides → currentSlide=15</li>
+                <li>Applied to both SCORM 1.2 and SCORM 2004 APIs</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v1.8.6: Debug logging for ALL LMSSetValue/SetValue calls</li>
                 <li>v1.8.5: Capture cmi.suspend_data for Articulate Storyline</li>
                 <li>v1.8.4: Fix PostMessage parameter extraction (use 'a' param)</li>
-                <li>v1.8.3: Fix update notification URL to use relative path</li>
             </ul>
             ]]>
         </releasenotes>

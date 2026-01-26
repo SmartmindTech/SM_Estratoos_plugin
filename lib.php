@@ -434,8 +434,6 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     var lastSlide = null;
     var lastSuspendData = null;
 
-    console.log('[SM_Estratoos] Initializing SCORM progress tracker', {cmid: cmid, scormid: scormid, slidescount: slidescount});
-
     // Function to parse slide number from lesson_location.
     function parseSlideNumber(location) {
         if (!location || location === '') return null;
@@ -526,8 +524,6 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (window.top && window.top !== window && window.top !== window.parent) {
             window.top.postMessage(message, '*');
         }
-
-        console.log('[SM_Estratoos] SCORM progress:', message);
     }
 
     // Wait for SCORM API to be available, then wrap it.
@@ -536,9 +532,6 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (typeof window.API !== 'undefined' && window.API.LMSSetValue) {
             var originalSetValue = window.API.LMSSetValue;
             window.API.LMSSetValue = function(element, value) {
-                // DEBUG: Log ALL CMI elements being set.
-                console.log('[SM_Estratoos] LMSSetValue:', element, '=', value);
-
                 var result = originalSetValue.call(window.API, element, value);
 
                 // Track lesson_location changes.
@@ -551,9 +544,17 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     lastStatus = value;
                     sendProgressUpdate(lastLocation, value, null, null);
                 }
-                // Track score changes.
+                // Track score changes - some SCORM packages use score as progress percentage.
                 if (element === 'cmi.core.score.raw') {
-                    sendProgressUpdate(lastLocation, lastStatus, value, null);
+                    var score = parseFloat(value);
+                    if (!isNaN(score) && slidescount > 0 && score <= 100) {
+                        // Score represents percentage, calculate current slide.
+                        var calculatedSlide = Math.round((score / 100) * slidescount);
+                        calculatedSlide = Math.max(1, Math.min(calculatedSlide, slidescount));
+                        sendProgressUpdate(null, lastStatus, value, calculatedSlide);
+                    } else {
+                        sendProgressUpdate(lastLocation, lastStatus, value, null);
+                    }
                 }
                 // Track suspend_data changes (Articulate Storyline stores slide position here).
                 if (element === 'cmi.suspend_data' && value !== lastSuspendData) {
@@ -566,7 +567,6 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
                 return result;
             };
-            console.log('[SM_Estratoos] SCORM 1.2 API wrapped for progress tracking');
             return true;
         }
 
@@ -574,9 +574,6 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (typeof window.API_1484_11 !== 'undefined' && window.API_1484_11.SetValue) {
             var originalSetValue2004 = window.API_1484_11.SetValue;
             window.API_1484_11.SetValue = function(element, value) {
-                // DEBUG: Log ALL CMI elements being set.
-                console.log('[SM_Estratoos] SetValue (2004):', element, '=', value);
-
                 var result = originalSetValue2004.call(window.API_1484_11, element, value);
 
                 // Track location changes.
@@ -589,9 +586,17 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     lastStatus = value;
                     sendProgressUpdate(lastLocation, value, null, null);
                 }
-                // Track score changes.
+                // Track score changes - some SCORM packages use score as progress percentage.
                 if (element === 'cmi.score.raw') {
-                    sendProgressUpdate(lastLocation, lastStatus, value, null);
+                    var score = parseFloat(value);
+                    if (!isNaN(score) && slidescount > 0 && score <= 100) {
+                        // Score represents percentage, calculate current slide.
+                        var calculatedSlide = Math.round((score / 100) * slidescount);
+                        calculatedSlide = Math.max(1, Math.min(calculatedSlide, slidescount));
+                        sendProgressUpdate(null, lastStatus, value, calculatedSlide);
+                    } else {
+                        sendProgressUpdate(lastLocation, lastStatus, value, null);
+                    }
                 }
                 // Track suspend_data changes (Articulate Storyline stores slide position here).
                 if (element === 'cmi.suspend_data' && value !== lastSuspendData) {
@@ -604,7 +609,6 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
                 return result;
             };
-            console.log('[SM_Estratoos] SCORM 2004 API wrapped for progress tracking');
             return true;
         }
 
@@ -618,9 +622,6 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             attempts++;
             if (wrapScormApi() || attempts > 50) {
                 clearInterval(interval);
-                if (attempts > 50) {
-                    console.warn('[SM_Estratoos] Failed to find SCORM API after 50 attempts');
-                }
             }
         }, 200);
     }
