@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012703</version>
+        <version>2025012704</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.3</release>
+        <release>2.0.4</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,24 +29,26 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.3/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.4/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.3</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.4</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.3 - Notification URL Fix</h3>
+            <h3>Version 2.0.4 - Version Bump</h3>
 
-            <h4>Fix</h4>
+            <h4>Changes</h4>
             <ul>
-                <li>Notification messages now use relative paths to avoid cross-Moodle redirects</li>
-                <li>Clicking update notification now stays on the correct Moodle instance</li>
+                <li>Version bump to ensure all v2.0.x changes are properly applied</li>
+                <li>Includes: Moodle 4.x normalized SCORM tables support</li>
+                <li>Includes: Notification URL fix for cross-Moodle redirects</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.3: Notification URLs use relative paths</li>
                 <li>v2.0.2: Support Moodle 4.x normalized SCORM tables</li>
                 <li>v2.0.1: Use cmi.core.score.raw for SCORM progress</li>
                 <li>v2.0.0: WebSocket event observers for real-time progress</li>

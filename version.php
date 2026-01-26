@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012703;  // YYYYMMDDXX format.
+$plugin->version = 2025012704;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.3';  // Fix: Notification URLs now use relative paths to avoid cross-Moodle redirects.
+$plugin->release = '2.0.4';  // Version bump to re-apply v2.0.2 SCORM table changes.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
