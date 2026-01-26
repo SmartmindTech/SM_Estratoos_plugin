@@ -249,7 +249,7 @@ $string['updateavailable_message_html'] = '<p>Una nueva versión de <strong>Smar
 <tr><td><strong>Versión actual:</strong></td><td>{$a->currentversion}</td></tr>
 <tr><td><strong>Nueva versión:</strong></td><td>{$a->newversion}</td></tr>
 </table>
-<p><a href="{$a->updateurl}" class="btn btn-primary">Instalar actualización</a></p>';
+<p><a href="/local/sm_estratoos_plugin/update.php" class="btn btn-primary">Instalar actualización</a></p>';
 
 // Cadenas de la página de actualización.
 $string['checkforupdates'] = 'Buscar actualizaciones';

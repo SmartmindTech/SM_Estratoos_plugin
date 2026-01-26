@@ -249,7 +249,7 @@ $string['updateavailable_message_html'] = '<p>A new version of <strong>SmartMind
 <tr><td><strong>Current version:</strong></td><td>{$a->currentversion}</td></tr>
 <tr><td><strong>New version:</strong></td><td>{$a->newversion}</td></tr>
 </table>
-<p><a href="{$a->updateurl}" class="btn btn-primary">Install update</a></p>';
+<p><a href="/local/sm_estratoos_plugin/update.php" class="btn btn-primary">Install update</a></p>';
 
 // Update page strings.
 $string['checkforupdates'] = 'Check for updates';

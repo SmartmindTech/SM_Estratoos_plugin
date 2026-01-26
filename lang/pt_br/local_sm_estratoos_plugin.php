@@ -249,7 +249,7 @@ $string['updateavailable_message_html'] = '<p>Uma nova versão do <strong>SmartM
 <tr><td><strong>Versão atual:</strong></td><td>{$a->currentversion}</td></tr>
 <tr><td><strong>Nova versão:</strong></td><td>{$a->newversion}</td></tr>
 </table>
-<p><a href="{$a->updateurl}" class="btn btn-primary">Instalar atualização</a></p>';
+<p><a href="/local/sm_estratoos_plugin/update.php" class="btn btn-primary">Instalar atualização</a></p>';
 
 // Strings da página de atualização.
 $string['checkforupdates'] = 'Verificar atualizações';

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012602</version>
+        <version>2025012603</version>
 
         <!-- Human-readable release version -->
-        <release>1.8.2</release>
+        <release>1.8.3</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,28 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.8.2/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.8.3/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.8.2</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.8.3</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.8.2 - Real-time SCORM Progress via PostMessage</h3>
+            <h3>Version 1.8.3 - Fix Update Notification URL</h3>
 
-            <h4>New Features</h4>
+            <h4>Bug Fixes</h4>
             <ul>
-                <li><strong>PostMessage real-time progress:</strong> SCORM player now sends progress updates via PostMessage to parent window</li>
-                <li>SmartLearning can receive instant slide changes without polling the API</li>
-                <li>Tracks: currentSlide, totalSlides, lessonStatus, score, progressPercent</li>
-                <li>Supports both SCORM 1.2 (LMSSetValue) and SCORM 2004 (SetValue) APIs</li>
+                <li><strong>Fix notification URL:</strong> Update notification button now uses relative path instead of absolute URL</li>
+                <li>Clicking notification button will now correctly go to the current Moodle instance, not a hardcoded domain</li>
+                <li>Fixed in all languages: English, Spanish, Portuguese</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v1.8.2: PostMessage real-time SCORM progress tracking</li>
                 <li>v1.8.1: SCORM currentslide fix (filter by primary SCO)</li>
                 <li>v1.8.0: New <code>get_activity_progress</code> API function</li>
-                <li>v1.7.99: Company access logic fixes, timezone handling</li>
             </ul>
             ]]>
         </releasenotes>
