@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012701;  // YYYYMMDDXX format.
+$plugin->version = 2025012702;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.1';  // Fix: Use cmi.core.score.raw for SCORM progress when lesson_location unavailable.
+$plugin->release = '2.0.2';  // Fix: Support Moodle 4.x normalized SCORM tables (scorm_scoes_value + scorm_element).
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012701</version>
+        <version>2025012702</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.1</release>
+        <release>2.0.2</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,20 +29,20 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.1/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.2/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.1</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.2</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.1 - SCORM Progress Fix + Real-time WebSocket Events</h3>
+            <h3>Version 2.0.2 - Moodle 4.x SCORM Compatibility</h3>
 
             <h4>Fix</h4>
             <ul>
-                <li>Use <code>cmi.core.score.raw</code> for SCORM progress when <code>lesson_location</code> is unavailable</li>
-                <li>Reuses existing OAuth2 issuer URL - no additional configuration needed</li>
+                <li>Support Moodle 4.x normalized SCORM tables (<code>scorm_scoes_value</code> + <code>scorm_element</code>)</li>
+                <li>Fallback to legacy <code>scorm_scoes_track</code> table for older Moodle versions</li>
             </ul>
 
             <h4>WebSocket Event Observers (v2.0.0)</h4>
@@ -58,17 +58,10 @@
                 <li><strong>Assignment:</strong> submission_created, submission_graded</li>
             </ul>
 
-            <h4>Progress Data</h4>
-            <ul>
-                <li>cmid, courseid, userid, modtype</li>
-                <li>totalitems, completeditems, currentitem</li>
-                <li>score, maxscore, progresspercent</li>
-            </ul>
-
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.1: Use cmi.core.score.raw for SCORM progress</li>
                 <li>v2.0.0: WebSocket event observers for real-time progress</li>
-                <li>v1.8.7: Calculate currentSlide from score.raw percentage</li>
             </ul>
             ]]>
         </releasenotes>
