@@ -242,8 +242,7 @@ $string['updateavailable_message'] = 'Uma nova versão do SmartMind - Estratoos 
 Versão atual: {$a->currentversion}
 Nova versão: {$a->newversion}
 
-Para instalar a atualização, acesse:
-{$a->updateurl}';
+Para instalar a atualização, acesse: Administração do site > Plugins > Plugins locais > SmartMind Estratoos Plugin';
 $string['updateavailable_message_html'] = '<p>Uma nova versão do <strong>SmartMind - Estratoos Plugin</strong> está disponível.</p>
 <table>
 <tr><td><strong>Versão atual:</strong></td><td>{$a->currentversion}</td></tr>

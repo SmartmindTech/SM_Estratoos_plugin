@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012702</version>
+        <version>2025012703</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.2</release>
+        <release>2.0.3</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,37 +29,25 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.2/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.3/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.2</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.3</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.2 - Moodle 4.x SCORM Compatibility</h3>
+            <h3>Version 2.0.3 - Notification URL Fix</h3>
 
             <h4>Fix</h4>
             <ul>
-                <li>Support Moodle 4.x normalized SCORM tables (<code>scorm_scoes_value</code> + <code>scorm_element</code>)</li>
-                <li>Fallback to legacy <code>scorm_scoes_track</code> table for older Moodle versions</li>
-            </ul>
-
-            <h4>WebSocket Event Observers (v2.0.0)</h4>
-            <p>Moodle sends progress events to SmartLearning backend for real-time WebSocket broadcast.</p>
-
-            <h4>Supported Events</h4>
-            <ul>
-                <li><strong>Completion:</strong> course_module_completion_updated</li>
-                <li><strong>Quiz:</strong> attempt_submitted</li>
-                <li><strong>Book:</strong> chapter_viewed</li>
-                <li><strong>Lesson:</strong> page_viewed</li>
-                <li><strong>SCORM:</strong> sco_launched, scoreraw_submitted</li>
-                <li><strong>Assignment:</strong> submission_created, submission_graded</li>
+                <li>Notification messages now use relative paths to avoid cross-Moodle redirects</li>
+                <li>Clicking update notification now stays on the correct Moodle instance</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.2: Support Moodle 4.x normalized SCORM tables</li>
                 <li>v2.0.1: Use cmi.core.score.raw for SCORM progress</li>
                 <li>v2.0.0: WebSocket event observers for real-time progress</li>
             </ul>
