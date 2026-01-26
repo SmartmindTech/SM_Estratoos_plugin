@@ -432,6 +432,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     var lastLocation = null;
     var lastStatus = null;
     var lastSlide = null;
+    var lastSuspendData = null;
+
+    console.log('[SM_Estratoos] Initializing SCORM progress tracker', {cmid: cmid, scormid: scormid, slidescount: slidescount});
 
     // Function to parse slide number from lesson_location.
     function parseSlideNumber(location) {
@@ -533,6 +536,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (typeof window.API !== 'undefined' && window.API.LMSSetValue) {
             var originalSetValue = window.API.LMSSetValue;
             window.API.LMSSetValue = function(element, value) {
+                // DEBUG: Log ALL CMI elements being set.
+                console.log('[SM_Estratoos] LMSSetValue:', element, '=', value);
+
                 var result = originalSetValue.call(window.API, element, value);
 
                 // Track lesson_location changes.
@@ -550,7 +556,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     sendProgressUpdate(lastLocation, lastStatus, value, null);
                 }
                 // Track suspend_data changes (Articulate Storyline stores slide position here).
-                if (element === 'cmi.suspend_data') {
+                if (element === 'cmi.suspend_data' && value !== lastSuspendData) {
+                    lastSuspendData = value;
                     var slideNum = parseSlideFromSuspendData(value);
                     if (slideNum !== null && slideNum !== lastSlide) {
                         sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
@@ -567,6 +574,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (typeof window.API_1484_11 !== 'undefined' && window.API_1484_11.SetValue) {
             var originalSetValue2004 = window.API_1484_11.SetValue;
             window.API_1484_11.SetValue = function(element, value) {
+                // DEBUG: Log ALL CMI elements being set.
+                console.log('[SM_Estratoos] SetValue (2004):', element, '=', value);
+
                 var result = originalSetValue2004.call(window.API_1484_11, element, value);
 
                 // Track location changes.
@@ -584,7 +594,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     sendProgressUpdate(lastLocation, lastStatus, value, null);
                 }
                 // Track suspend_data changes (Articulate Storyline stores slide position here).
-                if (element === 'cmi.suspend_data') {
+                if (element === 'cmi.suspend_data' && value !== lastSuspendData) {
+                    lastSuspendData = value;
                     var slideNum = parseSlideFromSuspendData(value);
                     if (slideNum !== null && slideNum !== lastSlide) {
                         sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
@@ -607,6 +618,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             attempts++;
             if (wrapScormApi() || attempts > 50) {
                 clearInterval(interval);
+                if (attempts > 50) {
+                    console.warn('[SM_Estratoos] Failed to find SCORM API after 50 attempts');
+                }
             }
         }, 200);
     }
