@@ -409,11 +409,11 @@ $string['versionsyncfailed'] = 'Failed to sync version for {$a}';
 // Version label (v1.7.45).
 $string['pluginversionlabel'] = 'Plugin Version:';
 
-// OAuth2/OIDC Embed Authentication (v1.7.80).
-$string['oauth2settings'] = 'OAuth2/OIDC Embed Authentication';
-$string['oauth2settings_desc'] = 'Configure OAuth2/OIDC settings for SmartLearning iframe embedding. This allows users to access Moodle activities in an iframe without separate login.';
-$string['oauth2issuerurl'] = 'SmartLearning Issuer URL';
-$string['oauth2issuerurl_desc'] = 'The SmartLearning backend URL that issues JWT tokens (e.g., https://smartlearning.smartmind.net).';
+// OAuth2/OIDC Embed Authentication (v1.7.80) + Real-time Progress (v2.0.0).
+$string['oauth2settings'] = 'SmartLearning Integration';
+$string['oauth2settings_desc'] = 'Configure SmartLearning integration settings. The Issuer URL is used for: (1) OAuth2/OIDC iframe embedding authentication, and (2) Real-time progress events via WebSocket.';
+$string['oauth2issuerurl'] = 'SmartLearning Backend URL';
+$string['oauth2issuerurl_desc'] = 'The SmartLearning backend URL for JWT token validation and progress events (e.g., https://api-inbox.smartlxp.com).';
 $string['oauth2allowedorigins'] = 'Allowed Embed Origins';
 $string['oauth2allowedorigins_desc'] = 'URLs allowed to embed Moodle activities in iframes (one per line). Supports wildcards like https://*.smartmind.net.';
 $string['oauth2jwkscachettl'] = 'JWKS Cache TTL (seconds)';

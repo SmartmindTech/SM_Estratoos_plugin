@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012607;  // YYYYMMDDXX format.
+$plugin->version = 2025012700;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.8.7';  // PostMessage: calculate currentSlide from score.raw percentage.
+$plugin->release = '2.0.0';  // Major: WebSocket event observers for real-time progress tracking.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

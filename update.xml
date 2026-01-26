@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012607</version>
+        <version>2025012700</version>
 
         <!-- Human-readable release version -->
-        <release>1.8.7</release>
+        <release>2.0.0</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,49 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.8.7/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.0/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.8.7</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.0</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.8.7 - Calculate currentSlide from score.raw Percentage</h3>
+            <h3>Version 2.0.0 - Real-time Progress via WebSocket Events</h3>
 
-            <h4>Enhancements</h4>
+            <h4>Major Feature: WebSocket Event Observers</h4>
+            <p>Moodle now sends progress events to the SmartLearning backend for real-time WebSocket broadcast to connected users.</p>
+
+            <h4>Supported Events</h4>
             <ul>
-                <li><strong>Score-based slide calculation:</strong> Some SCORM packages (like Articulate Storyline) use <code>cmi.core.score.raw</code> as progress percentage instead of actual score</li>
-                <li>When score &le; 100, calculates currentSlide: <code>Math.round((score / 100) * totalSlides)</code></li>
-                <li>Example: score=10.79 with 139 slides → currentSlide=15</li>
-                <li>Applied to both SCORM 1.2 and SCORM 2004 APIs</li>
+                <li><strong>Completion:</strong> course_module_completion_updated</li>
+                <li><strong>Quiz:</strong> attempt_submitted</li>
+                <li><strong>Book:</strong> chapter_viewed</li>
+                <li><strong>Lesson:</strong> page_viewed</li>
+                <li><strong>SCORM:</strong> sco_launched, scoreraw_submitted</li>
+                <li><strong>Assignment:</strong> submission_created, submission_graded</li>
+            </ul>
+
+            <h4>Progress Data Sent</h4>
+            <ul>
+                <li>cmid, courseid, userid, modtype</li>
+                <li>totalitems, completeditems, currentitem</li>
+                <li>score, maxscore, progresspercent</li>
+                <li>completionstate, timemodified</li>
+            </ul>
+
+            <h4>Configuration</h4>
+            <p>Site Administration &rarr; Plugins &rarr; Local plugins &rarr; SmartMind Estratoos Plugin</p>
+            <ul>
+                <li>SmartLearning Backend URL</li>
+                <li>SmartLearning API Key (leave empty to disable)</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v1.8.6: Debug logging for ALL LMSSetValue/SetValue calls</li>
+                <li>v1.8.7: Calculate currentSlide from score.raw percentage</li>
+                <li>v1.8.6: Debug logging for SCORM element tracking</li>
                 <li>v1.8.5: Capture cmi.suspend_data for Articulate Storyline</li>
-                <li>v1.8.4: Fix PostMessage parameter extraction (use 'a' param)</li>
             </ul>
             ]]>
         </releasenotes>

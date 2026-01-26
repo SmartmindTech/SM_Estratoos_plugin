@@ -399,3 +399,13 @@ $string['versionsyncfailed'] = 'Erro ao sincronizar a versão para {$a}';
 
 // Rótulo de versão (v1.7.45).
 $string['pluginversionlabel'] = 'Versão do Plugin:';
+
+// Integração SmartLearning - OAuth2/OIDC (v1.7.80) + Progresso em tempo real (v2.0.0).
+$string['oauth2settings'] = 'Integração SmartLearning';
+$string['oauth2settings_desc'] = 'Configure as configurações de integração com SmartLearning. A URL do emissor é usada para: (1) Autenticação OAuth2/OIDC para incorporação em iframe, e (2) Eventos de progresso em tempo real via WebSocket.';
+$string['oauth2issuerurl'] = 'URL do Backend SmartLearning';
+$string['oauth2issuerurl_desc'] = 'A URL do backend SmartLearning para validação de tokens JWT e eventos de progresso (ex: https://api-inbox.smartlxp.com).';
+$string['oauth2allowedorigins'] = 'Origens de Incorporação Permitidas';
+$string['oauth2allowedorigins_desc'] = 'URLs permitidas para incorporar atividades do Moodle em iframes (uma por linha). Suporta curingas como https://*.smartmind.net.';
+$string['oauth2jwkscachettl'] = 'TTL do Cache JWKS (segundos)';
+$string['oauth2jwkscachettl_desc'] = 'Tempo de cache do JWKS (JSON Web Key Set) do SmartLearning. Padrão: 3600 (1 hora).';

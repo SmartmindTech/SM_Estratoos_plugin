@@ -15,16 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Event observers for cache invalidation.
+ * Event observers for cache invalidation and real-time progress tracking.
  *
  * @package    local_sm_estratoos_plugin
- * @copyright  2026 SmartMind Technologies
+ * @copyright  2025 SmartMind Technologies
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 $observers = [
+    // =========================================================================
+    // Cache Invalidation Events
+    // =========================================================================
+
     // User enrollment events.
     [
         'eventname' => '\core\event\user_enrolment_created',
@@ -35,7 +39,7 @@ $observers = [
         'callback' => '\local_sm_estratoos_plugin\observer::user_enrolment_deleted',
     ],
 
-    // Course module completion.
+    // Course module completion (also sends progress event to SmartLearning).
     [
         'eventname' => '\core\event\course_module_completion_updated',
         'callback' => '\local_sm_estratoos_plugin\observer::course_module_completion_updated',
@@ -71,5 +75,47 @@ $observers = [
     [
         'eventname' => '\core\event\role_assigned',
         'callback' => '\local_sm_estratoos_plugin\observer::role_assigned',
+    ],
+
+    // =========================================================================
+    // WebSocket Progress Events (sent to SmartLearning backend)
+    // =========================================================================
+
+    // Quiz events.
+    [
+        'eventname' => '\mod_quiz\event\attempt_submitted',
+        'callback' => '\local_sm_estratoos_plugin\observer::quiz_attempt_submitted',
+    ],
+
+    // Book events.
+    [
+        'eventname' => '\mod_book\event\chapter_viewed',
+        'callback' => '\local_sm_estratoos_plugin\observer::book_chapter_viewed',
+    ],
+
+    // Lesson events.
+    [
+        'eventname' => '\mod_lesson\event\page_viewed',
+        'callback' => '\local_sm_estratoos_plugin\observer::lesson_page_viewed',
+    ],
+
+    // SCORM events.
+    [
+        'eventname' => '\mod_scorm\event\sco_launched',
+        'callback' => '\local_sm_estratoos_plugin\observer::scorm_sco_launched',
+    ],
+    [
+        'eventname' => '\mod_scorm\event\scoreraw_submitted',
+        'callback' => '\local_sm_estratoos_plugin\observer::scorm_scoreraw_submitted',
+    ],
+
+    // Assignment events.
+    [
+        'eventname' => '\mod_assign\event\submission_created',
+        'callback' => '\local_sm_estratoos_plugin\observer::assign_submission_created',
+    ],
+    [
+        'eventname' => '\mod_assign\event\submission_graded',
+        'callback' => '\local_sm_estratoos_plugin\observer::assign_submission_graded',
     ],
 ];
