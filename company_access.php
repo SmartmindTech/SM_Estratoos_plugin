@@ -53,14 +53,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
     $enabledcompanies = optional_param_array('companies', [], PARAM_INT);
     $expirydates = optional_param_array('expirydate', [], PARAM_INT);
 
-    \local_sm_estratoos_plugin\util::set_enabled_companies($enabledcompanies);
+    // Get all companies and their current status before making changes.
+    $allcompanies = \local_sm_estratoos_plugin\util::get_companies_with_access_status();
+    $now = time();
 
-    // Update expiry dates for all companies.
-    $allcompanies = \local_sm_estratoos_plugin\util::get_companies();
+    // Process each company individually to handle the enable/disable + expiry logic correctly.
     foreach ($allcompanies as $company) {
+        $isChecked = in_array($company->id, $enabledcompanies);
+        $wasEnabled = !empty($company->enabled);
         $expiryvalue = isset($expirydates[$company->id]) ? (int)$expirydates[$company->id] : 0;
-        $expirydate = $expiryvalue > 0 ? $expiryvalue : null;
-        \local_sm_estratoos_plugin\util::set_company_expiry_date($company->id, $expirydate);
+        $newExpiryDate = $expiryvalue > 0 ? $expiryvalue : null;
+        $oldExpiryDate = $company->expirydate ?? null;
+
+        // Determine if a NEW valid expiry date is being set (today or future).
+        $isNewValidExpiry = !empty($newExpiryDate) && $newExpiryDate >= $now &&
+                           ($oldExpiryDate != $newExpiryDate);
+
+        if ($isChecked) {
+            // User checked the checkbox - enable the company.
+            \local_sm_estratoos_plugin\util::enable_company_access($company->id);
+            // Update expiry date (preserving user's choice).
+            \local_sm_estratoos_plugin\util::set_company_expiry_date_only($company->id, $newExpiryDate);
+        } else {
+            // User unchecked the checkbox - check if we should still enable due to new valid expiry.
+            if ($isNewValidExpiry) {
+                // Setting a new valid expiry date on a disabled company implies enabling it.
+                \local_sm_estratoos_plugin\util::enable_company_access($company->id);
+                \local_sm_estratoos_plugin\util::set_company_expiry_date_only($company->id, $newExpiryDate);
+            } else {
+                // Disable the company and clear expiry date (no point in expiry for disabled company).
+                \local_sm_estratoos_plugin\util::disable_company_access($company->id);
+                \local_sm_estratoos_plugin\util::set_company_expiry_date_only($company->id, null);
+            }
+        }
     }
 
     redirect(
@@ -186,9 +211,10 @@ if (empty($companies)) {
         echo html_writer::end_tag('label');
         echo html_writer::end_div(); // custom-control
 
-        // Expiry date dropdown (v1.7.29 - v1.7.30 improved UI).
-        // Use gmdate for UTC to avoid timezone issues between server/browser.
-        $expiryvalue = !empty($company->expirydate) ? gmdate('Y-m-d', $company->expirydate) : '';
+        // Expiry date dropdown (v1.7.29 - v1.7.30 improved UI, v1.7.99 timezone fix).
+        // Use userdate() to convert timestamp to user's timezone for consistent display.
+        // The date input value uses 'Y-m-d' format required by HTML5 date inputs.
+        $expiryvalue = !empty($company->expirydate) ? userdate($company->expirydate, '%Y-%m-%d') : '';
         $expirydisplay = !empty($company->expirydate) ? userdate($company->expirydate, get_string('strftimedate', 'langconfig')) : '';
         echo html_writer::start_div('ml-auto d-flex align-items-center expiry-container', [
             'data-companyid' => $company->id
@@ -395,14 +421,16 @@ $disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
                 var hiddenField = document.getElementById("expirydate-hidden-" + companyId);
 
                 if (this.value) {
-                    // Convert date to timestamp (end of day, 23:59:59 UTC).
-                    // Use "Z" suffix to ensure UTC timezone, avoiding browser timezone issues.
-                    var timestamp = Math.floor(new Date(this.value + "T23:59:59Z").getTime() / 1000);
+                    // Convert date to timestamp (end of day, 23:59:59 in LOCAL timezone).
+                    // NOT using "Z" suffix so the browser interprets it in the user's local timezone.
+                    // This ensures the displayed date matches the selected date regardless of timezone.
+                    var timestamp = Math.floor(new Date(this.value + "T23:59:59").getTime() / 1000);
                     if (hiddenField) hiddenField.value = timestamp;
 
-                    // Format date for display.
-                    var dateObj = new Date(this.value);
-                    var displayDate = dateObj.toLocaleDateString();
+                    // Format date for display using the original date value (not converted).
+                    // Parse the date string directly to avoid timezone shifts in display.
+                    var parts = this.value.split("-");
+                    var displayDate = new Date(parts[0], parts[1] - 1, parts[2]).toLocaleDateString();
 
                     // Find or create custom option.
                     var customOption = dropdown.querySelector('option[value="custom"]');

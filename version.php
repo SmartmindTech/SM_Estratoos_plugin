@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012298;  // YYYYMMDDXX format.
+$plugin->version = 2025012299;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.7.98';  // Correct OAuth2 defaults: issuer=backend, origins=frontend.
+$plugin->release = '1.7.99';  // Fix company access: manual disable logic + expiry date timezone.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

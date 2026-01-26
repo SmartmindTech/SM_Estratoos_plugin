@@ -708,6 +708,8 @@ class util {
 
     /**
      * Set company access expiry date.
+     * NOTE: This function also enables/disables the company based on the expiry date.
+     * Use set_company_expiry_date_only() if you want to update just the date.
      *
      * @param int $companyid Company ID.
      * @param int|null $expirydate Expiry timestamp or null for never.
@@ -743,6 +745,46 @@ class util {
             // This ensures the company is enabled when a valid date is set.
             self::enable_company_access($companyid, $userid);
         }
+
+        return true;
+    }
+
+    /**
+     * Set company access expiry date WITHOUT triggering enable/disable logic.
+     * Use this when you've already handled the enable/disable state separately.
+     *
+     * @param int $companyid Company ID.
+     * @param int|null $expirydate Expiry timestamp or null for never.
+     * @param int|null $userid User who made the change.
+     * @return bool Success.
+     */
+    public static function set_company_expiry_date_only(int $companyid, ?int $expirydate, int $userid = null): bool {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        $record = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $companyid]);
+        if (!$record) {
+            // Create record if it doesn't exist.
+            $now = time();
+            $DB->insert_record('local_sm_estratoos_plugin_access', [
+                'companyid' => $companyid,
+                'enabled' => 0,
+                'expirydate' => $expirydate,
+                'enabledby' => $userid,
+                'timecreated' => $now,
+                'timemodified' => $now,
+            ]);
+            return true;
+        }
+
+        // Only update the expiry date field.
+        $record->expirydate = $expirydate;
+        $record->enabledby = $userid;
+        $record->timemodified = time();
+        $DB->update_record('local_sm_estratoos_plugin_access', $record);
 
         return true;
     }
