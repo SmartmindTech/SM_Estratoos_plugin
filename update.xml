@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012604</version>
+        <version>2025012605</version>
 
         <!-- Human-readable release version -->
-        <release>1.8.4</release>
+        <release>1.8.5</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,28 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.8.4/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.8.5/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.8.4</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.8.5</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.8.4 - Fix PostMessage Parameter Extraction</h3>
+            <h3>Version 1.8.5 - Capture suspend_data for Articulate Storyline</h3>
 
-            <h4>Bug Fixes</h4>
+            <h4>Enhancements</h4>
             <ul>
-                <li><strong>Fix PostMessage cmid/scormid:</strong> SCORM player URL uses <code>?a=</code> parameter for SCORM instance ID, not <code>?cm=</code> or <code>?id=</code></li>
-                <li>Now correctly extracts scormid from <code>a</code> parameter and looks up cmid from course_modules table</li>
-                <li>PostMessage now sends correct cmid and scormid values</li>
+                <li><strong>Articulate Storyline support:</strong> PostMessage now captures <code>cmi.suspend_data</code> which is where Articulate Storyline stores slide position</li>
+                <li>Parses JSON suspend_data formats (currentSlide, slide, resume fields)</li>
+                <li>Parses scene_slide format patterns (e.g., "1_5" = scene 1, slide 5)</li>
+                <li>Added <code>lastSlide</code> tracking to avoid duplicate messages</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v1.8.4: Fix PostMessage parameter extraction (use 'a' param)</li>
                 <li>v1.8.3: Fix update notification URL to use relative path</li>
                 <li>v1.8.2: PostMessage real-time SCORM progress tracking</li>
-                <li>v1.8.1: SCORM currentslide fix (filter by primary SCO)</li>
             </ul>
             ]]>
         </releasenotes>

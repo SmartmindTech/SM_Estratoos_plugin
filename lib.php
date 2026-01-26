@@ -431,8 +431,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     var slidescount = {$slidescount};
     var lastLocation = null;
     var lastStatus = null;
+    var lastSlide = null;
 
-    // Function to parse slide number from various formats.
+    // Function to parse slide number from lesson_location.
     function parseSlideNumber(location) {
         if (!location || location === '') return null;
 
@@ -458,9 +459,43 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         return null;
     }
 
+    // Function to parse slide from suspend_data (Articulate Storyline stores position here).
+    function parseSlideFromSuspendData(data) {
+        if (!data) return null;
+
+        try {
+            // Try JSON parse (some tools use JSON).
+            var parsed = JSON.parse(data);
+            if (parsed.currentSlide !== undefined) return parseInt(parsed.currentSlide, 10);
+            if (parsed.slide !== undefined) return parseInt(parsed.slide, 10);
+            if (parsed.resume !== undefined) {
+                // Articulate format: resume might contain slide ref.
+                var match = parsed.resume.match(/(\d+)/);
+                if (match) return parseInt(match[1], 10);
+            }
+        } catch (e) {
+            // Not JSON, try regex patterns.
+        }
+
+        // Articulate Storyline pattern: look for slide numbers.
+        var match = data.match(/["']?(?:slide|currentSlide|resume)["']?\s*[:=]\s*["']?(\d+)/i);
+        if (match) return parseInt(match[1], 10);
+
+        // Look for scene/slide pattern (scene_slide format).
+        match = data.match(/(\d+)_(\d+)/);
+        if (match) return parseInt(match[2], 10);
+
+        return null;
+    }
+
     // Function to send progress to parent window.
-    function sendProgressUpdate(location, status, score) {
-        var currentSlide = parseSlideNumber(location);
+    function sendProgressUpdate(location, status, score, directSlide) {
+        var currentSlide = directSlide || parseSlideNumber(location) || lastSlide;
+
+        // Update lastSlide if we have a new value.
+        if (currentSlide !== null) {
+            lastSlide = currentSlide;
+        }
 
         // Build message object.
         var message = {
@@ -503,16 +538,23 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // Track lesson_location changes.
                 if (element === 'cmi.core.lesson_location' && value !== lastLocation) {
                     lastLocation = value;
-                    sendProgressUpdate(value, lastStatus, null);
+                    sendProgressUpdate(value, lastStatus, null, null);
                 }
                 // Track lesson_status changes.
                 if (element === 'cmi.core.lesson_status') {
                     lastStatus = value;
-                    sendProgressUpdate(lastLocation, value, null);
+                    sendProgressUpdate(lastLocation, value, null, null);
                 }
                 // Track score changes.
                 if (element === 'cmi.core.score.raw') {
-                    sendProgressUpdate(lastLocation, lastStatus, value);
+                    sendProgressUpdate(lastLocation, lastStatus, value, null);
+                }
+                // Track suspend_data changes (Articulate Storyline stores slide position here).
+                if (element === 'cmi.suspend_data') {
+                    var slideNum = parseSlideFromSuspendData(value);
+                    if (slideNum !== null && slideNum !== lastSlide) {
+                        sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                    }
                 }
 
                 return result;
@@ -530,16 +572,23 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // Track location changes.
                 if (element === 'cmi.location' && value !== lastLocation) {
                     lastLocation = value;
-                    sendProgressUpdate(value, lastStatus, null);
+                    sendProgressUpdate(value, lastStatus, null, null);
                 }
                 // Track completion_status changes.
                 if (element === 'cmi.completion_status') {
                     lastStatus = value;
-                    sendProgressUpdate(lastLocation, value, null);
+                    sendProgressUpdate(lastLocation, value, null, null);
                 }
                 // Track score changes.
                 if (element === 'cmi.score.raw') {
-                    sendProgressUpdate(lastLocation, lastStatus, value);
+                    sendProgressUpdate(lastLocation, lastStatus, value, null);
+                }
+                // Track suspend_data changes (Articulate Storyline stores slide position here).
+                if (element === 'cmi.suspend_data') {
+                    var slideNum = parseSlideFromSuspendData(value);
+                    if (slideNum !== null && slideNum !== lastSlide) {
+                        sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                    }
                 }
 
                 return result;
@@ -564,7 +613,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     // Send initial progress message when page loads.
     setTimeout(function() {
-        sendProgressUpdate(null, null, null);
+        sendProgressUpdate(null, null, null, null);
     }, 1000);
 })();
 </script>
