@@ -251,6 +251,17 @@ class get_activity_progress extends external_api {
 
         // Get user tracking data.
         try {
+            // First, find the primary launchable SCO (first 'sco' type with launch capability).
+            // This is critical because scorm_scoes_track has a scoid column, and without filtering
+            // by scoid, get_records_menu() would mix tracks from ALL SCOs causing key collisions.
+            $primarysco = $DB->get_record_select(
+                'scorm_scoes',
+                "scorm = :scormid AND scormtype = 'sco' AND launch <> ''",
+                ['scormid' => $scormid],
+                'id',
+                IGNORE_MULTIPLE  // Get first one
+            );
+
             // Get latest attempt number.
             $attempt = $DB->get_field('scorm_scoes_track', 'MAX(attempt)', [
                 'scormid' => $scormid,
@@ -260,12 +271,37 @@ class get_activity_progress extends external_api {
             if ($attempt) {
                 $progress['attempts'] = (int)$attempt;
 
-                // Get tracking data for latest attempt.
-                $tracks = $DB->get_records_menu('scorm_scoes_track', [
+                // Build query params - optionally filter by primary SCO.
+                $trackparams = [
                     'scormid' => $scormid,
                     'userid' => $userid,
                     'attempt' => $attempt,
-                ], '', 'element, value');
+                ];
+                $scoidclause = '';
+                if ($primarysco) {
+                    $trackparams['scoid'] = $primarysco->id;
+                    $scoidclause = ' AND scoid = :scoid';
+                }
+
+                // Get tracking data using get_records_sql to avoid key collision.
+                // When multiple SCOs exist, each has its own cmi.core.lesson_location element.
+                // get_records_menu() creates an associative array where duplicate keys overwrite.
+                $tracksql = "SELECT id, element, value
+                             FROM {scorm_scoes_track}
+                             WHERE scormid = :scormid
+                               AND userid = :userid
+                               AND attempt = :attempt
+                               $scoidclause
+                             ORDER BY timemodified DESC";
+                $trackrecords = $DB->get_records_sql($tracksql, $trackparams);
+
+                // Convert to element => value map (first occurrence wins due to DESC order).
+                $tracks = [];
+                foreach ($trackrecords as $track) {
+                    if (!isset($tracks[$track->element])) {
+                        $tracks[$track->element] = $track->value;
+                    }
+                }
 
                 // Extract score.
                 foreach (['cmi.core.score.raw', 'cmi.score.raw'] as $key) {
@@ -276,20 +312,50 @@ class get_activity_progress extends external_api {
                 }
 
                 // Extract lesson location (current slide).
+                // SCORM 1.2: cmi.core.lesson_location
+                // SCORM 2004: cmi.location
                 foreach (['cmi.core.lesson_location', 'cmi.location'] as $key) {
                     if (isset($tracks[$key]) && $tracks[$key] !== '') {
                         $location = $tracks[$key];
                         $progress['lessonlocation'] = $location;
 
                         // Parse slide number from various formats.
+                        // Format 1: Pure number "5"
                         if (is_numeric($location)) {
                             $progress['currentslide'] = (int)$location;
-                        } else if (preg_match('/(\d+)$/', $location, $m)) {
+                        }
+                        // Format 2: Trailing number "slide_5" or "scene1_slide5"
+                        else if (preg_match('/(\d+)$/', $location, $m)) {
                             $progress['currentslide'] = (int)$m[1];
-                        } else if (preg_match('/^(\d+)\//', $location, $m)) {
+                        }
+                        // Format 3: "5/10" format (current/total)
+                        else if (preg_match('/^(\d+)\//', $location, $m)) {
+                            $progress['currentslide'] = (int)$m[1];
+                        }
+                        // Format 4: Articulate format "#/slides/xxx" - extract slide number
+                        else if (preg_match('/slide(\d+)/i', $location, $m)) {
                             $progress['currentslide'] = (int)$m[1];
                         }
                         break;
+                    }
+                }
+
+                // Also check suspend_data for some SCORM packages that store position there.
+                if ($progress['currentslide'] === null) {
+                    foreach (['cmi.suspend_data', 'cmi.core.suspend_data'] as $key) {
+                        if (isset($tracks[$key]) && $tracks[$key] !== '') {
+                            // Try to parse JSON suspend_data (Articulate/iSpring format).
+                            $suspenddata = @json_decode($tracks[$key], true);
+                            if ($suspenddata && isset($suspenddata['currentSlide'])) {
+                                $progress['currentslide'] = (int)$suspenddata['currentSlide'];
+                                break;
+                            }
+                            // Try numeric extraction from suspend_data.
+                            if (preg_match('/(?:slide|page|position)["\s:=]+(\d+)/i', $tracks[$key], $m)) {
+                                $progress['currentslide'] = (int)$m[1];
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -309,7 +375,8 @@ class get_activity_progress extends external_api {
                 }
             }
         } catch (\Exception $e) {
-            // Tracking table may not exist.
+            // Tracking table may not exist - add error details for debugging.
+            debugging('SCORM tracking error: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
 
         return $progress;

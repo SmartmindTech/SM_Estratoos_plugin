@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012600</version>
+        <version>2025012601</version>
 
         <!-- Human-readable release version -->
-        <release>1.8.0</release>
+        <release>1.8.1</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,33 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.8.0/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.8.1/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.8.0</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.8.1</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.8.0 - Activity Progress API</h3>
-
-            <h4>New Features</h4>
-            <ul>
-                <li><strong>New API Function:</strong> <code>get_activity_progress</code> - Lightweight function to retrieve progress metadata from any activity type (SCORM, Quiz, Book, Lesson, Assignment, Page, Resource, URL)</li>
-                <li>Returns slide/page/question counts, current position, score, attempts without heavy content payloads</li>
-            </ul>
+            <h3>Version 1.8.1 - SCORM currentslide Fix</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li><strong>SCORM currentslide fix:</strong> Now correctly extracts slide position from <code>cmi.core.lesson_location</code> tracking data (was incorrectly returning SCO ID)</li>
-                <li>Supports various lesson_location formats: numeric (5), slide_5, 1M5, 5/139</li>
+                <li><strong>SCORM currentslide fix:</strong> Now properly filters by primary SCO to avoid key collisions when multiple SCOs exist</li>
+                <li>Uses <code>get_records_sql()</code> instead of <code>get_records_menu()</code> to prevent duplicate element keys from overwriting each other</li>
+                <li>Added support for more SCORM location formats: Articulate Storyline, iSpring, and JSON suspend_data</li>
+                <li>Added fallback to <code>cmi.suspend_data</code> for packages that store position there</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v1.8.0: New <code>get_activity_progress</code> API function</li>
                 <li>v1.7.99: Company access logic fixes, timezone handling</li>
                 <li>v1.7.98: Correct OAuth2 defaults (issuer=backend, origins=frontend)</li>
-                <li>v1.7.97: Default CSP includes both inbox and api-inbox domains</li>
             </ul>
             ]]>
         </releasenotes>
