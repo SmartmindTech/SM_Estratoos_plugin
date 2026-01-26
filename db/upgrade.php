@@ -1615,6 +1615,18 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025012183, 'local', 'sm_estratoos_plugin');
     }
 
+    // v1.8.0: Add get_activity_progress function for lightweight activity metadata retrieval.
+    // Also fixes SCORM currentslide extraction from lesson_location tracking data.
+    if ($oldversion < 2025012600) {
+        require_once(__DIR__ . '/install.php');
+
+        // Add the new get_activity_progress function to the service.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025012600, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

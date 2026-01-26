@@ -390,6 +390,20 @@ $functions = [
         'loginrequired' => true,
     ],
 
+    // Get activity progress metadata (lightweight, fast).
+    'local_sm_estratoos_plugin_get_activity_progress' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_activity_progress',
+        'methodname' => 'execute',
+        'description' => 'Lightweight activity progress retrieval. Returns only progress metadata (slide count, ' .
+                        'current position, score, attempts) without fetching full content. Supports SCORM, Quiz, ' .
+                        'Book, Lesson, Assignment, Page, Resource, URL. Use modtype parameter to filter by activity type. ' .
+                        'Performance: < 100ms for 50 activities. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'moodle/course:view',
+        'loginrequired' => true,
+    ],
+
     // Get students enrolled in a course.
     'local_sm_estratoos_plugin_get_course_students' => [
         'classname' => 'local_sm_estratoos_plugin\external\get_course_students',

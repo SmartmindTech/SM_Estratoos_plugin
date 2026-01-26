@@ -337,6 +337,8 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_get_conversation_messages',
         // Course content functions.
         'local_sm_estratoos_plugin_get_course_content',
+        // v1.8.0: Activity progress function (lightweight metadata retrieval).
+        'local_sm_estratoos_plugin_get_activity_progress',
         // v1.7.76: Course participants functions.
         'local_sm_estratoos_plugin_get_course_students',
         'local_sm_estratoos_plugin_get_course_teachers',

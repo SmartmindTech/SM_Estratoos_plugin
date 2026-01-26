@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012299</version>
+        <version>2025012600</version>
 
         <!-- Human-readable release version -->
-        <release>1.7.99</release>
+        <release>1.8.0</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,33 +29,31 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.7.99/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v1.8.0/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.7.99</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v1.8.0</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 1.7.99 - Company Access Fixes</h3>
+            <h3>Version 1.8.0 - Activity Progress API</h3>
+
+            <h4>New Features</h4>
+            <ul>
+                <li><strong>New API Function:</strong> <code>get_activity_progress</code> - Lightweight function to retrieve progress metadata from any activity type (SCORM, Quiz, Book, Lesson, Assignment, Page, Resource, URL)</li>
+                <li>Returns slide/page/question counts, current position, score, attempts without heavy content payloads</li>
+            </ul>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li><strong>Manual disable now persists:</strong> When superadmin unchecks a company to disable it, it stays disabled regardless of expiry date setting</li>
-                <li><strong>Expiry date cleared on disable:</strong> Disabled companies no longer retain expiry dates (no sense in expiry for disabled company)</li>
-                <li><strong>Valid expiry enables company:</strong> Setting a new expiry date (today or future) on a disabled company will enable it</li>
-                <li><strong>Timezone fix:</strong> Expiry dates now display correctly regardless of Moodle's timezone setting (previously showed next day in some timezones like Australia/Perth)</li>
-            </ul>
-
-            <h4>Technical Changes</h4>
-            <ul>
-                <li>New <code>set_company_expiry_date_only()</code> function for updating expiry without triggering enable/disable</li>
-                <li>JavaScript date conversion now uses local timezone instead of UTC</li>
-                <li>PHP date display uses <code>userdate()</code> for consistent timezone handling</li>
+                <li><strong>SCORM currentslide fix:</strong> Now correctly extracts slide position from <code>cmi.core.lesson_location</code> tracking data (was incorrectly returning SCO ID)</li>
+                <li>Supports various lesson_location formats: numeric (5), slide_5, 1M5, 5/139</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v1.7.99: Company access logic fixes, timezone handling</li>
                 <li>v1.7.98: Correct OAuth2 defaults (issuer=backend, origins=frontend)</li>
                 <li>v1.7.97: Default CSP includes both inbox and api-inbox domains</li>
             </ul>

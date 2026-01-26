@@ -620,10 +620,26 @@ class get_course_content extends external_api {
                         }
                     }
 
-                    // Get current slide/location.
+                    // Get current slide/location from tracking data.
                     foreach (['cmi.core.lesson_location', 'cmi.location'] as $lockey) {
                         if (isset($tracks[$lockey]) && $tracks[$lockey] !== '') {
-                            $currentslide = $sco->id;
+                            $locationvalue = $tracks[$lockey];
+                            // Try to extract numeric slide position from various formats:
+                            // - Simple number: "5" -> 5
+                            // - Slide ID: "slide_5" or "slide5" -> 5
+                            // - Path format: "1M5" (scene 1, slide 5) -> 5
+                            // - Fraction: "5/139" -> 5
+                            if (is_numeric($locationvalue)) {
+                                $currentslide = (int)$locationvalue;
+                            } else if (preg_match('/(\d+)$/', $locationvalue, $matches)) {
+                                // Extract last number from string (handles slide_5, 1M5, etc.)
+                                $currentslide = (int)$matches[1];
+                            } else if (preg_match('/^(\d+)\//', $locationvalue, $matches)) {
+                                // Extract first number from fraction format (5/139)
+                                $currentslide = (int)$matches[1];
+                            }
+                            // Store raw location for debugging/advanced use
+                            $scodata['usertrack']['lesson_location_raw'] = $locationvalue;
                             break;
                         }
                     }
