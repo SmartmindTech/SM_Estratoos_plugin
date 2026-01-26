@@ -318,17 +318,23 @@ function local_sm_estratoos_plugin_before_footer() {
 
         // Always inject PostMessage tracking script for real-time progress updates.
         // This allows SmartLearning to receive slide changes without polling.
-        $cmid = optional_param('cm', 0, PARAM_INT);
-        if (!$cmid) {
-            $cmid = optional_param('id', 0, PARAM_INT);
-        }
+        // SCORM player URL uses 'a' parameter for SCORM instance ID (not 'cm' or 'id').
+        $scormid = optional_param('a', 0, PARAM_INT);
+        $scoid = optional_param('scoid', 0, PARAM_INT);
 
-        $scormid = 0;
+        // Get cmid from course_modules table using scorm instance ID.
+        $cmid = 0;
         $slidescount = 0;
-        if ($cmid) {
-            $cm = $DB->get_record('course_modules', ['id' => $cmid]);
+        if ($scormid > 0) {
+            $cm = $DB->get_record_sql(
+                "SELECT cm.id
+                 FROM {course_modules} cm
+                 JOIN {modules} m ON m.id = cm.module AND m.name = 'scorm'
+                 WHERE cm.instance = :instance",
+                ['instance' => $scormid]
+            );
             if ($cm) {
-                $scormid = $cm->instance;
+                $cmid = (int)$cm->id;
                 $slidescount = local_sm_estratoos_plugin_get_scorm_slidecount($cmid, $scormid);
             }
         }
