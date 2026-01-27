@@ -46,15 +46,20 @@ class embed_renderer {
     /** @var string Activity type */
     private $activityType;
 
+    /** @var int|null Target slide for SCORM navigation */
+    private $targetSlide;
+
     /**
      * Constructor.
      *
      * @param \cm_info $cm Course module info
+     * @param int|null $targetSlide Optional target slide for direct SCORM navigation
      */
-    public function __construct(\cm_info $cm) {
+    public function __construct(\cm_info $cm, ?int $targetSlide = null) {
         $this->cm = $cm;
         $this->context = \context_module::instance($cm->id);
         $this->activityType = $cm->modname;
+        $this->targetSlide = $targetSlide;
     }
 
     /**
@@ -167,6 +172,31 @@ class embed_renderer {
     private function render_scorm_iframe(string $playerUrl, string $title): string {
         global $CFG;
 
+        // Generate JavaScript to manage sessionStorage for target slide navigation BEFORE iframe loads.
+        // IMPORTANT: Always clear any existing entry first to prevent stale navigation on page reload.
+        $cmid = (int)$this->cm->id;
+        $slideSetupScript = "
+    // Clear any stale navigation data first (prevents redirect on page reload)
+    (function() {
+        sessionStorage.removeItem('scorm_pending_navigation_{$cmid}');
+    })();
+";
+        if ($this->targetSlide !== null) {
+            $slide = (int)$this->targetSlide;
+            $slideSetupScript .= "
+    // Set up sessionStorage for direct slide navigation BEFORE iframe loads
+    (function() {
+        var navData = {
+            slide: {$slide},
+            cmid: {$cmid},
+            timestamp: Date.now()
+        };
+        sessionStorage.setItem('scorm_pending_navigation_{$cmid}', JSON.stringify(navData));
+        console.log('[Embed Renderer] Set pending navigation to slide', {$slide}, 'for cmid', {$cmid});
+    })();
+";
+        }
+
         $html = '<!DOCTYPE html>
 <html lang="' . current_language() . '">
 <head>
@@ -188,6 +218,7 @@ class embed_renderer {
             display: block;
         }
     </style>
+    <script>' . $slideSetupScript . '</script>
 </head>
 <body>
     <iframe id="scorm-frame" src="' . s($playerUrl) . '" allowfullscreen></iframe>

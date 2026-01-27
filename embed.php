@@ -200,6 +200,9 @@ if (!$user) {
 // Get course module ID from request.
 $cmid = required_param('cmid', PARAM_INT);
 
+// Get optional slide parameter for direct SCORM navigation.
+$targetSlide = optional_param('slide', null, PARAM_INT);
+
 // Get course module.
 try {
     $cm = get_coursemodule_from_id('', $cmid, 0, false, MUST_EXIST);
@@ -293,7 +296,7 @@ $modinfo = get_fast_modinfo($course);
 $cminfo = $modinfo->get_cm($cm->id);
 
 // Render the activity.
-$renderer = new embed_renderer($cminfo);
+$renderer = new embed_renderer($cminfo, $targetSlide);
 $html = $renderer->render();
 
 // Output HTML.
