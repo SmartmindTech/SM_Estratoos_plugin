@@ -2807,13 +2807,22 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     console.log('[SCORM suspend_data] LZ decompressed, length:', decompressed.length);
 
                     // Try to parse as JSON
+                    var jsonModified = false;
                     try {
                         var parsed = JSON.parse(decompressed);
                         console.log('[SCORM suspend_data] Parsed JSON, keys:', Object.keys(parsed).join(', '));
 
+                        // Debug: log the structure of key arrays
+                        if (parsed.d && Array.isArray(parsed.d)) {
+                            console.log('[SCORM suspend_data] d array length:', parsed.d.length);
+                            // Log first few items to understand structure
+                            for (var di = 0; di < Math.min(5, parsed.d.length); di++) {
+                                console.log('[SCORM suspend_data] d[' + di + ']:', JSON.stringify(parsed.d[di]).substring(0, 100));
+                            }
+                        }
+
                         // Modify the resume position (0-based index for Storyline)
                         var targetIndex = targetSlide - 1;
-                        var modified = false;
 
                         // Storyline format with "resume" key: "scene_slide" or just "slide"
                         if (parsed.resume !== undefined) {
@@ -2829,24 +2838,28 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 parsed.resume = String(targetIndex);
                                 console.log('[SCORM suspend_data] Modified resume from', oldResume, 'to', parsed.resume);
                             }
-                            modified = true;
+                            jsonModified = true;
                         }
 
                         // Storyline "d" array format: [{n: "Resume", v: "0_7"}, ...]
                         if (parsed.d && Array.isArray(parsed.d)) {
                             for (var i = 0; i < parsed.d.length; i++) {
                                 var item = parsed.d[i];
-                                if (item.n === 'Resume' || item.n === 'resume') {
+                                if (item && item.n && (item.n === 'Resume' || item.n === 'resume' ||
+                                    item.n === 'CurrentSlide' || item.n === 'currentSlide' ||
+                                    item.n === 'SlideIndex' || item.n === 'slideIndex' ||
+                                    item.n === 'Position' || item.n === 'position')) {
                                     var oldVal = item.v;
                                     var match = String(oldVal).match(/^(\d+)_(\d+)$/);
                                     if (match) {
                                         item.v = match[1] + '_' + targetIndex;
+                                    } else if (!isNaN(oldVal)) {
+                                        item.v = targetIndex;
                                     } else {
                                         item.v = String(targetIndex);
                                     }
-                                    console.log('[SCORM suspend_data] Modified d-array Resume from', oldVal, 'to', item.v);
-                                    modified = true;
-                                    break;
+                                    console.log('[SCORM suspend_data] Modified d-array', item.n, 'from', oldVal, 'to', item.v);
+                                    jsonModified = true;
                                 }
                             }
                         }
@@ -2854,30 +2867,34 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         // Other common formats
                         if (parsed.currentSlide !== undefined) {
                             parsed.currentSlide = targetIndex;
-                            modified = true;
+                            jsonModified = true;
                         }
                         if (parsed.slide !== undefined) {
                             parsed.slide = targetIndex;
-                            modified = true;
+                            jsonModified = true;
                         }
                         if (parsed.current !== undefined) {
                             parsed.current = targetIndex;
-                            modified = true;
+                            jsonModified = true;
                         }
                         if (parsed.position !== undefined) {
                             parsed.position = targetIndex;
-                            modified = true;
+                            jsonModified = true;
+                        }
+                        if (parsed.p !== undefined && !isNaN(parsed.p)) {
+                            // 'p' might be position in some formats
+                            console.log('[SCORM suspend_data] Found p key:', parsed.p);
                         }
                         if (parsed.variables && parsed.variables.CurrentSlideIndex !== undefined) {
                             parsed.variables.CurrentSlideIndex = targetIndex;
-                            modified = true;
+                            jsonModified = true;
                         }
                         if (parsed.variables && parsed.variables['Player.CurrentSlideIndex'] !== undefined) {
                             parsed.variables['Player.CurrentSlideIndex'] = targetIndex;
-                            modified = true;
+                            jsonModified = true;
                         }
 
-                        if (modified) {
+                        if (jsonModified) {
                             // Re-serialize and compress
                             var newJson = JSON.stringify(parsed);
                             modifiedData = LZString.compressToBase64(newJson);
@@ -2885,8 +2902,11 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         }
                     } catch (e) {
                         console.log('[SCORM suspend_data] JSON parse error:', e.message);
+                    }
 
-                        // Not JSON, try text-based modification
+                    // If JSON modification didn't work, try text-based modification
+                    if (!jsonModified) {
+                        console.log('[SCORM suspend_data] JSON modification failed, trying text-based modification...');
                         var modifiedText = modifySuspendDataText(decompressed, targetSlide);
                         if (modifiedText && modifiedText !== decompressed) {
                             modifiedData = LZString.compressToBase64(modifiedText);
@@ -2976,32 +2996,147 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     /**
      * Modify suspend_data text (non-JSON) with new slide position.
+     * This handles various SCORM authoring tool formats via regex replacement.
+     * Uses flexible patterns similar to extractSlideFromText for detection.
      */
     function modifySuspendDataText(text, targetSlide) {
         var targetIndex = targetSlide - 1;
         var modified = text;
+        var changesMade = false;
 
-        // Replace resume patterns (scene_slide format)
-        modified = modified.replace(
-            /("resume"\s*:\s*")(\d+)_(\d+)(")/gi,
-            function(match, p1, scene, slide, p4) {
-                return p1 + scene + '_' + targetIndex + p4;
+        console.log('[SCORM suspend_data text] Attempting text-based modification for slide:', targetSlide, '(index:', targetIndex, ')');
+        console.log('[SCORM suspend_data text] Text sample (first 500 chars):', text.substring(0, 500));
+
+        // Pattern 1: scene_slide format with flexible quoting - "resume":"0_7", resume:0_7, etc.
+        // Captures: $1=prefix (resume + quotes/separator), $2=scene, $3=slide, $4=suffix
+        var p1 = modified.replace(
+            /(["']?resume["']?\s*[:=]\s*["']?)(\d+)_(\d+)(["']?)/gi,
+            function(match, prefix, scene, slide, suffix) {
+                console.log('[SCORM suspend_data text] Replacing resume scene_slide:', match, '->', prefix + scene + '_' + targetIndex + suffix);
+                changesMade = true;
+                return prefix + scene + '_' + targetIndex + suffix;
             }
         );
+        if (p1 !== modified) modified = p1;
 
-        // Replace simple resume patterns
-        modified = modified.replace(
-            /("resume"\s*:\s*")(\d+)(")/gi,
-            function(match, p1, oldSlide, p3) {
-                return p1 + targetIndex + p3;
+        // Pattern 2: Simple resume number - "resume":"7" or resume:7
+        var p2 = modified.replace(
+            /(["']?resume["']?\s*[:=]\s*["']?)(\d+)(["']?)(?![_\d])/gi,
+            function(match, prefix, oldSlide, suffix) {
+                // Skip if this is part of a scene_slide (already handled)
+                if (match.indexOf('_') !== -1) return match;
+                console.log('[SCORM suspend_data text] Replacing resume:', match, '->', prefix + targetIndex + suffix);
+                changesMade = true;
+                return prefix + targetIndex + suffix;
             }
         );
+        if (p2 !== modified) modified = p2;
 
-        // Replace currentSlide patterns
-        modified = modified.replace(
-            /("currentSlide"\s*:\s*)(\d+)/gi,
-            '$1' + targetIndex
+        // Pattern 3: Storyline d-array - "n":"Resume"..."v":"0_7" or reverse
+        var p3 = modified.replace(
+            /("n"\s*:\s*"Resume"[^}]{0,50}"v"\s*:\s*")(\d+)_(\d+)(")/gi,
+            function(match, prefix, scene, slide, suffix) {
+                console.log('[SCORM suspend_data text] Replacing d-array Resume:', scene + '_' + slide, '->', scene + '_' + targetIndex);
+                changesMade = true;
+                return prefix + scene + '_' + targetIndex + suffix;
+            }
         );
+        if (p3 !== modified) modified = p3;
+
+        // Pattern 4: Reverse order "v":"0_7"..."n":"Resume"
+        var p4 = modified.replace(
+            /("v"\s*:\s*")(\d+)_(\d+)("[^}]{0,50}"n"\s*:\s*"Resume")/gi,
+            function(match, prefix, scene, slide, suffix) {
+                console.log('[SCORM suspend_data text] Replacing reverse d-array:', scene + '_' + slide, '->', scene + '_' + targetIndex);
+                changesMade = true;
+                return prefix + scene + '_' + targetIndex + suffix;
+            }
+        );
+        if (p4 !== modified) modified = p4;
+
+        // Pattern 5: currentSlide with flexible quoting
+        var p5 = modified.replace(
+            /(["']?currentSlide["']?\s*[:=]\s*["']?)(\d+)(["']?)/gi,
+            function(match, prefix, oldSlide, suffix) {
+                console.log('[SCORM suspend_data text] Replacing currentSlide:', oldSlide, '->', targetIndex);
+                changesMade = true;
+                return prefix + targetIndex + suffix;
+            }
+        );
+        if (p5 !== modified) modified = p5;
+
+        // Pattern 6: CurrentSlideIndex
+        var p6 = modified.replace(
+            /(["']?CurrentSlideIndex["']?\s*[:=]\s*["']?)(\d+)(["']?)/gi,
+            function(match, prefix, oldSlide, suffix) {
+                console.log('[SCORM suspend_data text] Replacing CurrentSlideIndex:', oldSlide, '->', targetIndex);
+                changesMade = true;
+                return prefix + targetIndex + suffix;
+            }
+        );
+        if (p6 !== modified) modified = p6;
+
+        // Pattern 7: slide key
+        var p7 = modified.replace(
+            /(["']?slide["']?\s*[:=]\s*["']?)(\d+)(["']?)(?![_\d])/gi,
+            function(match, prefix, oldSlide, suffix) {
+                console.log('[SCORM suspend_data text] Replacing slide:', oldSlide, '->', targetIndex);
+                changesMade = true;
+                return prefix + targetIndex + suffix;
+            }
+        );
+        if (p7 !== modified) modified = p7;
+
+        // Pattern 8: position key
+        var p8 = modified.replace(
+            /(["']?position["']?\s*[:=]\s*["']?)(\d+)(["']?)(?![_\d])/gi,
+            function(match, prefix, oldSlide, suffix) {
+                console.log('[SCORM suspend_data text] Replacing position:', oldSlide, '->', targetIndex);
+                changesMade = true;
+                return prefix + targetIndex + suffix;
+            }
+        );
+        if (p8 !== modified) modified = p8;
+
+        // Pattern 9: state keyword followed by scene_slide (common bookmark format)
+        var p9 = modified.replace(
+            /(["']?(?:state|bookmark)["']?\s*[:=]\s*["']?)(\d+)_(\d+)(["']?)/gi,
+            function(match, prefix, scene, slide, suffix) {
+                console.log('[SCORM suspend_data text] Replacing state/bookmark:', scene + '_' + slide, '->', scene + '_' + targetIndex);
+                changesMade = true;
+                return prefix + scene + '_' + targetIndex + suffix;
+            }
+        );
+        if (p9 !== modified) modified = p9;
+
+        // Pattern 10: pageIndex or slideIndex
+        var p10 = modified.replace(
+            /(["']?(?:page|slide)Index["']?\s*[:=]\s*["']?)(\d+)(["']?)/gi,
+            function(match, prefix, oldSlide, suffix) {
+                console.log('[SCORM suspend_data text] Replacing Index:', oldSlide, '->', targetIndex);
+                changesMade = true;
+                return prefix + targetIndex + suffix;
+            }
+        );
+        if (p10 !== modified) modified = p10;
+
+        if (!changesMade) {
+            console.log('[SCORM suspend_data text] No patterns matched in text');
+            // Log what patterns ARE in the text for debugging
+            var debugPatterns = [
+                /resume/gi,
+                /slide/gi,
+                /position/gi,
+                /current/gi,
+                /\d+_\d+/g
+            ];
+            for (var dp = 0; dp < debugPatterns.length; dp++) {
+                var matches = text.match(debugPatterns[dp]);
+                if (matches) {
+                    console.log('[SCORM suspend_data text] Found pattern:', debugPatterns[dp].source, '-> matches:', matches.slice(0, 5).join(', '));
+                }
+            }
+        }
 
         return modified;
     }

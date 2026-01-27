@@ -417,18 +417,39 @@ class get_activity_progress extends external_api {
                 }
 
                 // Calculate progress from available data.
-                // Priority: currentslide > score-based calculation > completed SCOs
-                if ($progress['currentslide'] !== null && $progress['slidescount'] > 0) {
-                    // Have explicit slide position.
-                    $progress['completeditems'] = $progress['currentslide'];
-                } else if ($progress['score'] !== null && $progress['slidescount'] > 0) {
-                    // Use score as progress percentage (common for Articulate Storyline).
-                    // cmi.core.score.raw often represents progress % (0-100).
+                // IMPORTANT: Progress bar should show FURTHEST REACHED, not current position.
+                // Score.raw typically represents furthest progress, currentslide is just current position.
+                // Use the MAXIMUM of score-based and currentslide-based progress.
+
+                $scoreBasedSlide = null;
+                $scoreBasedPercent = null;
+
+                // Calculate progress from score (usually represents furthest reached).
+                if ($progress['score'] !== null && $progress['slidescount'] > 0) {
                     $scorepercent = min($progress['score'], 100);
-                    $progress['currentslide'] = (int)round(($scorepercent / 100) * $progress['slidescount']);
-                    $progress['completeditems'] = $progress['currentslide'];
-                    // Override progresspercent directly from score for accuracy.
-                    $progress['progresspercent'] = round($scorepercent, 1);
+                    $scoreBasedSlide = (int)round(($scorepercent / 100) * $progress['slidescount']);
+                    $scoreBasedPercent = round($scorepercent, 1);
+                }
+
+                // Determine which value represents furthest progress.
+                $furthestSlide = null;
+                if ($scoreBasedSlide !== null && $progress['currentslide'] !== null) {
+                    // Use the maximum - score usually represents furthest, but take max to be safe.
+                    $furthestSlide = max($scoreBasedSlide, $progress['currentslide']);
+                } else if ($scoreBasedSlide !== null) {
+                    $furthestSlide = $scoreBasedSlide;
+                } else if ($progress['currentslide'] !== null) {
+                    $furthestSlide = $progress['currentslide'];
+                }
+
+                if ($furthestSlide !== null && $progress['slidescount'] > 0) {
+                    $progress['completeditems'] = $furthestSlide;
+                    // Store the furthest slide for the frontend.
+                    $progress['furthestslide'] = $furthestSlide;
+                    // If score-based percent is higher, use it directly for accuracy.
+                    if ($scoreBasedPercent !== null) {
+                        $progress['progresspercent'] = $scoreBasedPercent;
+                    }
                 } else {
                     $progress['completeditems'] = $completedcount ?: 0;
                 }
@@ -745,6 +766,7 @@ class get_activity_progress extends external_api {
                     // SCORM-specific
                     'slidescount' => new external_value(PARAM_INT, 'Total slides (SCORM)', VALUE_OPTIONAL),
                     'currentslide' => new external_value(PARAM_INT, 'Current slide position (SCORM)', VALUE_OPTIONAL),
+                    'furthestslide' => new external_value(PARAM_INT, 'Furthest slide reached for progress bar (SCORM)', VALUE_OPTIONAL),
                     'lessonlocation' => new external_value(PARAM_RAW, 'Raw lesson_location value (SCORM)', VALUE_OPTIONAL),
                     // Quiz-specific
                     'questioncount' => new external_value(PARAM_INT, 'Total questions (Quiz)', VALUE_OPTIONAL),
