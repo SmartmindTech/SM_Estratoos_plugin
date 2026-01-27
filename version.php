@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012706;  // YYYYMMDDXX format.
+$plugin->version = 2025012707;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.6';  // Enhanced SCORM slide tracking with polling, DOM observers, and multi-vendor support.
+$plugin->release = '2.0.7';  // Multi-vendor SCORM detection (Storyline, iSpring, Captivate, Rise 360, Lectora) + Moodle 4.x tables.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

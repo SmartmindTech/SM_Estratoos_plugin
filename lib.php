@@ -514,21 +514,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         var match = data.match(/["']?(?:slide|currentSlide|resume|current|position)["']?\s*[:=]\s*["']?(\d+)/i);
         if (match) return parseInt(match[1], 10);
 
-        // 5. Look for scene/slide pattern (scene_slide format).
-        match = data.match(/(\d+)[_\-](\d+)/);
-        if (match) return parseInt(match[2], 10);
-
-        // 6. Look for reasonable slide index numbers in the data.
-        match = data.match(/\b(\d{1,3})\b/g);
-        if (match && match.length > 0) {
-            for (var i = 0; i < match.length; i++) {
-                var num = parseInt(match[i], 10);
-                if (num > 0 && num <= slidescount) {
-                    return num;
-                }
-            }
+        // 5. Look for scene/slide pattern (scene_slide format) - but NOT in Base64 data.
+        // Only apply if the data doesn't look like Base64.
+        if (!data.match(/^[A-Za-z0-9+/=]{20,}$/)) {
+            match = data.match(/(\d+)[_\-](\d+)/);
+            if (match) return parseInt(match[2], 10);
         }
 
+        // If we can't parse suspend_data, return null.
+        // The score-based calculation will be used as fallback.
         return null;
     }
 
@@ -780,6 +774,896 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
         }, 3000);
     }
+
+    // ==========================================================================
+    // ARTICULATE STORYLINE SPECIFIC: Direct slide detection from player
+    // ==========================================================================
+
+    var storylineSlideIndex = null;
+    var storylineCheckInterval = null;
+
+    // Function to find the Storyline iframe and access its player.
+    function findStorylinePlayer() {
+        // Look for the SCORM content iframe.
+        var iframes = document.querySelectorAll('iframe');
+        for (var i = 0; i < iframes.length; i++) {
+            var iframe = iframes[i];
+            try {
+                var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                var iframeWin = iframe.contentWindow;
+
+                // Check if this is a Storyline player.
+                // Storyline has a GetPlayer() function.
+                if (iframeWin.GetPlayer) {
+                    return { iframe: iframe, window: iframeWin, document: iframeDoc };
+                }
+
+                // Also check for nested iframes (Storyline often nests content).
+                var nestedIframes = iframeDoc.querySelectorAll('iframe');
+                for (var j = 0; j < nestedIframes.length; j++) {
+                    try {
+                        var nestedWin = nestedIframes[j].contentWindow;
+                        if (nestedWin && nestedWin.GetPlayer) {
+                            return { iframe: nestedIframes[j], window: nestedWin, document: nestedWin.document };
+                        }
+                    } catch (e) {
+                        // Cross-origin, skip.
+                    }
+                }
+            } catch (e) {
+                // Cross-origin or other error, skip.
+            }
+        }
+        return null;
+    }
+
+    // Function to get current slide from Storyline player.
+    function getStorylineCurrentSlide(playerInfo) {
+        if (!playerInfo || !playerInfo.window) return null;
+
+        try {
+            var win = playerInfo.window;
+            var doc = playerInfo.document;
+
+            // Method 1: Use Storyline's GetPlayer() API.
+            if (win.GetPlayer) {
+                var player = win.GetPlayer();
+                if (player) {
+                    // Try to get current slide index.
+                    // Storyline stores slide info internally.
+                    if (player.GetVar) {
+                        // Some Storyline versions expose a "Menu.SlideNumber" or similar.
+                        var slideNum = player.GetVar('Menu.SlideNumber');
+                        if (slideNum) {
+                            console.log('[Storyline] GetVar Menu.SlideNumber:', slideNum);
+                            return parseInt(slideNum, 10);
+                        }
+                    }
+                }
+            }
+
+            // Method 2: Check the hash/URL for slide reference.
+            var hash = win.location.hash;
+            if (hash) {
+                // Format: #/scenes/xxx/slides/yyy or similar.
+                var match = hash.match(/slides?[\/\-_]?(\d+)/i);
+                if (match) {
+                    console.log('[Storyline] Hash slide:', match[1]);
+                    return parseInt(match[1], 10);
+                }
+            }
+
+            // Method 3: Look for visible slide container in DOM.
+            // Storyline uses elements with data-slide-index or similar.
+            var slideContainers = doc.querySelectorAll('[data-slide-index], [data-acc-slide], .slide-container, .slide-layer');
+            for (var i = 0; i < slideContainers.length; i++) {
+                var container = slideContainers[i];
+                // Check if visible.
+                var style = win.getComputedStyle(container);
+                if (style.display !== 'none' && style.visibility !== 'hidden') {
+                    var slideIdx = container.getAttribute('data-slide-index') ||
+                                   container.getAttribute('data-acc-slide');
+                    if (slideIdx) {
+                        console.log('[Storyline] DOM slide-index:', slideIdx);
+                        return parseInt(slideIdx, 10) + 1; // Convert 0-based to 1-based.
+                    }
+                }
+            }
+
+            // Method 4: Check Storyline's internal state object.
+            if (win.g_slideObject || win.g_PlayerInfo) {
+                var slideObj = win.g_slideObject || win.g_PlayerInfo;
+                if (slideObj.slideIndex !== undefined) {
+                    console.log('[Storyline] g_slideObject.slideIndex:', slideObj.slideIndex);
+                    return slideObj.slideIndex + 1;
+                }
+            }
+
+            // Method 5: Look for the active slide in the slide container.
+            var activeSlide = doc.querySelector('.slide.active, .slide-object.active, .slide-layer.active, [class*="slide"][class*="active"]');
+            if (activeSlide) {
+                // Try to get index from class name.
+                var classes = activeSlide.className;
+                var match = classes.match(/slide[_\-]?(\d+)/i);
+                if (match) {
+                    console.log('[Storyline] Active slide class:', match[1]);
+                    return parseInt(match[1], 10);
+                }
+                // Try to get index from siblings.
+                var siblings = activeSlide.parentElement.children;
+                for (var i = 0; i < siblings.length; i++) {
+                    if (siblings[i] === activeSlide) {
+                        console.log('[Storyline] Active slide sibling index:', i + 1);
+                        return i + 1;
+                    }
+                }
+            }
+
+        } catch (e) {
+            console.log('[Storyline] Error accessing player:', e.message);
+        }
+
+        return null;
+    }
+
+    // Start Storyline-specific monitoring after content loads.
+    setTimeout(function() {
+        storylineCheckInterval = setInterval(function() {
+            var playerInfo = findStorylinePlayer();
+            if (playerInfo) {
+                var currentSlide = getStorylineCurrentSlide(playerInfo);
+                if (currentSlide !== null && currentSlide !== storylineSlideIndex) {
+                    storylineSlideIndex = currentSlide;
+                    if (currentSlide !== lastSlide) {
+                        console.log('[Storyline] Slide changed to:', currentSlide);
+                        sendProgressUpdate(null, null, null, currentSlide);
+                    }
+                }
+            }
+        }, 1000); // Check every second.
+    }, 4000); // Wait 4 seconds for content to fully load.
+
+    // Clean up Storyline interval on unload.
+    window.addEventListener('beforeunload', function() {
+        if (storylineCheckInterval) {
+            clearInterval(storylineCheckInterval);
+        }
+    });
+
+    // ==========================================================================
+    // ISPRING SPECIFIC: Slide detection from iSpring Presentation API
+    // ==========================================================================
+
+    var iSpringSlideIndex = null;
+    var iSpringCheckInterval = null;
+
+    // Function to find the iSpring player in iframes.
+    function findISpringPlayer() {
+        var iframes = document.querySelectorAll('iframe');
+        for (var i = 0; i < iframes.length; i++) {
+            try {
+                var iframeWin = iframes[i].contentWindow;
+                // iSpring exposes iSpringPresentationAPI or window.frames.content
+                if (iframeWin.iSpringPresentationAPI ||
+                    iframeWin.ispringPresentationConnector ||
+                    iframeWin.ISPRING) {
+                    return { iframe: iframes[i], window: iframeWin };
+                }
+                // Check for iSpring's player object
+                if (iframeWin.player && typeof iframeWin.player.view !== 'undefined') {
+                    return { iframe: iframes[i], window: iframeWin };
+                }
+            } catch (e) {
+                // Cross-origin, skip.
+            }
+        }
+        return null;
+    }
+
+    // Function to get current slide from iSpring player.
+    function getISpringCurrentSlide(playerInfo) {
+        if (!playerInfo || !playerInfo.window) return null;
+
+        try {
+            var win = playerInfo.window;
+
+            // Method 1: iSpring Presentation API (newer versions)
+            if (win.iSpringPresentationAPI) {
+                var api = win.iSpringPresentationAPI;
+                if (api.slidesCount && api.currentSlideIndex !== undefined) {
+                    console.log('[iSpring] API currentSlideIndex:', api.currentSlideIndex);
+                    return api.currentSlideIndex + 1; // 0-based to 1-based
+                }
+                if (api.player && api.player.currentSlide !== undefined) {
+                    console.log('[iSpring] API player.currentSlide:', api.player.currentSlide);
+                    return api.player.currentSlide;
+                }
+            }
+
+            // Method 2: iSpring presentation connector
+            if (win.ispringPresentationConnector) {
+                var connector = win.ispringPresentationConnector;
+                if (connector.currentSlideIndex !== undefined) {
+                    console.log('[iSpring] Connector currentSlideIndex:', connector.currentSlideIndex);
+                    return connector.currentSlideIndex + 1;
+                }
+            }
+
+            // Method 3: Direct player object
+            if (win.player) {
+                if (win.player.currentSlideIndex !== undefined) {
+                    console.log('[iSpring] player.currentSlideIndex:', win.player.currentSlideIndex);
+                    return win.player.currentSlideIndex + 1;
+                }
+                if (win.player.currentSlide !== undefined) {
+                    console.log('[iSpring] player.currentSlide:', win.player.currentSlide);
+                    return win.player.currentSlide;
+                }
+            }
+
+            // Method 4: Check for ISPRING global object
+            if (win.ISPRING && win.ISPRING.presentation) {
+                var pres = win.ISPRING.presentation;
+                if (pres.slideIndex !== undefined) {
+                    console.log('[iSpring] ISPRING.presentation.slideIndex:', pres.slideIndex);
+                    return pres.slideIndex + 1;
+                }
+            }
+
+            // Method 5: Look for iSpring-specific DOM elements
+            var slideElements = win.document.querySelectorAll('.ispring-slide, .slide-wrapper, [data-slide-index]');
+            for (var i = 0; i < slideElements.length; i++) {
+                var elem = slideElements[i];
+                var style = win.getComputedStyle(elem);
+                if (style.display !== 'none' && style.visibility !== 'hidden') {
+                    var idx = elem.getAttribute('data-slide-index');
+                    if (idx) {
+                        console.log('[iSpring] DOM data-slide-index:', idx);
+                        return parseInt(idx, 10) + 1;
+                    }
+                }
+            }
+
+        } catch (e) {
+            console.log('[iSpring] Error accessing player:', e.message);
+        }
+
+        return null;
+    }
+
+    // Start iSpring-specific monitoring.
+    setTimeout(function() {
+        iSpringCheckInterval = setInterval(function() {
+            var playerInfo = findISpringPlayer();
+            if (playerInfo) {
+                var currentSlide = getISpringCurrentSlide(playerInfo);
+                if (currentSlide !== null && currentSlide !== iSpringSlideIndex) {
+                    iSpringSlideIndex = currentSlide;
+                    if (currentSlide !== lastSlide) {
+                        console.log('[iSpring] Slide changed to:', currentSlide);
+                        sendProgressUpdate(null, null, null, currentSlide);
+                    }
+                }
+            }
+        }, 1000);
+    }, 4000);
+
+    window.addEventListener('beforeunload', function() {
+        if (iSpringCheckInterval) {
+            clearInterval(iSpringCheckInterval);
+        }
+    });
+
+    // ==========================================================================
+    // ADOBE CAPTIVATE SPECIFIC: Slide detection from Captivate API
+    // ==========================================================================
+
+    var captivateSlideIndex = null;
+    var captivateCheckInterval = null;
+
+    // Function to find the Captivate player in iframes.
+    function findCaptivatePlayer() {
+        var iframes = document.querySelectorAll('iframe');
+        for (var i = 0; i < iframes.length; i++) {
+            try {
+                var iframeWin = iframes[i].contentWindow;
+                // Captivate exposes cpAPIInterface, cpCmndGotoSlide, or cp object
+                if (iframeWin.cpAPIInterface ||
+                    iframeWin.cpCmndGotoSlide ||
+                    iframeWin.cp ||
+                    iframeWin.Captivate) {
+                    return { iframe: iframes[i], window: iframeWin };
+                }
+                // Also check for cpInfoCurrentSlide variable
+                if (typeof iframeWin.cpInfoCurrentSlide !== 'undefined') {
+                    return { iframe: iframes[i], window: iframeWin };
+                }
+            } catch (e) {
+                // Cross-origin, skip.
+            }
+        }
+        return null;
+    }
+
+    // Function to get current slide from Captivate player.
+    function getCaptivateCurrentSlide(playerInfo) {
+        if (!playerInfo || !playerInfo.window) return null;
+
+        try {
+            var win = playerInfo.window;
+
+            // Method 1: cpInfoCurrentSlide variable (most common)
+            if (typeof win.cpInfoCurrentSlide !== 'undefined') {
+                console.log('[Captivate] cpInfoCurrentSlide:', win.cpInfoCurrentSlide);
+                return win.cpInfoCurrentSlide + 1; // 0-based to 1-based
+            }
+
+            // Method 2: cp.movie object
+            if (win.cp && win.cp.movie) {
+                var movie = win.cp.movie;
+                if (movie.cpInfoCurrentSlide !== undefined) {
+                    console.log('[Captivate] cp.movie.cpInfoCurrentSlide:', movie.cpInfoCurrentSlide);
+                    return movie.cpInfoCurrentSlide + 1;
+                }
+                if (movie.currentSlide !== undefined) {
+                    console.log('[Captivate] cp.movie.currentSlide:', movie.currentSlide);
+                    return movie.currentSlide;
+                }
+            }
+
+            // Method 3: cpAPIInterface
+            if (win.cpAPIInterface) {
+                var api = win.cpAPIInterface;
+                if (api.getCurrentSlide) {
+                    var slide = api.getCurrentSlide();
+                    console.log('[Captivate] cpAPIInterface.getCurrentSlide():', slide);
+                    return slide + 1;
+                }
+                if (api.currentSlide !== undefined) {
+                    console.log('[Captivate] cpAPIInterface.currentSlide:', api.currentSlide);
+                    return api.currentSlide + 1;
+                }
+            }
+
+            // Method 4: Captivate global object
+            if (win.Captivate) {
+                if (win.Captivate.currentSlide !== undefined) {
+                    console.log('[Captivate] Captivate.currentSlide:', win.Captivate.currentSlide);
+                    return win.Captivate.currentSlide;
+                }
+            }
+
+            // Method 5: cpCmndSlideEnter (event listener based)
+            // Store the value if the function was called
+            if (win._captivateLastSlide !== undefined) {
+                console.log('[Captivate] _captivateLastSlide:', win._captivateLastSlide);
+                return win._captivateLastSlide;
+            }
+
+            // Method 6: Look for Captivate-specific DOM elements
+            var cpSlides = win.document.querySelectorAll('.cp-slide, .captivate-slide, [id^="cpSlide"], [class*="cpSlide"]');
+            for (var i = 0; i < cpSlides.length; i++) {
+                var elem = cpSlides[i];
+                var style = win.getComputedStyle(elem);
+                if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
+                    // Try to extract slide number from ID or class
+                    var id = elem.id || elem.className;
+                    var match = id.match(/slide[_\-]?(\d+)/i);
+                    if (match) {
+                        console.log('[Captivate] DOM slide element:', match[1]);
+                        return parseInt(match[1], 10);
+                    }
+                    // Count visible slides
+                    return i + 1;
+                }
+            }
+
+        } catch (e) {
+            console.log('[Captivate] Error accessing player:', e.message);
+        }
+
+        return null;
+    }
+
+    // Inject Captivate event listener to track slide changes.
+    function injectCaptivateListener(playerInfo) {
+        if (!playerInfo || !playerInfo.window) return;
+
+        try {
+            var win = playerInfo.window;
+
+            // Inject a slide enter event handler if not already done.
+            if (win._captivateListenerInjected) return;
+            win._captivateListenerInjected = true;
+
+            // Captivate uses cpCmndSlideEnter callback
+            var originalSlideEnter = win.cpCmndSlideEnter;
+            win.cpCmndSlideEnter = function(slideIndex) {
+                win._captivateLastSlide = slideIndex + 1;
+                console.log('[Captivate] cpCmndSlideEnter:', slideIndex);
+                if (originalSlideEnter) {
+                    originalSlideEnter.apply(this, arguments);
+                }
+            };
+
+            // Also listen for cpSlideEnter event
+            if (win.addEventListener) {
+                win.addEventListener('cpSlideEnter', function(e) {
+                    if (e.detail && e.detail.slideIndex !== undefined) {
+                        win._captivateLastSlide = e.detail.slideIndex + 1;
+                        console.log('[Captivate] cpSlideEnter event:', e.detail.slideIndex);
+                    }
+                });
+            }
+
+            console.log('[Captivate] Event listener injected successfully');
+
+        } catch (e) {
+            console.log('[Captivate] Error injecting listener:', e.message);
+        }
+    }
+
+    // Start Captivate-specific monitoring.
+    setTimeout(function() {
+        captivateCheckInterval = setInterval(function() {
+            var playerInfo = findCaptivatePlayer();
+            if (playerInfo) {
+                // Inject event listener on first detection
+                injectCaptivateListener(playerInfo);
+
+                var currentSlide = getCaptivateCurrentSlide(playerInfo);
+                if (currentSlide !== null && currentSlide !== captivateSlideIndex) {
+                    captivateSlideIndex = currentSlide;
+                    if (currentSlide !== lastSlide) {
+                        console.log('[Captivate] Slide changed to:', currentSlide);
+                        sendProgressUpdate(null, null, null, currentSlide);
+                    }
+                }
+            }
+        }, 1000);
+    }, 4000);
+
+    window.addEventListener('beforeunload', function() {
+        if (captivateCheckInterval) {
+            clearInterval(captivateCheckInterval);
+        }
+    });
+
+    // ==========================================================================
+    // ARTICULATE RISE 360 SPECIFIC: Section/lesson detection
+    // ==========================================================================
+
+    var rise360SectionIndex = null;
+    var rise360CheckInterval = null;
+
+    // Function to find the Rise 360 player in iframes.
+    function findRise360Player() {
+        var iframes = document.querySelectorAll('iframe');
+        for (var i = 0; i < iframes.length; i++) {
+            try {
+                var iframeWin = iframes[i].contentWindow;
+                var iframeDoc = iframeWin.document;
+
+                // Rise 360 has specific class patterns in its DOM
+                if (iframeDoc.querySelector('.rise-blocks, .rise-lesson, [data-block-id], [class*="rise"]')) {
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+                // Check for Rise's app container
+                if (iframeDoc.querySelector('#app, .rise-app, [data-rise-version]')) {
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+            } catch (e) {
+                // Cross-origin, skip.
+            }
+        }
+        return null;
+    }
+
+    // Function to get current section from Rise 360 player.
+    function getRise360CurrentSection(playerInfo) {
+        if (!playerInfo || !playerInfo.document) return null;
+
+        try {
+            var doc = playerInfo.document;
+            var win = playerInfo.window;
+
+            // Method 1: Check URL hash for lesson/section index
+            var hash = win.location.hash;
+            if (hash) {
+                // Rise 360 uses format like #/lessons/xxx or #/sections/xxx
+                var match = hash.match(/(?:lessons?|sections?|pages?)[\/\-](\d+)/i);
+                if (match) {
+                    console.log('[Rise 360] Hash section:', match[1]);
+                    return parseInt(match[1], 10);
+                }
+                // Also try just extracting number from hash
+                match = hash.match(/\/(\d+)/);
+                if (match) {
+                    console.log('[Rise 360] Hash index:', match[1]);
+                    return parseInt(match[1], 10);
+                }
+            }
+
+            // Method 2: Count active/visible Rise blocks
+            var blocks = doc.querySelectorAll('.rise-blocks > div, .rise-lesson, [data-block-id]');
+            var visibleBlockIndex = 0;
+            for (var i = 0; i < blocks.length; i++) {
+                var block = blocks[i];
+                var rect = block.getBoundingClientRect();
+                // Check if block is in viewport
+                if (rect.top < win.innerHeight && rect.bottom > 0) {
+                    // This block is at least partially visible
+                    var blockId = block.getAttribute('data-block-id');
+                    if (blockId) {
+                        console.log('[Rise 360] Visible block ID:', blockId, 'at index', i + 1);
+                    }
+                    visibleBlockIndex = i + 1;
+                    break; // Take the first visible one
+                }
+            }
+            if (visibleBlockIndex > 0) {
+                return visibleBlockIndex;
+            }
+
+            // Method 3: Check for active navigation item
+            var navItems = doc.querySelectorAll('.rise-nav-item, .lesson-nav-item, [data-lesson-index]');
+            for (var i = 0; i < navItems.length; i++) {
+                var item = navItems[i];
+                if (item.classList.contains('active') || item.classList.contains('current') || item.getAttribute('aria-current') === 'true') {
+                    var idx = item.getAttribute('data-lesson-index') || i;
+                    console.log('[Rise 360] Active nav item index:', idx);
+                    return parseInt(idx, 10) + 1;
+                }
+            }
+
+            // Method 4: Check Rise's internal state
+            if (win.__RISE_STATE__ || win.riseState || win.Rise) {
+                var state = win.__RISE_STATE__ || win.riseState || (win.Rise && win.Rise.state);
+                if (state && state.currentLesson !== undefined) {
+                    console.log('[Rise 360] Internal state currentLesson:', state.currentLesson);
+                    return state.currentLesson + 1;
+                }
+                if (state && state.currentSection !== undefined) {
+                    console.log('[Rise 360] Internal state currentSection:', state.currentSection);
+                    return state.currentSection + 1;
+                }
+            }
+
+        } catch (e) {
+            console.log('[Rise 360] Error accessing player:', e.message);
+        }
+
+        return null;
+    }
+
+    // Start Rise 360-specific monitoring.
+    setTimeout(function() {
+        rise360CheckInterval = setInterval(function() {
+            var playerInfo = findRise360Player();
+            if (playerInfo) {
+                var currentSection = getRise360CurrentSection(playerInfo);
+                if (currentSection !== null && currentSection !== rise360SectionIndex) {
+                    rise360SectionIndex = currentSection;
+                    if (currentSection !== lastSlide) {
+                        console.log('[Rise 360] Section changed to:', currentSection);
+                        sendProgressUpdate(null, null, null, currentSection);
+                    }
+                }
+            }
+        }, 1000);
+    }, 4000);
+
+    window.addEventListener('beforeunload', function() {
+        if (rise360CheckInterval) {
+            clearInterval(rise360CheckInterval);
+        }
+    });
+
+    // ==========================================================================
+    // LECTORA SPECIFIC: Page detection from Lectora player
+    // ==========================================================================
+
+    var lectoraPageIndex = null;
+    var lectoraCheckInterval = null;
+
+    // Function to find the Lectora player in iframes.
+    function findLectoraPlayer() {
+        var iframes = document.querySelectorAll('iframe');
+        for (var i = 0; i < iframes.length; i++) {
+            try {
+                var iframeWin = iframes[i].contentWindow;
+                // Lectora has trivExternalCall, trivantis object, or lectora global
+                if (iframeWin.trivExternalCall ||
+                    iframeWin.trivantis ||
+                    iframeWin.lectora ||
+                    iframeWin.TrivAPI) {
+                    return { iframe: iframes[i], window: iframeWin };
+                }
+                // Check for Lectora's page tracking variable
+                if (typeof iframeWin.currentPage !== 'undefined' ||
+                    typeof iframeWin.pageNum !== 'undefined') {
+                    return { iframe: iframes[i], window: iframeWin };
+                }
+            } catch (e) {
+                // Cross-origin, skip.
+            }
+        }
+        return null;
+    }
+
+    // Function to get current page from Lectora player.
+    function getLectoraCurrentPage(playerInfo) {
+        if (!playerInfo || !playerInfo.window) return null;
+
+        try {
+            var win = playerInfo.window;
+
+            // Method 1: Direct currentPage or pageNum variable
+            if (typeof win.currentPage !== 'undefined') {
+                console.log('[Lectora] currentPage:', win.currentPage);
+                return win.currentPage;
+            }
+            if (typeof win.pageNum !== 'undefined') {
+                console.log('[Lectora] pageNum:', win.pageNum);
+                return win.pageNum;
+            }
+
+            // Method 2: trivantis object
+            if (win.trivantis) {
+                if (win.trivantis.currentPage !== undefined) {
+                    console.log('[Lectora] trivantis.currentPage:', win.trivantis.currentPage);
+                    return win.trivantis.currentPage;
+                }
+                if (win.trivantis.pageIndex !== undefined) {
+                    console.log('[Lectora] trivantis.pageIndex:', win.trivantis.pageIndex);
+                    return win.trivantis.pageIndex + 1;
+                }
+            }
+
+            // Method 3: TrivAPI object
+            if (win.TrivAPI) {
+                if (win.TrivAPI.GetCurrentPage) {
+                    var page = win.TrivAPI.GetCurrentPage();
+                    console.log('[Lectora] TrivAPI.GetCurrentPage():', page);
+                    return page;
+                }
+                if (win.TrivAPI.currentPage !== undefined) {
+                    console.log('[Lectora] TrivAPI.currentPage:', win.TrivAPI.currentPage);
+                    return win.TrivAPI.currentPage;
+                }
+            }
+
+            // Method 4: lectora global object
+            if (win.lectora) {
+                if (win.lectora.currentPageNumber !== undefined) {
+                    console.log('[Lectora] lectora.currentPageNumber:', win.lectora.currentPageNumber);
+                    return win.lectora.currentPageNumber;
+                }
+                if (win.lectora.pageNum !== undefined) {
+                    console.log('[Lectora] lectora.pageNum:', win.lectora.pageNum);
+                    return win.lectora.pageNum;
+                }
+            }
+
+            // Method 5: Look for Lectora's page elements in DOM
+            var doc = win.document;
+            var pages = doc.querySelectorAll('.page, .lectora-page, [id^="page"], [class*="lecPage"]');
+            for (var i = 0; i < pages.length; i++) {
+                var page = pages[i];
+                var style = win.getComputedStyle(page);
+                if (style.display !== 'none' && style.visibility !== 'hidden') {
+                    // Try to extract page number from ID or class
+                    var id = page.id || page.className;
+                    var match = id.match(/page[_\-]?(\d+)/i);
+                    if (match) {
+                        console.log('[Lectora] DOM page element:', match[1]);
+                        return parseInt(match[1], 10);
+                    }
+                    return i + 1;
+                }
+            }
+
+            // Method 6: Check URL hash for page reference
+            var hash = win.location.hash;
+            if (hash) {
+                var match = hash.match(/page[_\-]?(\d+)/i);
+                if (match) {
+                    console.log('[Lectora] Hash page:', match[1]);
+                    return parseInt(match[1], 10);
+                }
+            }
+
+        } catch (e) {
+            console.log('[Lectora] Error accessing player:', e.message);
+        }
+
+        return null;
+    }
+
+    // Start Lectora-specific monitoring.
+    setTimeout(function() {
+        lectoraCheckInterval = setInterval(function() {
+            var playerInfo = findLectoraPlayer();
+            if (playerInfo) {
+                var currentPage = getLectoraCurrentPage(playerInfo);
+                if (currentPage !== null && currentPage !== lectoraPageIndex) {
+                    lectoraPageIndex = currentPage;
+                    if (currentPage !== lastSlide) {
+                        console.log('[Lectora] Page changed to:', currentPage);
+                        sendProgressUpdate(null, null, null, currentPage);
+                    }
+                }
+            }
+        }, 1000);
+    }, 4000);
+
+    window.addEventListener('beforeunload', function() {
+        if (lectoraCheckInterval) {
+            clearInterval(lectoraCheckInterval);
+        }
+    });
+
+    // ==========================================================================
+    // GENERIC HTML5 SCORM: Universal fallback detection
+    // ==========================================================================
+
+    var genericSlideIndex = null;
+    var genericCheckInterval = null;
+
+    // Function to detect generic HTML5 SCORM content.
+    function findGenericScormContent() {
+        var iframes = document.querySelectorAll('iframe');
+        for (var i = 0; i < iframes.length; i++) {
+            try {
+                var iframeWin = iframes[i].contentWindow;
+                var iframeDoc = iframeWin.document;
+
+                // Check if it has generic slide/page patterns
+                if (iframeDoc.querySelector('.slide, .page, [data-slide], [data-page], [class*="slide"], [class*="page"]')) {
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+            } catch (e) {
+                // Cross-origin, skip.
+            }
+        }
+        return null;
+    }
+
+    // Function to get current position from generic SCORM content.
+    function getGenericCurrentPosition(playerInfo) {
+        if (!playerInfo || !playerInfo.document) return null;
+
+        try {
+            var doc = playerInfo.document;
+            var win = playerInfo.window;
+
+            // Method 1: Check for common slide/page variables
+            var varNames = ['currentSlide', 'currentPage', 'slideIndex', 'pageIndex', 'slideNum', 'pageNum', 'currentIndex'];
+            for (var i = 0; i < varNames.length; i++) {
+                if (typeof win[varNames[i]] !== 'undefined' && !isNaN(win[varNames[i]])) {
+                    console.log('[Generic] Variable ' + varNames[i] + ':', win[varNames[i]]);
+                    return parseInt(win[varNames[i]], 10);
+                }
+            }
+
+            // Method 2: Look for visible slide/page elements
+            var selectors = [
+                '.slide:not([style*="display: none"]):not([style*="visibility: hidden"])',
+                '.page:not([style*="display: none"]):not([style*="visibility: hidden"])',
+                '[data-slide]:not([style*="display: none"])',
+                '[data-page]:not([style*="display: none"])',
+                '.slide.active',
+                '.page.active',
+                '.slide.current',
+                '.page.current',
+                '[class*="slide"][class*="active"]',
+                '[class*="page"][class*="active"]'
+            ];
+
+            for (var i = 0; i < selectors.length; i++) {
+                var elem = doc.querySelector(selectors[i]);
+                if (elem) {
+                    // Try to get index from data attribute
+                    var dataSlide = elem.getAttribute('data-slide') || elem.getAttribute('data-page') || elem.getAttribute('data-index');
+                    if (dataSlide) {
+                        console.log('[Generic] Data attribute:', dataSlide);
+                        return parseInt(dataSlide, 10);
+                    }
+
+                    // Try to get index from class name
+                    var classes = elem.className;
+                    var match = classes.match(/(?:slide|page)[_\-]?(\d+)/i);
+                    if (match) {
+                        console.log('[Generic] Class match:', match[1]);
+                        return parseInt(match[1], 10);
+                    }
+
+                    // Try sibling count
+                    if (elem.parentElement) {
+                        var siblings = elem.parentElement.children;
+                        for (var j = 0; j < siblings.length; j++) {
+                            if (siblings[j] === elem) {
+                                console.log('[Generic] Sibling index:', j + 1);
+                                return j + 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Method 3: Check URL hash
+            var hash = win.location.hash;
+            if (hash) {
+                var match = hash.match(/(?:slide|page|section|chapter)[_\-\/]?(\d+)/i);
+                if (match) {
+                    console.log('[Generic] Hash match:', match[1]);
+                    return parseInt(match[1], 10);
+                }
+                // Try just number in hash
+                match = hash.match(/#(\d+)/);
+                if (match) {
+                    console.log('[Generic] Hash number:', match[1]);
+                    return parseInt(match[1], 10);
+                }
+            }
+
+        } catch (e) {
+            console.log('[Generic] Error detecting position:', e.message);
+        }
+
+        return null;
+    }
+
+    // Start generic SCORM monitoring (lower priority, longer delay).
+    setTimeout(function() {
+        genericCheckInterval = setInterval(function() {
+            // Only run generic detection if no other tool detected anything
+            if (storylineSlideIndex !== null || iSpringSlideIndex !== null ||
+                captivateSlideIndex !== null || rise360SectionIndex !== null ||
+                lectoraPageIndex !== null) {
+                return; // Another detector is working
+            }
+
+            var content = findGenericScormContent();
+            if (content) {
+                var currentPosition = getGenericCurrentPosition(content);
+                if (currentPosition !== null && currentPosition !== genericSlideIndex) {
+                    genericSlideIndex = currentPosition;
+                    if (currentPosition !== lastSlide) {
+                        console.log('[Generic] Position changed to:', currentPosition);
+                        sendProgressUpdate(null, null, null, currentPosition);
+                    }
+                }
+            }
+        }, 1500); // Check less frequently
+    }, 5000); // Start later to let specific detectors run first
+
+    window.addEventListener('beforeunload', function() {
+        if (genericCheckInterval) {
+            clearInterval(genericCheckInterval);
+        }
+    });
+
+    // Log which SCORM tools are detected
+    setTimeout(function() {
+        console.log('[SCORM Multi-Tool Support] Checking for supported authoring tools...');
+
+        var detected = [];
+
+        // Check for each tool
+        if (findStorylinePlayer()) detected.push('Articulate Storyline');
+        if (findISpringPlayer()) detected.push('iSpring');
+        if (findCaptivatePlayer()) detected.push('Adobe Captivate');
+        if (findRise360Player()) detected.push('Articulate Rise 360');
+        if (findLectoraPlayer()) detected.push('Lectora');
+        if (findGenericScormContent()) detected.push('Generic HTML5 SCORM');
+
+        if (detected.length > 0) {
+            console.log('[SCORM Multi-Tool Support] Detected: ' + detected.join(', '));
+        } else {
+            console.log('[SCORM Multi-Tool Support] No specific authoring tool detected. Using SCORM API tracking.');
+        }
+    }, 5000);
 })();
 </script>
 JS;

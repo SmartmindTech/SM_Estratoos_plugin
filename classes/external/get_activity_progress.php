@@ -250,58 +250,101 @@ class get_activity_progress extends external_api {
         }
 
         // Get user tracking data.
+        // Moodle 4.x uses normalized tables: scorm_attempt + scorm_scoes_value + scorm_element
+        // Older Moodle uses: scorm_scoes_track (element + value in one row)
         try {
-            // First, find the primary launchable SCO (first 'sco' type with launch capability).
-            // This is critical because scorm_scoes_track has a scoid column, and without filtering
-            // by scoid, get_records_menu() would mix tracks from ALL SCOs causing key collisions.
+            // First, find the primary launchable SCO.
             $primarysco = $DB->get_record_select(
                 'scorm_scoes',
                 "scorm = :scormid AND scormtype = 'sco' AND launch <> ''",
                 ['scormid' => $scormid],
                 'id',
-                IGNORE_MULTIPLE  // Get first one
+                IGNORE_MULTIPLE
             );
 
-            // Get latest attempt number.
-            $attempt = $DB->get_field('scorm_scoes_track', 'MAX(attempt)', [
-                'scormid' => $scormid,
-                'userid' => $userid,
-            ]);
+            // Check which table structure exists (Moodle 4.x vs older)
+            $dbman = $DB->get_manager();
+            $usenormalized = $dbman->table_exists('scorm_scoes_value');
 
-            if ($attempt) {
-                $progress['attempts'] = (int)$attempt;
+            $tracks = [];
+            $attempt = 0;
 
-                // Build query params - optionally filter by primary SCO.
-                $trackparams = [
-                    'scormid' => $scormid,
-                    'userid' => $userid,
-                    'attempt' => $attempt,
-                ];
-                $scoidclause = '';
-                if ($primarysco) {
-                    $trackparams['scoid'] = $primarysco->id;
-                    $scoidclause = ' AND scoid = :scoid';
-                }
+            if ($usenormalized) {
+                // Moodle 4.x+ normalized structure: scorm_attempt + scorm_scoes_value + scorm_element
+                $attemptrecord = $DB->get_record_sql(
+                    "SELECT id, attempt FROM {scorm_attempt}
+                     WHERE scormid = :scormid AND userid = :userid
+                     ORDER BY attempt DESC LIMIT 1",
+                    ['scormid' => $scormid, 'userid' => $userid]
+                );
 
-                // Get tracking data using get_records_sql to avoid key collision.
-                // When multiple SCOs exist, each has its own cmi.core.lesson_location element.
-                // get_records_menu() creates an associative array where duplicate keys overwrite.
-                $tracksql = "SELECT id, element, value
-                             FROM {scorm_scoes_track}
-                             WHERE scormid = :scormid
-                               AND userid = :userid
-                               AND attempt = :attempt
-                               $scoidclause
-                             ORDER BY timemodified DESC";
-                $trackrecords = $DB->get_records_sql($tracksql, $trackparams);
+                if ($attemptrecord) {
+                    $attempt = (int)$attemptrecord->attempt;
+                    $progress['attempts'] = $attempt;
 
-                // Convert to element => value map (first occurrence wins due to DESC order).
-                $tracks = [];
-                foreach ($trackrecords as $track) {
-                    if (!isset($tracks[$track->element])) {
-                        $tracks[$track->element] = $track->value;
+                    // Build SCO filter clause
+                    $scoidclause = '';
+                    $params = ['attemptid' => $attemptrecord->id];
+                    if ($primarysco) {
+                        $scoidclause = ' AND v.scoid = :scoid';
+                        $params['scoid'] = $primarysco->id;
+                    }
+
+                    // Get tracking data from normalized tables
+                    $tracksql = "SELECT e.element, v.value, v.timemodified
+                                 FROM {scorm_scoes_value} v
+                                 JOIN {scorm_element} e ON e.id = v.elementid
+                                 WHERE v.attemptid = :attemptid
+                                 $scoidclause
+                                 ORDER BY v.timemodified DESC";
+                    $trackrecords = $DB->get_records_sql($tracksql, $params);
+
+                    // Convert to element => value map
+                    foreach ($trackrecords as $track) {
+                        if (!isset($tracks[$track->element])) {
+                            $tracks[$track->element] = $track->value;
+                        }
                     }
                 }
+            } else {
+                // Legacy structure: scorm_scoes_track (Moodle < 4.x)
+                $attempt = $DB->get_field('scorm_scoes_track', 'MAX(attempt)', [
+                    'scormid' => $scormid,
+                    'userid' => $userid,
+                ]);
+
+                if ($attempt) {
+                    $progress['attempts'] = (int)$attempt;
+
+                    $trackparams = [
+                        'scormid' => $scormid,
+                        'userid' => $userid,
+                        'attempt' => $attempt,
+                    ];
+                    $scoidclause = '';
+                    if ($primarysco) {
+                        $trackparams['scoid'] = $primarysco->id;
+                        $scoidclause = ' AND scoid = :scoid';
+                    }
+
+                    $tracksql = "SELECT id, element, value
+                                 FROM {scorm_scoes_track}
+                                 WHERE scormid = :scormid
+                                   AND userid = :userid
+                                   AND attempt = :attempt
+                                   $scoidclause
+                                 ORDER BY timemodified DESC";
+                    $trackrecords = $DB->get_records_sql($tracksql, $trackparams);
+
+                    foreach ($trackrecords as $track) {
+                        if (!isset($tracks[$track->element])) {
+                            $tracks[$track->element] = $track->value;
+                        }
+                    }
+                }
+            }
+
+            if ($attempt) {
 
                 // Extract score.
                 foreach (['cmi.core.score.raw', 'cmi.score.raw'] as $key) {
@@ -359,17 +402,33 @@ class get_activity_progress extends external_api {
                     }
                 }
 
-                // Count completed SCOs.
-                $completedcount = $DB->count_records_select('scorm_scoes_track',
-                    "scormid = :scormid AND userid = :userid AND attempt = :attempt
-                     AND element IN ('cmi.core.lesson_status', 'cmi.completion_status')
-                     AND value IN ('completed', 'passed')",
-                    ['scormid' => $scormid, 'userid' => $userid, 'attempt' => $attempt]
-                );
+                // Count completed SCOs based on lesson_status.
+                // Check the $tracks array for completion status (already loaded above).
+                $completedcount = 0;
+                $lessonstatuskeys = ['cmi.core.lesson_status', 'cmi.completion_status'];
+                foreach ($lessonstatuskeys as $statuskey) {
+                    if (isset($tracks[$statuskey])) {
+                        $statusvalue = strtolower($tracks[$statuskey]);
+                        if (in_array($statusvalue, ['completed', 'passed'])) {
+                            $completedcount = 1;
+                            break;
+                        }
+                    }
+                }
 
-                // If we have currentslide, use it for progress.
+                // Calculate progress from available data.
+                // Priority: currentslide > score-based calculation > completed SCOs
                 if ($progress['currentslide'] !== null && $progress['slidescount'] > 0) {
+                    // Have explicit slide position.
                     $progress['completeditems'] = $progress['currentslide'];
+                } else if ($progress['score'] !== null && $progress['slidescount'] > 0) {
+                    // Use score as progress percentage (common for Articulate Storyline).
+                    // cmi.core.score.raw often represents progress % (0-100).
+                    $scorepercent = min($progress['score'], 100);
+                    $progress['currentslide'] = (int)round(($scorepercent / 100) * $progress['slidescount']);
+                    $progress['completeditems'] = $progress['currentslide'];
+                    // Override progresspercent directly from score for accuracy.
+                    $progress['progresspercent'] = round($scorepercent, 1);
                 } else {
                     $progress['completeditems'] = $completedcount ?: 0;
                 }

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012706</version>
+        <version>2025012707</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.6</release>
+        <release>2.0.7</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,40 +29,42 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.6/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.7/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.6</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.7</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.6 - Enhanced SCORM Slide Tracking</h3>
+            <h3>Version 2.0.7 - Multi-Vendor SCORM Detection</h3>
 
             <h4>New Features</h4>
             <ul>
-                <li>Enhanced suspend_data parsing for multiple vendor formats (Articulate, iSpring, Captivate, etc.)</li>
-                <li>Added polling fallback to detect slide changes every 2 seconds</li>
-                <li>Added MutationObserver to detect DOM-based navigation</li>
-                <li>Added postMessage listener for internal SCORM navigation events</li>
-                <li>Added debug logging to help identify SCORM data format</li>
+                <li>Vendor-specific slide detection for Articulate Storyline</li>
+                <li>Vendor-specific slide detection for iSpring</li>
+                <li>Vendor-specific slide detection for Adobe Captivate</li>
+                <li>Vendor-specific section detection for Articulate Rise 360</li>
+                <li>Vendor-specific page detection for Lectora</li>
+                <li>Generic HTML5 SCORM fallback detection</li>
+                <li>Moodle 4.x normalized SCORM tables support (scorm_attempt + scorm_scoes_value)</li>
             </ul>
 
             <h4>Improvements</h4>
             <ul>
-                <li>Support for Base64-encoded suspend_data (Articulate Storyline)</li>
-                <li>Support for URL-encoded suspend_data (Adobe Captivate)</li>
-                <li>Support for JSON suspend_data with nested structures</li>
+                <li>Progress calculation using score as percentage fallback</li>
+                <li>Improved suspend_data parsing (removed aggressive patterns)</li>
+                <li>Auto-detect authoring tool and use appropriate tracking method</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v2.0.5: Initial enhanced SCORM tracking</li>
+                <li>v2.0.6: Enhanced SCORM tracking</li>
+                <li>v2.0.5: Polling and MutationObserver</li>
                 <li>v2.0.4: Version bump</li>
-                <li>v2.0.3: Notification URLs use relative paths</li>
-                <li>v2.0.2: Support Moodle 4.x normalized SCORM tables</li>
-                <li>v2.0.1: Use cmi.core.score.raw for SCORM progress</li>
-                <li>v2.0.0: WebSocket event observers for real-time progress</li>
+                <li>v2.0.3: Notification URL fix</li>
+                <li>v2.0.2: Moodle 4.x tables</li>
+                <li>v2.0.0: WebSocket event observers</li>
             </ul>
             ]]>
         </releasenotes>
