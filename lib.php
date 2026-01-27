@@ -597,6 +597,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     // Track the source of slide position for priority handling.
     var slideSource = null; // 'suspend_data', 'navigation', 'score'
+    var furthestSlide = null; // Track the furthest slide reached (from score)
 
     // Function to parse slide from suspend_data (multiple vendor formats).
     function parseSlideFromSuspendData(data) {
@@ -766,27 +767,33 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     }
 
     // Extract slide number from text using patterns.
+    // IMPORTANT: Storyline uses 0-based indexing internally, so we add 1 to get 1-based slide numbers.
     function extractSlideFromText(text) {
         if (!text || typeof text !== 'string') return null;
 
         // Look for explicit resume/slide patterns.
+        // These patterns capture 0-based indices from Storyline's internal format.
         var patterns = [
-            /["']?resume["']?\s*[:=]\s*["']?(\d+)_(\d+)["']?/i,     // "resume": "1_6"
-            /["']?resume["']?\s*[:=]\s*["']?(\d+)["']?/i,           // "resume": "6"
-            /["']?currentSlide["']?\s*[:=]\s*["']?(\d+)["']?/i,     // "currentSlide": 6
+            /["']?resume["']?\s*[:=]\s*["']?(\d+)_(\d+)["']?/i,     // "resume": "1_5" (scene_slide)
+            /["']?resume["']?\s*[:=]\s*["']?(\d+)["']?/i,           // "resume": "5"
+            /["']?currentSlide["']?\s*[:=]\s*["']?(\d+)["']?/i,     // "currentSlide": 5
             /["']?CurrentSlideIndex["']?\s*[:=]\s*["']?(\d+)["']?/i, // "CurrentSlideIndex": 5
-            /["']?slide["']?\s*[:=]\s*["']?(\d+)["']?/i,            // "slide": 6
+            /["']?slide["']?\s*[:=]\s*["']?(\d+)["']?/i,            // "slide": 5
             /n["']?\s*[:=]\s*["']?Resume["']?.*?v["']?\s*[:=]\s*["']?(\d+)_(\d+)["']?/i, // Storyline d-array
         ];
 
         for (var i = 0; i < patterns.length; i++) {
             var match = text.match(patterns[i]);
             if (match) {
-                // If scene_slide format, return slide number.
+                var slideIndex;
+                // If scene_slide format, get the slide number.
                 if (match[2] !== undefined) {
-                    return parseInt(match[2], 10);
+                    slideIndex = parseInt(match[2], 10);
+                } else {
+                    slideIndex = parseInt(match[1], 10);
                 }
-                return parseInt(match[1], 10);
+                // Convert from 0-based to 1-based.
+                return slideIndex + 1;
             }
         }
 
@@ -794,7 +801,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         // Must be preceded by a keyword to avoid matching random number pairs.
         var match = text.match(/(?:resume|state|position|bookmark)['":\s]*(\d+)_(\d+)/i);
         if (match) {
-            return parseInt(match[2], 10);
+            // Convert from 0-based to 1-based.
+            return parseInt(match[2], 10) + 1;
         }
 
         return null;
@@ -817,6 +825,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             scormid: scormid,
             currentSlide: currentSlide,
             totalSlides: slidescount,
+            furthestSlide: furthestSlide, // Furthest progress reached (from score)
             lessonLocation: location || lastLocation,
             lessonStatus: status || lastStatus,
             score: score,
@@ -824,9 +833,16 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             timestamp: Date.now()
         };
 
-        // Calculate progress percentage if we have slide info.
+        // Calculate progress percentage based on FURTHEST progress, not current position.
+        // This ensures the progress bar shows the maximum achieved, not the current view.
+        var progressSlide = furthestSlide || currentSlide;
+        if (progressSlide !== null && slidescount > 0) {
+            message.progressPercent = Math.round((progressSlide / slidescount) * 100);
+        }
+
+        // Also include current position percentage for the position indicator.
         if (currentSlide !== null && slidescount > 0) {
-            message.progressPercent = Math.round((currentSlide / slidescount) * 100);
+            message.currentPercent = Math.round((currentSlide / slidescount) * 100);
         }
 
         // Send to parent (SmartLearning app).
@@ -862,7 +878,6 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 }
                 // Track score changes.
                 // IMPORTANT: Score represents FURTHEST PROGRESS, not current position.
-                // Only use score for slide position if no suspend_data has been parsed yet.
                 if (element === 'cmi.core.score.raw') {
                     var score = parseFloat(value);
                     if (!isNaN(score) && slidescount > 0 && score <= 100) {
@@ -870,16 +885,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         var calculatedSlide = Math.round((score / 100) * slidescount);
                         calculatedSlide = Math.max(1, Math.min(calculatedSlide, slidescount));
 
-                        // Only use score-based slide if we don't have a suspend_data source.
-                        // suspend_data gives actual resume position, score gives furthest progress.
+                        // Always store as furthest progress (for progress bar).
+                        if (furthestSlide === null || calculatedSlide > furthestSlide) {
+                            furthestSlide = calculatedSlide;
+                            console.log('[SCORM] Furthest progress updated:', furthestSlide);
+                        }
+
+                        // Only use score-based slide for CURRENT position if no suspend_data.
                         if (slideSource !== 'suspend_data' && lastSlide === null) {
                             console.log('[SCORM] Using score-based slide (fallback):', calculatedSlide);
                             slideSource = 'score';
                             sendProgressUpdate(null, lastStatus, value, calculatedSlide);
                         } else {
-                            // Just log the score but don't change currentSlide.
-                            console.log('[SCORM] Score indicates furthest progress:', calculatedSlide, '(not overriding current:', lastSlide, ')');
-                            // Send update without changing currentSlide.
+                            // Don't change currentSlide, but send update with furthestSlide for progress bar.
+                            console.log('[SCORM] Score indicates furthest progress:', furthestSlide, '(current slide:', lastSlide, ')');
                             sendProgressUpdate(lastLocation, lastStatus, value, null);
                         }
                     } else {
@@ -921,7 +940,6 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 }
                 // Track score changes.
                 // IMPORTANT: Score represents FURTHEST PROGRESS, not current position.
-                // Only use score for slide position if no suspend_data has been parsed yet.
                 if (element === 'cmi.score.raw') {
                     var score = parseFloat(value);
                     if (!isNaN(score) && slidescount > 0 && score <= 100) {
@@ -929,16 +947,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         var calculatedSlide = Math.round((score / 100) * slidescount);
                         calculatedSlide = Math.max(1, Math.min(calculatedSlide, slidescount));
 
-                        // Only use score-based slide if we don't have a suspend_data source.
-                        // suspend_data gives actual resume position, score gives furthest progress.
+                        // Always store as furthest progress (for progress bar).
+                        if (furthestSlide === null || calculatedSlide > furthestSlide) {
+                            furthestSlide = calculatedSlide;
+                            console.log('[SCORM 2004] Furthest progress updated:', furthestSlide);
+                        }
+
+                        // Only use score-based slide for CURRENT position if no suspend_data.
                         if (slideSource !== 'suspend_data' && lastSlide === null) {
                             console.log('[SCORM 2004] Using score-based slide (fallback):', calculatedSlide);
                             slideSource = 'score';
                             sendProgressUpdate(null, lastStatus, value, calculatedSlide);
                         } else {
-                            // Just log the score but don't change currentSlide.
-                            console.log('[SCORM 2004] Score indicates furthest progress:', calculatedSlide, '(not overriding current:', lastSlide, ')');
-                            // Send update without changing currentSlide.
+                            // Don't change currentSlide, but send update with furthestSlide for progress bar.
+                            console.log('[SCORM 2004] Score indicates furthest progress:', furthestSlide, '(current slide:', lastSlide, ')');
                             sendProgressUpdate(lastLocation, lastStatus, value, null);
                         }
                     } else {

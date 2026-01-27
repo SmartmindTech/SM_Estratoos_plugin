@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012708</version>
+        <version>2025012709</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.8</release>
+        <release>2.0.9</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,37 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.8/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.9/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.8</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.9</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.8 - LZ-String Decompression for Storyline</h3>
+            <h3>Version 2.0.9 - Fix Slide Indexing & Progress Tracking</h3>
 
-            <h4>New Features</h4>
+            <h4>Bug Fixes</h4>
             <ul>
-                <li>LZ-String decompression for Articulate Storyline suspend_data</li>
-                <li>Enhanced resume pattern extraction from decompressed data</li>
-                <li>Slide source tracking for priority handling</li>
-                <li>Improved JSON extraction from compressed data</li>
+                <li>Fixed 0-based to 1-based slide indexing (Storyline uses 0-based internally)</li>
+                <li>Separate furthestSlide from currentSlide for accurate progress bar</li>
             </ul>
 
             <h4>Improvements</h4>
             <ul>
-                <li>Better handling of Storyline's compressed suspend_data format</li>
-                <li>More accurate slide position detection</li>
-                <li>Refactored suspend_data parsing with extractSlideFromParsedData helper</li>
+                <li>Progress bar now shows furthest progress reached (from score)</li>
+                <li>Current position tracked separately for navigation indicator</li>
+                <li>Added currentPercent and progressPercent to postMessage</li>
+                <li>Better logging for furthest progress vs current slide</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.8: LZ-String decompression</li>
                 <li>v2.0.7: Multi-vendor SCORM detection</li>
                 <li>v2.0.6: Enhanced SCORM tracking</li>
-                <li>v2.0.5: Polling and MutationObserver</li>
-                <li>v2.0.3: Notification URL fix</li>
                 <li>v2.0.0: WebSocket event observers</li>
             </ul>
             ]]>
