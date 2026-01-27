@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012714</version>
+        <version>2025012715</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.14</release>
+        <release>2.0.15</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,37 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.14/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.15/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.14</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.15</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.14 - Progress Tracking & suspend_data Enhancements</h3>
+            <h3>Version 2.0.15 - LMSGetValue Interception for Navigation</h3>
 
-            <h4>API Improvements</h4>
+            <h4>New Approach</h4>
             <ul>
-                <li>Progress bar now shows FURTHEST REACHED, not just current position</li>
-                <li>Uses maximum of score-based and currentslide-based progress</li>
-                <li>Added 'furthestslide' field to get_activity_progress API response</li>
+                <li>Uses sessionStorage to store pending navigation before reload</li>
+                <li>Intercepts LMSGetValue/GetValue to return modified suspend_data</li>
+                <li>Modifies "l" field (last slide position) in decompressed data</li>
+                <li>Cleaner approach - intercepts BEFORE content initializes</li>
             </ul>
 
-            <h4>suspend_data Enhancements</h4>
+            <h4>How It Works</h4>
             <ul>
-                <li>More pattern matching in modifySuspendDataText()</li>
-                <li>Added patterns: CurrentSlideIndex, slideIndex, pageIndex, state, bookmark</li>
-                <li>Better debug logging for d-array structure</li>
-                <li>Debug output when no patterns match</li>
+                <li>1. Store target slide in sessionStorage</li>
+                <li>2. Reload SCORM content iframe</li>
+                <li>3. LMSGetValue interceptor returns modified suspend_data</li>
+                <li>4. Content initializes to the target slide</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.14: Progress tracking & suspend_data enhancements</li>
                 <li>v2.0.13: suspend_data modification for navigation</li>
                 <li>v2.0.12: Rise 360 navigation & notification fix</li>
                 <li>v2.0.10: Slide navigation from parent window</li>
-                <li>v2.0.8: LZ-String decompression</li>
             </ul>
             ]]>
         </releasenotes>

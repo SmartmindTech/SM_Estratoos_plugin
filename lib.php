@@ -1089,10 +1089,92 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         }
     }
 
+    // Check for pending slide navigation from sessionStorage (set before reload).
+    var pendingSlideNavigation = null;
+    var suspendDataIntercepted = false; // Flag to only intercept once
+    try {
+        var navData = sessionStorage.getItem('scorm_pending_navigation_' + cmid);
+        if (navData) {
+            pendingSlideNavigation = JSON.parse(navData);
+            console.log('[SCORM Navigation] Found pending navigation:', pendingSlideNavigation);
+            // Clear immediately to prevent re-use on subsequent reloads
+            sessionStorage.removeItem('scorm_pending_navigation_' + cmid);
+        }
+    } catch (e) {
+        console.log('[SCORM Navigation] Error reading pending navigation:', e.message);
+    }
+
+    /**
+     * Modify suspend_data to change the resume position.
+     * This is called when we need to intercept LMSGetValue.
+     */
+    function modifySuspendDataForSlide(originalData, targetSlide) {
+        if (!originalData || originalData.length < 5) return originalData;
+
+        var targetIndex = targetSlide - 1; // 0-based index
+        console.log('[SCORM suspend_data intercept] Modifying for slide:', targetSlide, '(index:', targetIndex, ')');
+
+        // Try LZ decompression (Articulate Storyline format)
+        if (originalData.match(/^[A-Za-z0-9+/=]{20,}$/)) {
+            try {
+                var decompressed = LZString.decompressFromBase64(originalData);
+                if (decompressed && decompressed.length > 0) {
+                    console.log('[SCORM suspend_data intercept] Decompressed, length:', decompressed.length);
+
+                    // Modify the "l" field which stores the last slide position
+                    // Format: {"d":..., "l":7, ...} where "l" is the last/current slide (0-indexed)
+                    var modified = decompressed.replace(
+                        /"l"\s*:\s*(\d+)/g,
+                        function(match, oldValue) {
+                            console.log('[SCORM suspend_data intercept] Replacing "l":', oldValue, '->', targetIndex);
+                            return '"l":' + targetIndex;
+                        }
+                    );
+
+                    if (modified !== decompressed) {
+                        // Re-compress with LZ-String
+                        var recompressed = LZString.compressToBase64(modified);
+                        if (recompressed) {
+                            console.log('[SCORM suspend_data intercept] Re-compressed, new length:', recompressed.length);
+                            return recompressed;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('[SCORM suspend_data intercept] LZ error:', e.message);
+            }
+        }
+
+        return originalData;
+    }
+
     // Wait for SCORM API to be available, then wrap it.
     function wrapScormApi() {
         // SCORM 1.2 API
         if (typeof window.API !== 'undefined' && window.API.LMSSetValue) {
+            // Wrap LMSGetValue FIRST to intercept suspend_data reads
+            if (window.API.LMSGetValue && pendingSlideNavigation) {
+                var originalGetValue = window.API.LMSGetValue;
+                window.API.LMSGetValue = function(element) {
+                    var result = originalGetValue.call(window.API, element);
+
+                    // Intercept suspend_data read on first call after navigation request
+                    if (element === 'cmi.suspend_data' && !suspendDataIntercepted && pendingSlideNavigation) {
+                        suspendDataIntercepted = true;
+                        console.log('[SCORM 1.2] LMSGetValue intercepted for suspend_data, target slide:', pendingSlideNavigation.slide);
+
+                        var modifiedData = modifySuspendDataForSlide(result, pendingSlideNavigation.slide);
+                        if (modifiedData !== result) {
+                            console.log('[SCORM 1.2] Returning modified suspend_data');
+                            return modifiedData;
+                        }
+                    }
+
+                    return result;
+                };
+                console.log('[SCORM Navigation] LMSGetValue interceptor installed for pending navigation to slide:', pendingSlideNavigation.slide);
+            }
+
             var originalSetValue = window.API.LMSSetValue;
             window.API.LMSSetValue = function(element, value) {
                 var result = originalSetValue.call(window.API, element, value);
@@ -1155,6 +1237,29 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
         // SCORM 2004 API
         if (typeof window.API_1484_11 !== 'undefined' && window.API_1484_11.SetValue) {
+            // Wrap GetValue FIRST to intercept suspend_data reads
+            if (window.API_1484_11.GetValue && pendingSlideNavigation) {
+                var originalGetValue2004 = window.API_1484_11.GetValue;
+                window.API_1484_11.GetValue = function(element) {
+                    var result = originalGetValue2004.call(window.API_1484_11, element);
+
+                    // Intercept suspend_data read on first call after navigation request
+                    if (element === 'cmi.suspend_data' && !suspendDataIntercepted && pendingSlideNavigation) {
+                        suspendDataIntercepted = true;
+                        console.log('[SCORM 2004] GetValue intercepted for suspend_data, target slide:', pendingSlideNavigation.slide);
+
+                        var modifiedData = modifySuspendDataForSlide(result, pendingSlideNavigation.slide);
+                        if (modifiedData !== result) {
+                            console.log('[SCORM 2004] Returning modified suspend_data');
+                            return modifiedData;
+                        }
+                    }
+
+                    return result;
+                };
+                console.log('[SCORM Navigation] GetValue interceptor installed for pending navigation to slide:', pendingSlideNavigation.slide);
+            }
+
             var originalSetValue2004 = window.API_1484_11.SetValue;
             window.API_1484_11.SetValue = function(element, value) {
                 var result = originalSetValue2004.call(window.API_1484_11, element, value);
@@ -2762,236 +2867,35 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     }
 
     /**
-     * Modify the suspend_data to change the resume position and reload SCORM content.
-     * This works for SCORM content that stores position in suspend_data (like Articulate Storyline).
+     * Store pending navigation in sessionStorage and reload SCORM content.
+     * The LMSGetValue interceptor will modify suspend_data on the first read after reload.
+     * This approach works because we intercept BEFORE the content initializes.
      * @param {number} targetSlide - The 1-based slide number to navigate to.
-     * @returns {boolean} True if modification was successful.
+     * @returns {boolean} True if navigation was initiated.
      */
     function modifySuspendDataAndReload(targetSlide) {
-        console.log('[SCORM suspend_data] Attempting to modify suspend_data for slide:', targetSlide);
+        console.log('[SCORM suspend_data] Setting up pending navigation to slide:', targetSlide);
 
-        // Get current suspend_data
-        var currentSuspendData = null;
-        var scormApi = null;
-        var scormVersion = null;
-
-        if (window.API && window.API.LMSGetValue) {
-            scormApi = window.API;
-            scormVersion = '1.2';
-            try {
-                currentSuspendData = scormApi.LMSGetValue('cmi.suspend_data');
-            } catch (e) {}
-        } else if (window.API_1484_11 && window.API_1484_11.GetValue) {
-            scormApi = window.API_1484_11;
-            scormVersion = '2004';
-            try {
-                currentSuspendData = scormApi.GetValue('cmi.suspend_data');
-            } catch (e) {}
-        }
-
-        if (!currentSuspendData || currentSuspendData.length < 5) {
-            console.log('[SCORM suspend_data] No suspend_data found or too short');
+        // Store navigation target in sessionStorage
+        // This will be read by the LMSGetValue interceptor on the next page load
+        try {
+            var navData = {
+                slide: targetSlide,
+                cmid: cmid,
+                timestamp: Date.now()
+            };
+            sessionStorage.setItem('scorm_pending_navigation_' + cmid, JSON.stringify(navData));
+            console.log('[SCORM suspend_data] Pending navigation stored:', navData);
+        } catch (e) {
+            console.log('[SCORM suspend_data] Failed to store pending navigation:', e.message);
             return false;
         }
 
-        console.log('[SCORM suspend_data] Current suspend_data length:', currentSuspendData.length);
+        // Reload the SCORM content
+        // When it reloads, the LMSGetValue interceptor will return modified suspend_data
+        reloadScormContentIframe();
 
-        // Try to decompress and modify
-        var modifiedData = null;
-
-        // Attempt 1: LZ-compressed JSON (Articulate Storyline format)
-        if (currentSuspendData.match(/^[A-Za-z0-9+/=]{20,}$/)) {
-            try {
-                var decompressed = LZString.decompressFromBase64(currentSuspendData);
-                if (decompressed && decompressed.length > 0) {
-                    console.log('[SCORM suspend_data] LZ decompressed, length:', decompressed.length);
-
-                    // Try to parse as JSON
-                    var jsonModified = false;
-                    try {
-                        var parsed = JSON.parse(decompressed);
-                        console.log('[SCORM suspend_data] Parsed JSON, keys:', Object.keys(parsed).join(', '));
-
-                        // Debug: log the structure of key arrays
-                        if (parsed.d && Array.isArray(parsed.d)) {
-                            console.log('[SCORM suspend_data] d array length:', parsed.d.length);
-                            // Log first few items to understand structure
-                            for (var di = 0; di < Math.min(5, parsed.d.length); di++) {
-                                console.log('[SCORM suspend_data] d[' + di + ']:', JSON.stringify(parsed.d[di]).substring(0, 100));
-                            }
-                        }
-
-                        // Modify the resume position (0-based index for Storyline)
-                        var targetIndex = targetSlide - 1;
-
-                        // Storyline format with "resume" key: "scene_slide" or just "slide"
-                        if (parsed.resume !== undefined) {
-                            var oldResume = parsed.resume;
-                            // Check if format is "scene_slide" (e.g., "0_7" for scene 0, slide 7)
-                            var match = String(oldResume).match(/^(\d+)_(\d+)$/);
-                            if (match) {
-                                // Keep the same scene, change the slide
-                                parsed.resume = match[1] + '_' + targetIndex;
-                                console.log('[SCORM suspend_data] Modified resume from', oldResume, 'to', parsed.resume);
-                            } else {
-                                // Just a number
-                                parsed.resume = String(targetIndex);
-                                console.log('[SCORM suspend_data] Modified resume from', oldResume, 'to', parsed.resume);
-                            }
-                            jsonModified = true;
-                        }
-
-                        // Storyline "d" array format: [{n: "Resume", v: "0_7"}, ...]
-                        if (parsed.d && Array.isArray(parsed.d)) {
-                            for (var i = 0; i < parsed.d.length; i++) {
-                                var item = parsed.d[i];
-                                if (item && item.n && (item.n === 'Resume' || item.n === 'resume' ||
-                                    item.n === 'CurrentSlide' || item.n === 'currentSlide' ||
-                                    item.n === 'SlideIndex' || item.n === 'slideIndex' ||
-                                    item.n === 'Position' || item.n === 'position')) {
-                                    var oldVal = item.v;
-                                    var match = String(oldVal).match(/^(\d+)_(\d+)$/);
-                                    if (match) {
-                                        item.v = match[1] + '_' + targetIndex;
-                                    } else if (!isNaN(oldVal)) {
-                                        item.v = targetIndex;
-                                    } else {
-                                        item.v = String(targetIndex);
-                                    }
-                                    console.log('[SCORM suspend_data] Modified d-array', item.n, 'from', oldVal, 'to', item.v);
-                                    jsonModified = true;
-                                }
-                            }
-                        }
-
-                        // Other common formats
-                        if (parsed.currentSlide !== undefined) {
-                            parsed.currentSlide = targetIndex;
-                            jsonModified = true;
-                        }
-                        if (parsed.slide !== undefined) {
-                            parsed.slide = targetIndex;
-                            jsonModified = true;
-                        }
-                        if (parsed.current !== undefined) {
-                            parsed.current = targetIndex;
-                            jsonModified = true;
-                        }
-                        if (parsed.position !== undefined) {
-                            parsed.position = targetIndex;
-                            jsonModified = true;
-                        }
-                        if (parsed.p !== undefined && !isNaN(parsed.p)) {
-                            // 'p' might be position in some formats
-                            console.log('[SCORM suspend_data] Found p key:', parsed.p);
-                        }
-                        if (parsed.variables && parsed.variables.CurrentSlideIndex !== undefined) {
-                            parsed.variables.CurrentSlideIndex = targetIndex;
-                            jsonModified = true;
-                        }
-                        if (parsed.variables && parsed.variables['Player.CurrentSlideIndex'] !== undefined) {
-                            parsed.variables['Player.CurrentSlideIndex'] = targetIndex;
-                            jsonModified = true;
-                        }
-
-                        if (jsonModified) {
-                            // Re-serialize and compress
-                            var newJson = JSON.stringify(parsed);
-                            modifiedData = LZString.compressToBase64(newJson);
-                            console.log('[SCORM suspend_data] Re-compressed, new length:', modifiedData.length);
-                        }
-                    } catch (e) {
-                        console.log('[SCORM suspend_data] JSON parse error:', e.message);
-                    }
-
-                    // If JSON modification didn't work, try text-based modification
-                    if (!jsonModified) {
-                        console.log('[SCORM suspend_data] JSON modification failed, trying text-based modification...');
-                        var modifiedText = modifySuspendDataText(decompressed, targetSlide);
-                        if (modifiedText && modifiedText !== decompressed) {
-                            modifiedData = LZString.compressToBase64(modifiedText);
-                            console.log('[SCORM suspend_data] Modified text and re-compressed');
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('[SCORM suspend_data] LZ decompression error:', e.message);
-            }
-        }
-
-        // Attempt 2: Plain JSON (uncompressed)
-        if (!modifiedData) {
-            try {
-                var parsed = JSON.parse(currentSuspendData);
-                var targetIndex = targetSlide - 1;
-                var modified = false;
-
-                if (parsed.resume !== undefined) {
-                    var match = String(parsed.resume).match(/^(\d+)_(\d+)$/);
-                    if (match) {
-                        parsed.resume = match[1] + '_' + targetIndex;
-                    } else {
-                        parsed.resume = String(targetIndex);
-                    }
-                    modified = true;
-                }
-                if (parsed.currentSlide !== undefined) { parsed.currentSlide = targetIndex; modified = true; }
-                if (parsed.slide !== undefined) { parsed.slide = targetIndex; modified = true; }
-                if (parsed.current !== undefined) { parsed.current = targetIndex; modified = true; }
-
-                if (modified) {
-                    modifiedData = JSON.stringify(parsed);
-                    console.log('[SCORM suspend_data] Modified plain JSON');
-                }
-            } catch (e) {
-                // Not JSON
-            }
-        }
-
-        // Attempt 3: URL-encoded format (Adobe Captivate style)
-        if (!modifiedData && currentSuspendData.indexOf('=') !== -1) {
-            try {
-                var params = new URLSearchParams(currentSuspendData);
-                var modified = false;
-                var targetIndex = targetSlide - 1;
-
-                if (params.has('slide')) { params.set('slide', targetIndex); modified = true; }
-                if (params.has('current')) { params.set('current', targetIndex); modified = true; }
-                if (params.has('page')) { params.set('page', targetIndex); modified = true; }
-
-                if (modified) {
-                    modifiedData = params.toString();
-                    console.log('[SCORM suspend_data] Modified URL-encoded format');
-                }
-            } catch (e) {}
-        }
-
-        // Save modified suspend_data and reload
-        if (modifiedData) {
-            console.log('[SCORM suspend_data] Saving modified suspend_data...');
-
-            try {
-                if (scormVersion === '1.2') {
-                    scormApi.LMSSetValue('cmi.suspend_data', modifiedData);
-                    scormApi.LMSCommit('');
-                    console.log('[SCORM suspend_data] SCORM 1.2 suspend_data saved and committed');
-                } else {
-                    scormApi.SetValue('cmi.suspend_data', modifiedData);
-                    scormApi.Commit('');
-                    console.log('[SCORM suspend_data] SCORM 2004 suspend_data saved and committed');
-                }
-
-                // Reload the SCORM content iframe to pick up the new suspend_data
-                reloadScormContentIframe();
-
-                return true;
-            } catch (e) {
-                console.log('[SCORM suspend_data] Error saving suspend_data:', e.message);
-            }
-        }
-
-        console.log('[SCORM suspend_data] Could not modify suspend_data');
-        return false;
+        return true;
     }
 
     /**
