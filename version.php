@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012712;  // YYYYMMDDXX format.
+$plugin->version = 2025012713;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.12';  // Rise 360 navigation, fix notification URLs redirect issue.
+$plugin->release = '2.0.13';  // suspend_data modification for programmatic navigation.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

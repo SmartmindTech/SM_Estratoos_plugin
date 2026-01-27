@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012712</version>
+        <version>2025012713</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.12</release>
+        <release>2.0.13</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,36 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.12/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.13/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.12</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.13</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.12 - Rise 360 Navigation & Notification Fix</h3>
+            <h3>Version 2.0.13 - suspend_data Modification for Navigation</h3>
 
             <h4>New Features</h4>
             <ul>
-                <li>Enhanced Articulate Rise 360 detection (more DOM patterns)</li>
-                <li>Rise 360 navigation via hash, internal state, and nav item clicking</li>
-                <li>Inner iframe navigation forwarding for nested SCORM content</li>
+                <li>LZ-String compression function for modifying suspend_data</li>
+                <li>modifySuspendDataAndReload() for programmatic navigation</li>
+                <li>Supports LZ-compressed JSON (Storyline), plain JSON, and URL-encoded formats</li>
+                <li>Automatic SCORM content iframe reload after modification</li>
             </ul>
 
-            <h4>Bug Fixes</h4>
+            <h4>How It Works</h4>
             <ul>
-                <li>Fixed notification click redirecting to wrong Moodle server</li>
-                <li>Removed contexturl from notifications to prevent cross-server redirects</li>
-                <li>Notifications now guide users to navigate manually via menu path</li>
+                <li>Modifies the resume position in suspend_data</li>
+                <li>Commits changes via SCORM API</li>
+                <li>Reloads the content to apply new position</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.12: Rise 360 navigation & notification fix</li>
                 <li>v2.0.11: Message forwarding & debug logging</li>
                 <li>v2.0.10: Slide navigation from parent window</li>
-                <li>v2.0.9: Fix slide indexing</li>
                 <li>v2.0.8: LZ-String decompression</li>
                 <li>v2.0.7: Multi-vendor SCORM detection</li>
             </ul>

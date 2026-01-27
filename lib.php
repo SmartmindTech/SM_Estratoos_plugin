@@ -592,7 +592,241 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
         }
 
-        return { decompressFromBase64: decompressFromBase64 };
+        // =============================================
+        // LZ-String COMPRESSION (for modifying suspend_data)
+        // =============================================
+
+        function compressToBase64(input) {
+            if (input == null || input === "") return "";
+            var res = _compress(input, 6, function(a) {
+                return keyStrBase64.charAt(a);
+            });
+            switch (res.length % 4) {
+                case 0: return res;
+                case 1: return res + "===";
+                case 2: return res + "==";
+                case 3: return res + "=";
+            }
+            return res;
+        }
+
+        function _compress(uncompressed, bitsPerChar, getCharFromInt) {
+            if (uncompressed == null) return "";
+            var i, value,
+                context_dictionary = {},
+                context_dictionaryToCreate = {},
+                context_c = "",
+                context_wc = "",
+                context_w = "",
+                context_enlargeIn = 2,
+                context_dictSize = 3,
+                context_numBits = 2,
+                context_data = [],
+                context_data_val = 0,
+                context_data_position = 0,
+                ii;
+
+            for (ii = 0; ii < uncompressed.length; ii += 1) {
+                context_c = uncompressed.charAt(ii);
+                if (!Object.prototype.hasOwnProperty.call(context_dictionary, context_c)) {
+                    context_dictionary[context_c] = context_dictSize++;
+                    context_dictionaryToCreate[context_c] = true;
+                }
+
+                context_wc = context_w + context_c;
+                if (Object.prototype.hasOwnProperty.call(context_dictionary, context_wc)) {
+                    context_w = context_wc;
+                } else {
+                    if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+                        if (context_w.charCodeAt(0) < 256) {
+                            for (i = 0; i < context_numBits; i++) {
+                                context_data_val = (context_data_val << 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else {
+                                    context_data_position++;
+                                }
+                            }
+                            value = context_w.charCodeAt(0);
+                            for (i = 0; i < 8; i++) {
+                                context_data_val = (context_data_val << 1) | (value & 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else {
+                                    context_data_position++;
+                                }
+                                value = value >> 1;
+                            }
+                        } else {
+                            value = 1;
+                            for (i = 0; i < context_numBits; i++) {
+                                context_data_val = (context_data_val << 1) | value;
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else {
+                                    context_data_position++;
+                                }
+                                value = 0;
+                            }
+                            value = context_w.charCodeAt(0);
+                            for (i = 0; i < 16; i++) {
+                                context_data_val = (context_data_val << 1) | (value & 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else {
+                                    context_data_position++;
+                                }
+                                value = value >> 1;
+                            }
+                        }
+                        context_enlargeIn--;
+                        if (context_enlargeIn == 0) {
+                            context_enlargeIn = Math.pow(2, context_numBits);
+                            context_numBits++;
+                        }
+                        delete context_dictionaryToCreate[context_w];
+                    } else {
+                        value = context_dictionary[context_w];
+                        for (i = 0; i < context_numBits; i++) {
+                            context_data_val = (context_data_val << 1) | (value & 1);
+                            if (context_data_position == bitsPerChar - 1) {
+                                context_data_position = 0;
+                                context_data.push(getCharFromInt(context_data_val));
+                                context_data_val = 0;
+                            } else {
+                                context_data_position++;
+                            }
+                            value = value >> 1;
+                        }
+                    }
+                    context_enlargeIn--;
+                    if (context_enlargeIn == 0) {
+                        context_enlargeIn = Math.pow(2, context_numBits);
+                        context_numBits++;
+                    }
+                    context_dictionary[context_wc] = context_dictSize++;
+                    context_w = String(context_c);
+                }
+            }
+
+            if (context_w !== "") {
+                if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+                    if (context_w.charCodeAt(0) < 256) {
+                        for (i = 0; i < context_numBits; i++) {
+                            context_data_val = (context_data_val << 1);
+                            if (context_data_position == bitsPerChar - 1) {
+                                context_data_position = 0;
+                                context_data.push(getCharFromInt(context_data_val));
+                                context_data_val = 0;
+                            } else {
+                                context_data_position++;
+                            }
+                        }
+                        value = context_w.charCodeAt(0);
+                        for (i = 0; i < 8; i++) {
+                            context_data_val = (context_data_val << 1) | (value & 1);
+                            if (context_data_position == bitsPerChar - 1) {
+                                context_data_position = 0;
+                                context_data.push(getCharFromInt(context_data_val));
+                                context_data_val = 0;
+                            } else {
+                                context_data_position++;
+                            }
+                            value = value >> 1;
+                        }
+                    } else {
+                        value = 1;
+                        for (i = 0; i < context_numBits; i++) {
+                            context_data_val = (context_data_val << 1) | value;
+                            if (context_data_position == bitsPerChar - 1) {
+                                context_data_position = 0;
+                                context_data.push(getCharFromInt(context_data_val));
+                                context_data_val = 0;
+                            } else {
+                                context_data_position++;
+                            }
+                            value = 0;
+                        }
+                        value = context_w.charCodeAt(0);
+                        for (i = 0; i < 16; i++) {
+                            context_data_val = (context_data_val << 1) | (value & 1);
+                            if (context_data_position == bitsPerChar - 1) {
+                                context_data_position = 0;
+                                context_data.push(getCharFromInt(context_data_val));
+                                context_data_val = 0;
+                            } else {
+                                context_data_position++;
+                            }
+                            value = value >> 1;
+                        }
+                    }
+                    context_enlargeIn--;
+                    if (context_enlargeIn == 0) {
+                        context_enlargeIn = Math.pow(2, context_numBits);
+                        context_numBits++;
+                    }
+                    delete context_dictionaryToCreate[context_w];
+                } else {
+                    value = context_dictionary[context_w];
+                    for (i = 0; i < context_numBits; i++) {
+                        context_data_val = (context_data_val << 1) | (value & 1);
+                        if (context_data_position == bitsPerChar - 1) {
+                            context_data_position = 0;
+                            context_data.push(getCharFromInt(context_data_val));
+                            context_data_val = 0;
+                        } else {
+                            context_data_position++;
+                        }
+                        value = value >> 1;
+                    }
+                }
+                context_enlargeIn--;
+                if (context_enlargeIn == 0) {
+                    context_enlargeIn = Math.pow(2, context_numBits);
+                    context_numBits++;
+                }
+            }
+
+            // Mark the end of the stream
+            value = 2;
+            for (i = 0; i < context_numBits; i++) {
+                context_data_val = (context_data_val << 1) | (value & 1);
+                if (context_data_position == bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                } else {
+                    context_data_position++;
+                }
+                value = value >> 1;
+            }
+
+            // Flush the last char
+            while (true) {
+                context_data_val = (context_data_val << 1);
+                if (context_data_position == bitsPerChar - 1) {
+                    context_data.push(getCharFromInt(context_data_val));
+                    break;
+                } else {
+                    context_data_position++;
+                }
+            }
+
+            return context_data.join('');
+        }
+
+        return {
+            decompressFromBase64: decompressFromBase64,
+            compressToBase64: compressToBase64
+        };
     })();
 
     // Track the source of slide position for priority handling.
@@ -2510,8 +2744,312 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
         }
 
-        console.log('[SCORM Navigation] No direct navigation method available. User must navigate manually to slide:', targetSlide);
+        // ==========================================================================
+        // SUSPEND_DATA MODIFICATION: Last resort for SCORM that tracks via suspend_data
+        // Modify the resume position and reload the SCORM content
+        // ==========================================================================
+
+        console.log('[SCORM Navigation] Trying suspend_data modification approach...');
+
+        var suspendDataModified = modifySuspendDataAndReload(targetSlide);
+        if (suspendDataModified) {
+            console.log('[SCORM Navigation] suspend_data modified, SCORM content will reload');
+            return true;
+        }
+
+        console.log('[SCORM Navigation] No navigation method available. User must navigate manually to slide:', targetSlide);
         return false;
+    }
+
+    /**
+     * Modify the suspend_data to change the resume position and reload SCORM content.
+     * This works for SCORM content that stores position in suspend_data (like Articulate Storyline).
+     * @param {number} targetSlide - The 1-based slide number to navigate to.
+     * @returns {boolean} True if modification was successful.
+     */
+    function modifySuspendDataAndReload(targetSlide) {
+        console.log('[SCORM suspend_data] Attempting to modify suspend_data for slide:', targetSlide);
+
+        // Get current suspend_data
+        var currentSuspendData = null;
+        var scormApi = null;
+        var scormVersion = null;
+
+        if (window.API && window.API.LMSGetValue) {
+            scormApi = window.API;
+            scormVersion = '1.2';
+            try {
+                currentSuspendData = scormApi.LMSGetValue('cmi.suspend_data');
+            } catch (e) {}
+        } else if (window.API_1484_11 && window.API_1484_11.GetValue) {
+            scormApi = window.API_1484_11;
+            scormVersion = '2004';
+            try {
+                currentSuspendData = scormApi.GetValue('cmi.suspend_data');
+            } catch (e) {}
+        }
+
+        if (!currentSuspendData || currentSuspendData.length < 5) {
+            console.log('[SCORM suspend_data] No suspend_data found or too short');
+            return false;
+        }
+
+        console.log('[SCORM suspend_data] Current suspend_data length:', currentSuspendData.length);
+
+        // Try to decompress and modify
+        var modifiedData = null;
+
+        // Attempt 1: LZ-compressed JSON (Articulate Storyline format)
+        if (currentSuspendData.match(/^[A-Za-z0-9+/=]{20,}$/)) {
+            try {
+                var decompressed = LZString.decompressFromBase64(currentSuspendData);
+                if (decompressed && decompressed.length > 0) {
+                    console.log('[SCORM suspend_data] LZ decompressed, length:', decompressed.length);
+
+                    // Try to parse as JSON
+                    try {
+                        var parsed = JSON.parse(decompressed);
+                        console.log('[SCORM suspend_data] Parsed JSON, keys:', Object.keys(parsed).join(', '));
+
+                        // Modify the resume position (0-based index for Storyline)
+                        var targetIndex = targetSlide - 1;
+                        var modified = false;
+
+                        // Storyline format with "resume" key: "scene_slide" or just "slide"
+                        if (parsed.resume !== undefined) {
+                            var oldResume = parsed.resume;
+                            // Check if format is "scene_slide" (e.g., "0_7" for scene 0, slide 7)
+                            var match = String(oldResume).match(/^(\d+)_(\d+)$/);
+                            if (match) {
+                                // Keep the same scene, change the slide
+                                parsed.resume = match[1] + '_' + targetIndex;
+                                console.log('[SCORM suspend_data] Modified resume from', oldResume, 'to', parsed.resume);
+                            } else {
+                                // Just a number
+                                parsed.resume = String(targetIndex);
+                                console.log('[SCORM suspend_data] Modified resume from', oldResume, 'to', parsed.resume);
+                            }
+                            modified = true;
+                        }
+
+                        // Storyline "d" array format: [{n: "Resume", v: "0_7"}, ...]
+                        if (parsed.d && Array.isArray(parsed.d)) {
+                            for (var i = 0; i < parsed.d.length; i++) {
+                                var item = parsed.d[i];
+                                if (item.n === 'Resume' || item.n === 'resume') {
+                                    var oldVal = item.v;
+                                    var match = String(oldVal).match(/^(\d+)_(\d+)$/);
+                                    if (match) {
+                                        item.v = match[1] + '_' + targetIndex;
+                                    } else {
+                                        item.v = String(targetIndex);
+                                    }
+                                    console.log('[SCORM suspend_data] Modified d-array Resume from', oldVal, 'to', item.v);
+                                    modified = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Other common formats
+                        if (parsed.currentSlide !== undefined) {
+                            parsed.currentSlide = targetIndex;
+                            modified = true;
+                        }
+                        if (parsed.slide !== undefined) {
+                            parsed.slide = targetIndex;
+                            modified = true;
+                        }
+                        if (parsed.current !== undefined) {
+                            parsed.current = targetIndex;
+                            modified = true;
+                        }
+                        if (parsed.position !== undefined) {
+                            parsed.position = targetIndex;
+                            modified = true;
+                        }
+                        if (parsed.variables && parsed.variables.CurrentSlideIndex !== undefined) {
+                            parsed.variables.CurrentSlideIndex = targetIndex;
+                            modified = true;
+                        }
+                        if (parsed.variables && parsed.variables['Player.CurrentSlideIndex'] !== undefined) {
+                            parsed.variables['Player.CurrentSlideIndex'] = targetIndex;
+                            modified = true;
+                        }
+
+                        if (modified) {
+                            // Re-serialize and compress
+                            var newJson = JSON.stringify(parsed);
+                            modifiedData = LZString.compressToBase64(newJson);
+                            console.log('[SCORM suspend_data] Re-compressed, new length:', modifiedData.length);
+                        }
+                    } catch (e) {
+                        console.log('[SCORM suspend_data] JSON parse error:', e.message);
+
+                        // Not JSON, try text-based modification
+                        var modifiedText = modifySuspendDataText(decompressed, targetSlide);
+                        if (modifiedText && modifiedText !== decompressed) {
+                            modifiedData = LZString.compressToBase64(modifiedText);
+                            console.log('[SCORM suspend_data] Modified text and re-compressed');
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('[SCORM suspend_data] LZ decompression error:', e.message);
+            }
+        }
+
+        // Attempt 2: Plain JSON (uncompressed)
+        if (!modifiedData) {
+            try {
+                var parsed = JSON.parse(currentSuspendData);
+                var targetIndex = targetSlide - 1;
+                var modified = false;
+
+                if (parsed.resume !== undefined) {
+                    var match = String(parsed.resume).match(/^(\d+)_(\d+)$/);
+                    if (match) {
+                        parsed.resume = match[1] + '_' + targetIndex;
+                    } else {
+                        parsed.resume = String(targetIndex);
+                    }
+                    modified = true;
+                }
+                if (parsed.currentSlide !== undefined) { parsed.currentSlide = targetIndex; modified = true; }
+                if (parsed.slide !== undefined) { parsed.slide = targetIndex; modified = true; }
+                if (parsed.current !== undefined) { parsed.current = targetIndex; modified = true; }
+
+                if (modified) {
+                    modifiedData = JSON.stringify(parsed);
+                    console.log('[SCORM suspend_data] Modified plain JSON');
+                }
+            } catch (e) {
+                // Not JSON
+            }
+        }
+
+        // Attempt 3: URL-encoded format (Adobe Captivate style)
+        if (!modifiedData && currentSuspendData.indexOf('=') !== -1) {
+            try {
+                var params = new URLSearchParams(currentSuspendData);
+                var modified = false;
+                var targetIndex = targetSlide - 1;
+
+                if (params.has('slide')) { params.set('slide', targetIndex); modified = true; }
+                if (params.has('current')) { params.set('current', targetIndex); modified = true; }
+                if (params.has('page')) { params.set('page', targetIndex); modified = true; }
+
+                if (modified) {
+                    modifiedData = params.toString();
+                    console.log('[SCORM suspend_data] Modified URL-encoded format');
+                }
+            } catch (e) {}
+        }
+
+        // Save modified suspend_data and reload
+        if (modifiedData) {
+            console.log('[SCORM suspend_data] Saving modified suspend_data...');
+
+            try {
+                if (scormVersion === '1.2') {
+                    scormApi.LMSSetValue('cmi.suspend_data', modifiedData);
+                    scormApi.LMSCommit('');
+                    console.log('[SCORM suspend_data] SCORM 1.2 suspend_data saved and committed');
+                } else {
+                    scormApi.SetValue('cmi.suspend_data', modifiedData);
+                    scormApi.Commit('');
+                    console.log('[SCORM suspend_data] SCORM 2004 suspend_data saved and committed');
+                }
+
+                // Reload the SCORM content iframe to pick up the new suspend_data
+                reloadScormContentIframe();
+
+                return true;
+            } catch (e) {
+                console.log('[SCORM suspend_data] Error saving suspend_data:', e.message);
+            }
+        }
+
+        console.log('[SCORM suspend_data] Could not modify suspend_data');
+        return false;
+    }
+
+    /**
+     * Modify suspend_data text (non-JSON) with new slide position.
+     */
+    function modifySuspendDataText(text, targetSlide) {
+        var targetIndex = targetSlide - 1;
+        var modified = text;
+
+        // Replace resume patterns (scene_slide format)
+        modified = modified.replace(
+            /("resume"\s*:\s*")(\d+)_(\d+)(")/gi,
+            function(match, p1, scene, slide, p4) {
+                return p1 + scene + '_' + targetIndex + p4;
+            }
+        );
+
+        // Replace simple resume patterns
+        modified = modified.replace(
+            /("resume"\s*:\s*")(\d+)(")/gi,
+            function(match, p1, oldSlide, p3) {
+                return p1 + targetIndex + p3;
+            }
+        );
+
+        // Replace currentSlide patterns
+        modified = modified.replace(
+            /("currentSlide"\s*:\s*)(\d+)/gi,
+            '$1' + targetIndex
+        );
+
+        return modified;
+    }
+
+    /**
+     * Find and reload the SCORM content iframe.
+     */
+    function reloadScormContentIframe() {
+        console.log('[SCORM suspend_data] Looking for SCORM content iframe to reload...');
+
+        // Look for the SCORM content iframe
+        var iframes = document.querySelectorAll('iframe');
+        var reloaded = false;
+
+        for (var i = 0; i < iframes.length; i++) {
+            var iframe = iframes[i];
+            var src = iframe.src || '';
+
+            // Look for SCORM content iframes (typically contain the actual content)
+            // Skip the outer Moodle player iframes
+            if (src.indexOf('/mod/scorm/') === -1 && src.length > 0) {
+                try {
+                    console.log('[SCORM suspend_data] Reloading iframe:', src.substring(0, 100));
+                    iframe.contentWindow.location.reload();
+                    reloaded = true;
+                } catch (e) {
+                    // Cross-origin, try setting src
+                    try {
+                        var currentSrc = iframe.src;
+                        iframe.src = '';
+                        setTimeout(function() {
+                            iframe.src = currentSrc;
+                        }, 100);
+                        console.log('[SCORM suspend_data] Reloaded iframe via src reassignment');
+                        reloaded = true;
+                    } catch (e2) {
+                        console.log('[SCORM suspend_data] Could not reload iframe:', e2.message);
+                    }
+                }
+                break;
+            }
+        }
+
+        // If no iframe found, reload the whole page (will re-read suspend_data)
+        if (!reloaded) {
+            console.log('[SCORM suspend_data] No iframe found, reloading current window');
+            window.location.reload();
+        }
     }
 
     // Listen for navigation requests from SmartLearning parent window
