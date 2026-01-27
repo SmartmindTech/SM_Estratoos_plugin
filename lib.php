@@ -2011,6 +2011,200 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             console.log('[SCORM Multi-Tool Support] No specific authoring tool detected. Using SCORM API tracking.');
         }
     }, 5000);
+
+    // ==========================================================================
+    // SLIDE NAVIGATION FROM PARENT WINDOW
+    // Listen for navigation requests from SmartLearning
+    // ==========================================================================
+
+    /**
+     * Attempt to navigate to a specific slide.
+     * Tries different methods depending on the authoring tool.
+     * @param {number} targetSlide - The 1-based slide number to navigate to.
+     * @returns {boolean} True if navigation was attempted.
+     */
+    function navigateToSlide(targetSlide) {
+        console.log('[SCORM Navigation] Attempting to navigate to slide:', targetSlide);
+
+        // Try Articulate Storyline
+        var storylinePlayer = findStorylinePlayer();
+        if (storylinePlayer && storylinePlayer.window) {
+            try {
+                var win = storylinePlayer.window;
+
+                // Method 1: Storyline's goToSlide function
+                if (win.goToSlide) {
+                    win.goToSlide(targetSlide - 1); // 0-based
+                    console.log('[SCORM Navigation] Storyline goToSlide called');
+                    return true;
+                }
+
+                // Method 2: GetPlayer().SetVar for slide navigation
+                if (win.GetPlayer) {
+                    var player = win.GetPlayer();
+                    if (player && player.SetVar) {
+                        // Try common Storyline variables for navigation
+                        try {
+                            player.SetVar('Jump', targetSlide);
+                            console.log('[SCORM Navigation] Storyline SetVar Jump called');
+                            return true;
+                        } catch (e) {}
+                    }
+                }
+
+                // Method 3: Direct hash navigation
+                var hash = win.location.hash;
+                if (hash && hash.includes('slide')) {
+                    // Try to update hash to navigate
+                    var newHash = hash.replace(/slide[_\-]?(\d+)/i, 'slide' + (targetSlide - 1));
+                    if (newHash !== hash) {
+                        win.location.hash = newHash;
+                        console.log('[SCORM Navigation] Storyline hash navigation attempted');
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.log('[SCORM Navigation] Storyline navigation error:', e.message);
+            }
+        }
+
+        // Try Adobe Captivate
+        var captivatePlayer = findCaptivatePlayer();
+        if (captivatePlayer && captivatePlayer.window) {
+            try {
+                var win = captivatePlayer.window;
+
+                // Method 1: cpCmndGotoSlide function
+                if (win.cpCmndGotoSlide) {
+                    win.cpCmndGotoSlide(targetSlide - 1); // 0-based
+                    console.log('[SCORM Navigation] Captivate cpCmndGotoSlide called');
+                    return true;
+                }
+
+                // Method 2: cpAPIInterface
+                if (win.cpAPIInterface && win.cpAPIInterface.gotoSlide) {
+                    win.cpAPIInterface.gotoSlide(targetSlide - 1);
+                    console.log('[SCORM Navigation] Captivate cpAPIInterface.gotoSlide called');
+                    return true;
+                }
+
+                // Method 3: cp.movie.gotoSlide
+                if (win.cp && win.cp.movie && win.cp.movie.gotoSlide) {
+                    win.cp.movie.gotoSlide(targetSlide - 1);
+                    console.log('[SCORM Navigation] Captivate cp.movie.gotoSlide called');
+                    return true;
+                }
+            } catch (e) {
+                console.log('[SCORM Navigation] Captivate navigation error:', e.message);
+            }
+        }
+
+        // Try iSpring
+        var iSpringPlayer = findISpringPlayer();
+        if (iSpringPlayer && iSpringPlayer.window) {
+            try {
+                var win = iSpringPlayer.window;
+
+                // Method 1: iSpringPresentationAPI
+                if (win.iSpringPresentationAPI && win.iSpringPresentationAPI.gotoSlide) {
+                    win.iSpringPresentationAPI.gotoSlide(targetSlide - 1);
+                    console.log('[SCORM Navigation] iSpring API gotoSlide called');
+                    return true;
+                }
+
+                // Method 2: ispringPresentationConnector
+                if (win.ispringPresentationConnector && win.ispringPresentationConnector.gotoSlide) {
+                    win.ispringPresentationConnector.gotoSlide(targetSlide - 1);
+                    console.log('[SCORM Navigation] iSpring connector gotoSlide called');
+                    return true;
+                }
+            } catch (e) {
+                console.log('[SCORM Navigation] iSpring navigation error:', e.message);
+            }
+        }
+
+        // Try Lectora
+        var lectoraPlayer = findLectoraPlayer();
+        if (lectoraPlayer && lectoraPlayer.window) {
+            try {
+                var win = lectoraPlayer.window;
+
+                // Method 1: TrivAPI.GoToPage
+                if (win.TrivAPI && win.TrivAPI.GoToPage) {
+                    win.TrivAPI.GoToPage(targetSlide);
+                    console.log('[SCORM Navigation] Lectora TrivAPI.GoToPage called');
+                    return true;
+                }
+
+                // Method 2: trivExternalCall
+                if (win.trivExternalCall) {
+                    win.trivExternalCall('GoToPage', targetSlide);
+                    console.log('[SCORM Navigation] Lectora trivExternalCall GoToPage called');
+                    return true;
+                }
+            } catch (e) {
+                console.log('[SCORM Navigation] Lectora navigation error:', e.message);
+            }
+        }
+
+        // Generic: Try to set SCORM lesson_location and trigger refresh
+        // This is a last resort and may not work with all content
+        try {
+            if (window.API && window.API.LMSSetValue) {
+                // Try setting lesson_location to trigger navigation
+                window.API.LMSSetValue('cmi.core.lesson_location', String(targetSlide));
+                console.log('[SCORM Navigation] Set cmi.core.lesson_location to:', targetSlide);
+                // Note: This alone won't cause navigation, but some content may respond
+            }
+            if (window.API_1484_11 && window.API_1484_11.SetValue) {
+                window.API_1484_11.SetValue('cmi.location', String(targetSlide));
+                console.log('[SCORM Navigation] Set cmi.location to:', targetSlide);
+            }
+        } catch (e) {
+            console.log('[SCORM Navigation] SCORM API navigation error:', e.message);
+        }
+
+        console.log('[SCORM Navigation] No direct navigation method available. User must navigate manually to slide:', targetSlide);
+        return false;
+    }
+
+    // Listen for navigation requests from SmartLearning parent window
+    window.addEventListener('message', function(event) {
+        // Check for navigation request message
+        if (event.data && event.data.type === 'scorm-navigate-to-slide') {
+            var targetCmid = event.data.cmid;
+            var targetSlide = event.data.slide;
+
+            // Verify this message is for this SCORM module
+            if (targetCmid && targetCmid !== cmid) {
+                console.log('[SCORM Navigation] Ignoring navigation request for different cmid:', targetCmid);
+                return;
+            }
+
+            if (targetSlide && !isNaN(targetSlide)) {
+                console.log('[SCORM Navigation] Received navigation request to slide:', targetSlide);
+                var success = navigateToSlide(parseInt(targetSlide, 10));
+
+                // Send response back to parent
+                var response = {
+                    type: 'scorm-navigation-result',
+                    cmid: cmid,
+                    targetSlide: targetSlide,
+                    success: success,
+                    currentSlide: lastSlide
+                };
+
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(response, '*');
+                }
+                if (window.top && window.top !== window && window.top !== window.parent) {
+                    window.top.postMessage(response, '*');
+                }
+            }
+        }
+    }, false);
+
+    console.log('[SCORM Navigation] Navigation listener registered for cmid:', cmid);
 })();
 </script>
 JS;

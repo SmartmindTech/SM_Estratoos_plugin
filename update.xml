@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012709</version>
+        <version>2025012710</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.9</release>
+        <release>2.0.10</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,37 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.9/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.10/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.9</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.10</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.9 - Fix Slide Indexing & Progress Tracking</h3>
+            <h3>Version 2.0.10 - Slide Navigation from Parent Window</h3>
 
-            <h4>Bug Fixes</h4>
+            <h4>New Features</h4>
             <ul>
-                <li>Fixed 0-based to 1-based slide indexing (Storyline uses 0-based internally)</li>
-                <li>Separate furthestSlide from currentSlide for accurate progress bar</li>
+                <li>navigateToSlide() function for programmatic navigation</li>
+                <li>Listen for 'scorm-navigate-to-slide' postMessage from SmartLearning</li>
+                <li>Navigation support for Articulate Storyline, Captivate, iSpring, Lectora</li>
+                <li>Sends 'scorm-navigation-result' response back to parent</li>
             </ul>
 
-            <h4>Improvements</h4>
+            <h4>Navigation Methods</h4>
             <ul>
-                <li>Progress bar now shows furthest progress reached (from score)</li>
-                <li>Current position tracked separately for navigation indicator</li>
-                <li>Added currentPercent and progressPercent to postMessage</li>
-                <li>Better logging for furthest progress vs current slide</li>
+                <li>Storyline: goToSlide, GetPlayer().SetVar, hash navigation</li>
+                <li>Captivate: cpCmndGotoSlide, cpAPIInterface.gotoSlide</li>
+                <li>iSpring: iSpringPresentationAPI.gotoSlide</li>
+                <li>Lectora: TrivAPI.GoToPage, trivExternalCall</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.9: Fix slide indexing</li>
                 <li>v2.0.8: LZ-String decompression</li>
                 <li>v2.0.7: Multi-vendor SCORM detection</li>
-                <li>v2.0.6: Enhanced SCORM tracking</li>
                 <li>v2.0.0: WebSocket event observers</li>
             </ul>
             ]]>
