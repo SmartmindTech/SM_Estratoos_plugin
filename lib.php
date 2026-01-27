@@ -1269,11 +1269,21 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
                 // Track suspend_data changes (Articulate Storyline stores slide position here).
+                // IMPORTANT: Skip tracking during intercept window because parseSlideFromSuspendData
+                // looks at multiple fields (resume, CurrentSlideIndex, etc.) which we don't modify.
+                // This would cause incorrect position reporting during navigation.
                 if (element === 'cmi.suspend_data' && valueToWrite !== lastSuspendData) {
+                    var skipTracking = pendingSlideNavigation && interceptStartTime !== null &&
+                        (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+
                     lastSuspendData = valueToWrite;
-                    var slideNum = parseSlideFromSuspendData(valueToWrite);
-                    if (slideNum !== null && slideNum !== lastSlide) {
-                        sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                    if (!skipTracking) {
+                        var slideNum = parseSlideFromSuspendData(valueToWrite);
+                        if (slideNum !== null && slideNum !== lastSlide) {
+                            sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                        }
+                    } else {
+                        console.log('[SCORM 1.2] Skipping suspend_data tracking during intercept window');
                     }
                 }
 
@@ -1390,11 +1400,21 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
                 // Track suspend_data changes (Articulate Storyline stores slide position here).
+                // IMPORTANT: Skip tracking during intercept window because parseSlideFromSuspendData
+                // looks at multiple fields (resume, CurrentSlideIndex, etc.) which we don't modify.
+                // This would cause incorrect position reporting during navigation.
                 if (element === 'cmi.suspend_data' && valueToWrite !== lastSuspendData) {
+                    var skipTracking = pendingSlideNavigation && interceptStartTime !== null &&
+                        (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+
                     lastSuspendData = valueToWrite;
-                    var slideNum = parseSlideFromSuspendData(valueToWrite);
-                    if (slideNum !== null && slideNum !== lastSlide) {
-                        sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                    if (!skipTracking) {
+                        var slideNum = parseSlideFromSuspendData(valueToWrite);
+                        if (slideNum !== null && slideNum !== lastSlide) {
+                            sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                        }
+                    } else {
+                        console.log('[SCORM 2004] Skipping suspend_data tracking during intercept window');
                     }
                 }
 

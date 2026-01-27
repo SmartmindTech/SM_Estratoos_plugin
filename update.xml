@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012722</version>
+        <version>2025012723</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.22</release>
+        <release>2.0.23</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,37 +29,37 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.22/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.23/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.22</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.23</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.22 - Re-enable Write Interception (Safe)</h3>
+            <h3>Version 2.0.23 - Skip Tracking During Intercept Window</h3>
 
-            <h4>Improvements</h4>
+            <h4>Bug Fix</h4>
             <ul>
-                <li>Re-enabled write interception for suspend_data during navigation</li>
-                <li>Only modifies "l" field (position), NOT visited array ("v")</li>
-                <li>Prevents Storyline from writing back cached old position</li>
-                <li>Start intercept timer immediately when navigation detected</li>
+                <li>Skip suspend_data tracking during navigation intercept window</li>
+                <li>parseSlideFromSuspendData reads fields we don't modify (resume, etc.)</li>
+                <li>Prevents incorrect position reporting during navigation</li>
+                <li>Tracking resumes after intercept window closes</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Storyline WRITES before it READS - timer must start early</li>
-                <li>Increased window from 3s to 5s for reliability</li>
-                <li>Both LMSSetValue and LMSGetValue now intercepted</li>
-                <li>Progress preserved because only "l" field is modified</li>
+                <li>Only "l" field is modified during interception</li>
+                <li>Other fields (resume, CurrentSlideIndex) keep old values</li>
+                <li>Sending progress from unmodified fields caused wrong position</li>
+                <li>Both SCORM 1.2 and SCORM 2004 updated</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.22: Re-enable write interception (l field only)</li>
                 <li>v2.0.21: Multiple intercepts (5 reads, 3s window)</li>
                 <li>v2.0.20: Disabled write interception (was too aggressive)</li>
-                <li>v2.0.19: Prevent navigation reload loops</li>
                 <li>v2.0.16: URL-based slide navigation (?slide=X) for embed</li>
             </ul>
             ]]>

@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012722;  // YYYYMMDDXX format.
+$plugin->version = 2025012723;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.22';  // Re-enable write interception (l field only), start timer on nav detect.
+$plugin->release = '2.0.23';  // Skip suspend_data tracking during intercept window.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
