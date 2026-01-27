@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012704</version>
+        <version>2025012705</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.4</release>
+        <release>2.0.5</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,25 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.4/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.5/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.4</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.5</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.4 - Version Bump</h3>
+            <h3>Version 2.0.5 - Enhanced SCORM Slide Tracking</h3>
 
-            <h4>Changes</h4>
+            <h4>New Features</h4>
             <ul>
-                <li>Version bump to ensure all v2.0.x changes are properly applied</li>
-                <li>Includes: Moodle 4.x normalized SCORM tables support</li>
-                <li>Includes: Notification URL fix for cross-Moodle redirects</li>
+                <li>Enhanced suspend_data parsing for multiple vendor formats (Articulate, iSpring, Captivate, etc.)</li>
+                <li>Added polling fallback to detect slide changes every 2 seconds</li>
+                <li>Added MutationObserver to detect DOM-based navigation</li>
+                <li>Added postMessage listener for internal SCORM navigation events</li>
+                <li>Added debug logging to help identify SCORM data format</li>
+            </ul>
+
+            <h4>Improvements</h4>
+            <ul>
+                <li>Support for Base64-encoded suspend_data (Articulate Storyline)</li>
+                <li>Support for URL-encoded suspend_data (Adobe Captivate)</li>
+                <li>Support for JSON suspend_data with nested structures</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.4: Version bump</li>
                 <li>v2.0.3: Notification URLs use relative paths</li>
                 <li>v2.0.2: Support Moodle 4.x normalized SCORM tables</li>
                 <li>v2.0.1: Use cmi.core.score.raw for SCORM progress</li>

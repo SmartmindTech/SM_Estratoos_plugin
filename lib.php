@@ -460,31 +460,74 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         return null;
     }
 
-    // Function to parse slide from suspend_data (Articulate Storyline stores position here).
+    // Function to parse slide from suspend_data (multiple vendor formats).
     function parseSlideFromSuspendData(data) {
         if (!data) return null;
 
         try {
-            // Try JSON parse (some tools use JSON).
+            // 1. Try JSON parse (iSpring, some custom tools).
             var parsed = JSON.parse(data);
             if (parsed.currentSlide !== undefined) return parseInt(parsed.currentSlide, 10);
             if (parsed.slide !== undefined) return parseInt(parsed.slide, 10);
+            if (parsed.current !== undefined) return parseInt(parsed.current, 10);
+            if (parsed.position !== undefined) return parseInt(parsed.position, 10);
             if (parsed.resume !== undefined) {
                 // Articulate format: resume might contain slide ref.
                 var match = parsed.resume.match(/(\d+)/);
                 if (match) return parseInt(match[1], 10);
             }
+            // Check for nested structures.
+            if (parsed.v && parsed.v.current !== undefined) return parseInt(parsed.v.current, 10);
+            if (parsed.data && parsed.data.slide !== undefined) return parseInt(parsed.data.slide, 10);
         } catch (e) {
-            // Not JSON, try regex patterns.
+            // Not JSON, try other patterns.
         }
 
-        // Articulate Storyline pattern: look for slide numbers.
-        var match = data.match(/["']?(?:slide|currentSlide|resume)["']?\s*[:=]\s*["']?(\d+)/i);
+        // 2. Articulate Storyline Base64 pattern - look for slide index in decoded content.
+        if (data.match(/^[A-Za-z0-9+/=]{20,}$/)) {
+            try {
+                var decoded = atob(data);
+                // Look for slide patterns in decoded data.
+                var match = decoded.match(/slide[_\-]?(\d+)/i);
+                if (match) return parseInt(match[1], 10);
+                // Look for scene_slide pattern.
+                match = decoded.match(/(\d+)[_\-](\d+)/);
+                if (match) return parseInt(match[2], 10);
+            } catch (e) {
+                // Not valid Base64.
+            }
+        }
+
+        // 3. URL-encoded format (Adobe Captivate style).
+        if (data.indexOf('=') !== -1 && data.indexOf('&') !== -1) {
+            try {
+                var params = new URLSearchParams(data);
+                if (params.has('slide')) return parseInt(params.get('slide'), 10);
+                if (params.has('current')) return parseInt(params.get('current'), 10);
+                if (params.has('page')) return parseInt(params.get('page'), 10);
+            } catch (e) {
+                // URLSearchParams not supported or invalid data.
+            }
+        }
+
+        // 4. Articulate Storyline pattern: look for slide numbers in raw string.
+        var match = data.match(/["']?(?:slide|currentSlide|resume|current|position)["']?\s*[:=]\s*["']?(\d+)/i);
         if (match) return parseInt(match[1], 10);
 
-        // Look for scene/slide pattern (scene_slide format).
-        match = data.match(/(\d+)_(\d+)/);
+        // 5. Look for scene/slide pattern (scene_slide format).
+        match = data.match(/(\d+)[_\-](\d+)/);
         if (match) return parseInt(match[2], 10);
+
+        // 6. Look for reasonable slide index numbers in the data.
+        match = data.match(/\b(\d{1,3})\b/g);
+        if (match && match.length > 0) {
+            for (var i = 0; i < match.length; i++) {
+                var num = parseInt(match[i], 10);
+                if (num > 0 && num <= slidescount) {
+                    return num;
+                }
+            }
+        }
 
         return null;
     }
@@ -534,6 +577,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             window.API.LMSSetValue = function(element, value) {
                 var result = originalSetValue.call(window.API, element, value);
 
+                // DEBUG: Log all SCORM API calls to understand what the content sends.
+                console.log('[SCORM 1.2] LMSSetValue:', element, '=', value && value.substring ? value.substring(0, 200) : value);
+
                 // Track lesson_location changes.
                 if (element === 'cmi.core.lesson_location' && value !== lastLocation) {
                     lastLocation = value;
@@ -575,6 +621,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             var originalSetValue2004 = window.API_1484_11.SetValue;
             window.API_1484_11.SetValue = function(element, value) {
                 var result = originalSetValue2004.call(window.API_1484_11, element, value);
+
+                // DEBUG: Log all SCORM API calls to understand what the content sends.
+                console.log('[SCORM 2004] SetValue:', element, '=', value && value.substring ? value.substring(0, 200) : value);
 
                 // Track location changes.
                 if (element === 'cmi.location' && value !== lastLocation) {
@@ -630,6 +679,107 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     setTimeout(function() {
         sendProgressUpdate(null, null, null, null);
     }, 1000);
+
+    // Fallback: Poll the SCORM API for current position every 2 seconds.
+    // Some SCORM content doesn't call SetValue on navigation.
+    var pollInterval = setInterval(function() {
+        var currentLocation = null;
+        var currentSuspendData = null;
+
+        // Try SCORM 1.2
+        if (window.API && window.API.LMSGetValue) {
+            try {
+                currentLocation = window.API.LMSGetValue('cmi.core.lesson_location');
+                currentSuspendData = window.API.LMSGetValue('cmi.suspend_data');
+            } catch (e) {}
+        }
+        // Try SCORM 2004
+        else if (window.API_1484_11 && window.API_1484_11.GetValue) {
+            try {
+                currentLocation = window.API_1484_11.GetValue('cmi.location');
+                currentSuspendData = window.API_1484_11.GetValue('cmi.suspend_data');
+            } catch (e) {}
+        }
+
+        // Check if location changed.
+        if (currentLocation && currentLocation !== lastLocation) {
+            lastLocation = currentLocation;
+            console.log('[SCORM Poll] Location changed:', currentLocation);
+            sendProgressUpdate(currentLocation, lastStatus, null, null);
+        }
+
+        // Check if suspend_data changed.
+        if (currentSuspendData && currentSuspendData !== lastSuspendData) {
+            lastSuspendData = currentSuspendData;
+            var slideNum = parseSlideFromSuspendData(currentSuspendData);
+            if (slideNum !== null && slideNum !== lastSlide) {
+                console.log('[SCORM Poll] Detected slide change from suspend_data:', slideNum);
+                sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+            }
+        }
+    }, 2000);
+
+    // Clean up polling when page unloads.
+    window.addEventListener('beforeunload', function() {
+        clearInterval(pollInterval);
+    });
+
+    // Listen for internal navigation events (Storyline, Captivate, etc.).
+    window.addEventListener('message', function(event) {
+        // Some SCORM content sends internal navigation messages.
+        if (event.data && typeof event.data === 'object') {
+            if (event.data.slide !== undefined) {
+                var slideNum = parseInt(event.data.slide, 10);
+                if (!isNaN(slideNum) && slideNum !== lastSlide) {
+                    console.log('[SCORM Internal] Detected slide from message:', slideNum);
+                    sendProgressUpdate(null, null, null, slideNum);
+                }
+            }
+        }
+    }, false);
+
+    // For Articulate Storyline: watch for slide change via DOM mutation.
+    if (typeof MutationObserver !== 'undefined') {
+        var mutationDebounce = null;
+        var observer = new MutationObserver(function(mutations) {
+            // Debounce to avoid excessive polling.
+            if (mutationDebounce) return;
+            mutationDebounce = setTimeout(function() {
+                mutationDebounce = null;
+
+                var currentSuspendData = null;
+                if (window.API && window.API.LMSGetValue) {
+                    try {
+                        currentSuspendData = window.API.LMSGetValue('cmi.suspend_data');
+                    } catch (e) {}
+                } else if (window.API_1484_11 && window.API_1484_11.GetValue) {
+                    try {
+                        currentSuspendData = window.API_1484_11.GetValue('cmi.suspend_data');
+                    } catch (e) {}
+                }
+
+                if (currentSuspendData && currentSuspendData !== lastSuspendData) {
+                    lastSuspendData = currentSuspendData;
+                    var slideNum = parseSlideFromSuspendData(currentSuspendData);
+                    if (slideNum !== null && slideNum !== lastSlide) {
+                        console.log('[SCORM DOM] Detected slide change:', slideNum);
+                        sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                    }
+                }
+            }, 500);
+        });
+
+        // Start observing after a delay to let SCORM content initialize.
+        setTimeout(function() {
+            if (document.body) {
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: false
+                });
+            }
+        }, 3000);
+    }
 })();
 </script>
 JS;
