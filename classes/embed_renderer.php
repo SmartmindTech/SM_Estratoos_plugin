@@ -189,10 +189,11 @@ class embed_renderer {
         var navData = {
             slide: {$slide},
             cmid: {$cmid},
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            version: 3  // v3: multiple intercepts with time window
         };
         sessionStorage.setItem('scorm_pending_navigation_{$cmid}', JSON.stringify(navData));
-        console.log('[Embed Renderer] Set pending navigation to slide', {$slide}, 'for cmid', {$cmid});
+        console.log('[Embed Renderer] Set pending navigation:', navData);
     })();
 ";
         }

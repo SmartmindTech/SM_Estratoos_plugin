@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012720</version>
+        <version>2025012721</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.20</release>
+        <release>2.0.21</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,37 +29,37 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.20/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.21/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.20</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.21</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.20 - Fix Progress Loss from Write Interception</h3>
+            <h3>Version 2.0.21 - Multiple Intercepts with Time Window</h3>
 
-            <h4>Bug Fix</h4>
+            <h4>Improvements</h4>
             <ul>
-                <li>Disabled suspend_data WRITE interception (was corrupting visited slides)</li>
-                <li>Now only intercept READS to set initial slide position</li>
-                <li>Let Storyline write its natural state to preserve progress</li>
-                <li>Fixes issue where visited slides array ("v") was being reset</li>
+                <li>Multiple intercept system: up to 5 reads within 3-second window</li>
+                <li>Storyline calls LMSGetValue multiple times; single intercept was insufficient</li>
+                <li>Simplified: only modify "l" field (other fields caused inconsistencies)</li>
+                <li>Removed direct API fallback (was causing conflicts)</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Problem: Write interception confused Storyline's internal state</li>
-                <li>Solution: Intercept LMSGetValue only, not LMSSetValue</li>
-                <li>Result: Navigation works AND progress is preserved</li>
-                <li>Both SCORM 1.2 and SCORM 2004 affected</li>
+                <li>MAX_INTERCEPTS = 5, INTERCEPT_WINDOW_MS = 3000</li>
+                <li>Only "l" field modified in suspend_data (position field)</li>
+                <li>LMSGetValue interception is now the sole navigation mechanism</li>
+                <li>Added version tracking in sessionStorage navData (v3)</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.20: Disabled write interception to preserve progress</li>
                 <li>v2.0.19: Prevent navigation reload loops</li>
                 <li>v2.0.18: Enhanced resume field modification + fallback</li>
-                <li>v2.0.17: Intercept suspend_data writes (now disabled)</li>
                 <li>v2.0.16: URL-based slide navigation (?slide=X) for embed</li>
             </ul>
             ]]>

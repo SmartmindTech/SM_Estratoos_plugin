@@ -1091,9 +1091,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     // Check for pending slide navigation from sessionStorage (set before reload).
     var pendingSlideNavigation = null;
-    var suspendDataIntercepted = false; // Flag to only intercept GET once
-    var suspendDataWriteInterceptCount = 0; // Counter for write interceptions
-    var MAX_WRITE_INTERCEPTS = 3; // Intercept first N writes to prevent Storyline from reverting
+    // Multiple intercept system: allow multiple LMSGetValue intercepts within a time window
+    // Storyline calls LMSGetValue multiple times during initialization; single intercept was insufficient
+    var suspendDataInterceptCount = 0;
+    var MAX_INTERCEPTS = 5; // Intercept up to 5 reads
+    var interceptStartTime = null; // Set when first intercept happens
+    var INTERCEPT_WINDOW_MS = 3000; // Only intercept for first 3 seconds after first read
     try {
         var navData = sessionStorage.getItem('scorm_pending_navigation_' + cmid);
         if (navData) {
@@ -1108,93 +1111,45 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     /**
      * Modify suspend_data to change the resume position.
-     * This is called when we need to intercept LMSGetValue.
+     * SIMPLIFIED: Only modify the "l" field which is the key field for Storyline position.
+     * Previous versions tried to modify "resume", "CurrentSlideIndex", etc. but this caused
+     * inconsistencies when Storyline read the data multiple times.
      */
     function modifySuspendDataForSlide(originalData, targetSlide) {
         if (!originalData || originalData.length < 5) return originalData;
 
         var targetIndex = targetSlide - 1; // 0-based index
-        console.log('[SCORM suspend_data intercept] Modifying for slide:', targetSlide, '(index:', targetIndex, ')');
+        console.log('[SCORM suspend_data] Modifying for slide:', targetSlide, '(index:', targetIndex, ')');
 
         // Try LZ decompression (Articulate Storyline format)
         if (originalData.match(/^[A-Za-z0-9+/=]{20,}$/)) {
             try {
                 var decompressed = LZString.decompressFromBase64(originalData);
                 if (decompressed && decompressed.length > 0) {
-                    console.log('[SCORM suspend_data intercept] Decompressed, length:', decompressed.length);
-                    console.log('[SCORM suspend_data intercept] Data sample:', decompressed.substring(0, 300));
-
-                    var modified = decompressed;
-                    var changesMade = false;
-
-                    // 1. Modify the "resume" field - THIS IS THE KEY FIELD for Storyline resume
-                    // Format: "resume":"0_7" (scene 0, slide 7) - 0-indexed
-                    modified = modified.replace(
-                        /"resume"\s*:\s*"(\d+)_(\d+)"/g,
-                        function(match, scene, oldSlide) {
-                            console.log('[SCORM suspend_data intercept] Replacing "resume" scene_slide:', scene + '_' + oldSlide, '->', scene + '_' + targetIndex);
-                            changesMade = true;
-                            return '"resume":"' + scene + '_' + targetIndex + '"';
-                        }
-                    );
-
-                    // 2. Modify simple resume format: "resume":"7" or "resume":7
-                    modified = modified.replace(
-                        /"resume"\s*:\s*"?(\d+)"?(?![_\d])/g,
-                        function(match, oldSlide) {
-                            // Skip if already handled by scene_slide pattern
-                            if (match.indexOf('_') !== -1) return match;
-                            var hasQuotes = match.indexOf('"' + oldSlide) !== -1;
-                            var newValue = hasQuotes ? '"resume":"' + targetIndex + '"' : '"resume":' + targetIndex;
-                            console.log('[SCORM suspend_data intercept] Replacing "resume":', oldSlide, '->', targetIndex);
-                            changesMade = true;
-                            return newValue;
-                        }
-                    );
-
-                    // 3. Modify the "l" field which stores the last slide position
-                    // Format: {"d":..., "l":7, ...} where "l" is the last/current slide (0-indexed)
-                    modified = modified.replace(
+                    // ONLY modify "l" field - this was working in previous versions
+                    // The "l" field stores the last/current slide position (0-indexed)
+                    // Format: {"d":..., "l":7, ...}
+                    var modified = decompressed.replace(
                         /"l"\s*:\s*(\d+)/g,
                         function(match, oldValue) {
-                            console.log('[SCORM suspend_data intercept] Replacing "l":', oldValue, '->', targetIndex);
-                            changesMade = true;
+                            console.log('[SCORM suspend_data] "l":', oldValue, '->', targetIndex);
                             return '"l":' + targetIndex;
                         }
                     );
 
-                    // 4. Also modify CurrentSlideIndex and currentSlide if present
-                    modified = modified.replace(
-                        /"CurrentSlideIndex"\s*:\s*(\d+)/g,
-                        function(match, oldValue) {
-                            console.log('[SCORM suspend_data intercept] Replacing "CurrentSlideIndex":', oldValue, '->', targetIndex);
-                            changesMade = true;
-                            return '"CurrentSlideIndex":' + targetIndex;
-                        }
-                    );
-                    modified = modified.replace(
-                        /"currentSlide"\s*:\s*(\d+)/g,
-                        function(match, oldValue) {
-                            console.log('[SCORM suspend_data intercept] Replacing "currentSlide":', oldValue, '->', targetIndex);
-                            changesMade = true;
-                            return '"currentSlide":' + targetIndex;
-                        }
-                    );
-
-                    if (changesMade) {
-                        console.log('[SCORM suspend_data intercept] Modified data sample:', modified.substring(0, 300));
+                    if (modified !== decompressed) {
                         // Re-compress with LZ-String
                         var recompressed = LZString.compressToBase64(modified);
                         if (recompressed) {
-                            console.log('[SCORM suspend_data intercept] Re-compressed, new length:', recompressed.length);
+                            console.log('[SCORM suspend_data] Re-compressed successfully');
                             return recompressed;
                         }
                     } else {
-                        console.log('[SCORM suspend_data intercept] No fields found to modify');
+                        console.log('[SCORM suspend_data] No "l" field found to modify');
                     }
                 }
             } catch (e) {
-                console.log('[SCORM suspend_data intercept] LZ error:', e.message);
+                console.log('[SCORM suspend_data] LZ error:', e.message);
             }
         }
 
@@ -1211,15 +1166,30 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 window.API.LMSGetValue = function(element) {
                     var result = originalGetValue.call(window.API, element);
 
-                    // Intercept suspend_data read on first call after navigation request
-                    if (element === 'cmi.suspend_data' && !suspendDataIntercepted && pendingSlideNavigation) {
-                        suspendDataIntercepted = true;
-                        console.log('[SCORM 1.2] LMSGetValue intercepted for suspend_data, target slide:', pendingSlideNavigation.slide);
+                    // Intercept suspend_data reads within the time/count window
+                    // Storyline calls LMSGetValue multiple times during initialization
+                    if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
+                        // Start timer on first intercept
+                        if (interceptStartTime === null) {
+                            interceptStartTime = Date.now();
+                        }
 
-                        var modifiedData = modifySuspendDataForSlide(result, pendingSlideNavigation.slide);
-                        if (modifiedData !== result) {
-                            console.log('[SCORM 1.2] Returning modified suspend_data');
-                            return modifiedData;
+                        var withinWindow = (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                        var underLimit = suspendDataInterceptCount < MAX_INTERCEPTS;
+
+                        if (withinWindow && underLimit) {
+                            suspendDataInterceptCount++;
+                            console.log('[SCORM 1.2] LMSGetValue intercept #' + suspendDataInterceptCount + ' for slide:', pendingSlideNavigation.slide);
+
+                            var modifiedData = modifySuspendDataForSlide(result, pendingSlideNavigation.slide);
+                            if (modifiedData !== result) {
+                                console.log('[SCORM 1.2] Returning modified suspend_data');
+                                return modifiedData;
+                            }
+                        } else if (suspendDataInterceptCount > 0 && pendingSlideNavigation) {
+                            // Window closed - stop intercepting
+                            console.log('[SCORM 1.2] Intercept window closed after ' + suspendDataInterceptCount + ' intercepts');
+                            pendingSlideNavigation = null; // Clear to stop future intercepts
                         }
                     }
 
@@ -1314,15 +1284,30 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 window.API_1484_11.GetValue = function(element) {
                     var result = originalGetValue2004.call(window.API_1484_11, element);
 
-                    // Intercept suspend_data read on first call after navigation request
-                    if (element === 'cmi.suspend_data' && !suspendDataIntercepted && pendingSlideNavigation) {
-                        suspendDataIntercepted = true;
-                        console.log('[SCORM 2004] GetValue intercepted for suspend_data, target slide:', pendingSlideNavigation.slide);
+                    // Intercept suspend_data reads within the time/count window
+                    // Storyline calls GetValue multiple times during initialization
+                    if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
+                        // Start timer on first intercept
+                        if (interceptStartTime === null) {
+                            interceptStartTime = Date.now();
+                        }
 
-                        var modifiedData = modifySuspendDataForSlide(result, pendingSlideNavigation.slide);
-                        if (modifiedData !== result) {
-                            console.log('[SCORM 2004] Returning modified suspend_data');
-                            return modifiedData;
+                        var withinWindow = (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                        var underLimit = suspendDataInterceptCount < MAX_INTERCEPTS;
+
+                        if (withinWindow && underLimit) {
+                            suspendDataInterceptCount++;
+                            console.log('[SCORM 2004] GetValue intercept #' + suspendDataInterceptCount + ' for slide:', pendingSlideNavigation.slide);
+
+                            var modifiedData = modifySuspendDataForSlide(result, pendingSlideNavigation.slide);
+                            if (modifiedData !== result) {
+                                console.log('[SCORM 2004] Returning modified suspend_data');
+                                return modifiedData;
+                            }
+                        } else if (suspendDataInterceptCount > 0 && pendingSlideNavigation) {
+                            // Window closed - stop intercepting
+                            console.log('[SCORM 2004] Intercept window closed after ' + suspendDataInterceptCount + ' intercepts');
+                            pendingSlideNavigation = null; // Clear to stop future intercepts
                         }
                     }
 
@@ -1423,68 +1408,14 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         }, 200);
     }
 
-    // FALLBACK: If there's a pending navigation, also try direct navigation after SCORM initializes.
-    // The suspend_data modification works for resume, but direct navigation is more reliable.
+    // DISABLED: Direct navigation fallback was causing conflicts with suspend_data interception.
+    // The multiple-intercept approach to LMSGetValue is now the primary navigation mechanism.
+    // Keeping sessionStorage clear logic only to prevent stale data.
     if (pendingSlideNavigation) {
-        console.log('[SCORM Navigation] Setting up direct navigation fallback for slide:', pendingSlideNavigation.slide);
+        console.log('[SCORM Navigation] Pending navigation detected for slide:', pendingSlideNavigation.slide);
+        console.log('[SCORM Navigation] Using LMSGetValue intercept (no direct API fallback)');
 
-        // Clear sessionStorage immediately to prevent infinite loop on reload
-        // The suspend_data interception already handled the navigation intent
-        try {
-            sessionStorage.removeItem('scorm_pending_navigation_' + cmid);
-            console.log('[SCORM Navigation] Cleared pending navigation from sessionStorage to prevent loop');
-        } catch (e) {}
-
-        // Attempt direct navigation after SCORM content has likely loaded.
-        // Only try ONCE at 2 seconds - the suspend_data modification should have already worked
-        var targetSlide = pendingSlideNavigation.slide;
-        var navigationAttempted = false;
-
-        setTimeout(function() {
-            if (navigationAttempted) return;
-            navigationAttempted = true;
-
-            // Check if we're already at the target slide before attempting navigation
-            var currentSlide = lastSlide;
-            if (currentSlide === targetSlide) {
-                console.log('[SCORM Navigation] Already at target slide:', targetSlide, '- skipping direct navigation');
-                return;
-            }
-
-            console.log('[SCORM Navigation] Attempting direct navigation to slide:', targetSlide, '(current:', currentSlide, ')');
-
-            // Try direct Storyline/Captivate/iSpring API methods ONLY
-            // Do NOT call modifySuspendDataAndReload to prevent infinite loops
-            var success = false;
-
-            // Try Articulate Storyline
-            var storylinePlayer = typeof findStorylinePlayer === 'function' ? findStorylinePlayer() : null;
-            if (storylinePlayer && storylinePlayer.window) {
-                try {
-                    var win = storylinePlayer.window;
-                    if (win.goToSlide) {
-                        win.goToSlide(targetSlide - 1);
-                        console.log('[SCORM Navigation] Storyline goToSlide called');
-                        success = true;
-                    } else if (win.GetPlayer) {
-                        var player = win.GetPlayer();
-                        if (player && player.SetVar) {
-                            player.SetVar('Jump', targetSlide);
-                            console.log('[SCORM Navigation] Storyline SetVar Jump called');
-                            success = true;
-                        }
-                    }
-                } catch (e) {
-                    console.log('[SCORM Navigation] Storyline API error:', e.message);
-                }
-            }
-
-            if (success) {
-                console.log('[SCORM Navigation] Direct navigation API call succeeded');
-            } else {
-                console.log('[SCORM Navigation] No direct API available - relying on suspend_data modification');
-            }
-        }, 2000);
+        // Note: sessionStorage is cleared after reading (line ~1103), so no additional cleanup needed
     }
 
     // Send initial progress message when page loads.
