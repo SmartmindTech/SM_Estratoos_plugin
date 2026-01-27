@@ -1269,15 +1269,59 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         for (var i = 0; i < iframes.length; i++) {
             try {
                 var iframeWin = iframes[i].contentWindow;
+                var iframeDoc = iframeWin.document;
+
                 // iSpring exposes iSpringPresentationAPI or window.frames.content
                 if (iframeWin.iSpringPresentationAPI ||
                     iframeWin.ispringPresentationConnector ||
                     iframeWin.ISPRING) {
-                    return { iframe: iframes[i], window: iframeWin };
+                    console.log('[iSpring] Found via API objects');
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
                 }
                 // Check for iSpring's player object
                 if (iframeWin.player && typeof iframeWin.player.view !== 'undefined') {
-                    return { iframe: iframes[i], window: iframeWin };
+                    console.log('[iSpring] Found via player.view');
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+                // Check for iSpring's g_oPresentation global (PowerPoint export)
+                if (iframeWin.g_oPresentation || iframeWin.g_oPres || iframeWin.oPresentation) {
+                    console.log('[iSpring] Found via g_oPresentation');
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+                // Check for iSpring's PresentationAPI or PresentationManager
+                if (iframeWin.PresentationAPI || iframeWin.PresentationManager || iframeWin.presentationApi) {
+                    console.log('[iSpring] Found via PresentationAPI/Manager');
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+                // Check for iSpring's slide navigation functions
+                if (iframeWin.gotoSlide || iframeWin.goToSlide || iframeWin.navigateToSlide) {
+                    console.log('[iSpring] Found via gotoSlide function');
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+                // Check for iSpring's player UI elements
+                if (iframeDoc.querySelector('#ispring-player, .ispring-player, [class*="ispring"], #presentation-container')) {
+                    console.log('[iSpring] Found via DOM elements');
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+                // Check for iSpring's slide container
+                if (iframeDoc.querySelector('#slide-container, .slide-container, #slides-container, .slides-wrapper')) {
+                    console.log('[iSpring] Found via slide container');
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+                // Check nested iframes (iSpring often uses nested structure)
+                var nestedIframes = iframeDoc.querySelectorAll('iframe');
+                for (var j = 0; j < nestedIframes.length; j++) {
+                    try {
+                        var nestedWin = nestedIframes[j].contentWindow;
+                        var nestedDoc = nestedWin.document;
+                        if (nestedWin.iSpringPresentationAPI || nestedWin.g_oPresentation ||
+                            nestedWin.gotoSlide || nestedWin.player) {
+                            console.log('[iSpring] Found in nested iframe');
+                            return { iframe: nestedIframes[j], window: nestedWin, document: nestedDoc };
+                        }
+                    } catch (e) {
+                        // Cross-origin nested iframe
+                    }
                 }
             } catch (e) {
                 // Cross-origin, skip.
@@ -1572,11 +1616,45 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
                 // Rise 360 has specific class patterns in its DOM
                 if (iframeDoc.querySelector('.rise-blocks, .rise-lesson, [data-block-id], [class*="rise"]')) {
+                    console.log('[Rise 360] Found via rise-blocks/rise-lesson');
                     return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
                 }
                 // Check for Rise's app container
                 if (iframeDoc.querySelector('#app, .rise-app, [data-rise-version]')) {
+                    console.log('[Rise 360] Found via #app/rise-app');
                     return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+                // Check for Articulate Rise specific elements
+                if (iframeDoc.querySelector('.blocks, .block-list, [class*="block-"], .outline, .outline__item')) {
+                    console.log('[Rise 360] Found via blocks/outline');
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+                // Check for Rise navigation patterns
+                if (iframeDoc.querySelector('.course-nav, .lesson-nav, .nav-sidebar, [class*="nav-"]')) {
+                    // Additional check to make sure it's Rise and not something else
+                    if (iframeDoc.querySelector('[class*="lesson"], [class*="block"], [class*="outline"]')) {
+                        console.log('[Rise 360] Found via navigation patterns');
+                        return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                    }
+                }
+                // Check for Rise's internal state objects
+                if (iframeWin.__RISE_STATE__ || iframeWin.Rise || iframeWin.riseState || iframeWin.riseNavigation) {
+                    console.log('[Rise 360] Found via internal state object');
+                    return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+                }
+                // Check nested iframes
+                var nestedIframes = iframeDoc.querySelectorAll('iframe');
+                for (var j = 0; j < nestedIframes.length; j++) {
+                    try {
+                        var nestedWin = nestedIframes[j].contentWindow;
+                        var nestedDoc = nestedWin.document;
+                        if (nestedDoc.querySelector('.rise-blocks, .rise-lesson, [class*="rise"], .blocks, .outline')) {
+                            console.log('[Rise 360] Found in nested iframe');
+                            return { iframe: nestedIframes[j], window: nestedWin, document: nestedDoc };
+                        }
+                    } catch (e) {
+                        // Cross-origin nested iframe
+                    }
                 }
             } catch (e) {
                 // Cross-origin, skip.
@@ -2104,20 +2182,112 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (iSpringPlayer && iSpringPlayer.window) {
             try {
                 var win = iSpringPlayer.window;
+                var doc = iSpringPlayer.document;
 
-                // Method 1: iSpringPresentationAPI
+                console.log('[SCORM Navigation] iSpring player found, trying navigation methods');
+
+                // Method 1: iSpringPresentationAPI.gotoSlide
                 if (win.iSpringPresentationAPI && win.iSpringPresentationAPI.gotoSlide) {
                     win.iSpringPresentationAPI.gotoSlide(targetSlide - 1);
                     console.log('[SCORM Navigation] iSpring API gotoSlide called');
                     return true;
                 }
 
-                // Method 2: ispringPresentationConnector
+                // Method 2: ispringPresentationConnector.gotoSlide
                 if (win.ispringPresentationConnector && win.ispringPresentationConnector.gotoSlide) {
                     win.ispringPresentationConnector.gotoSlide(targetSlide - 1);
                     console.log('[SCORM Navigation] iSpring connector gotoSlide called');
                     return true;
                 }
+
+                // Method 3: Direct gotoSlide/goToSlide function
+                if (win.gotoSlide) {
+                    win.gotoSlide(targetSlide - 1);
+                    console.log('[SCORM Navigation] iSpring gotoSlide() called');
+                    return true;
+                }
+                if (win.goToSlide) {
+                    win.goToSlide(targetSlide - 1);
+                    console.log('[SCORM Navigation] iSpring goToSlide() called');
+                    return true;
+                }
+
+                // Method 4: g_oPresentation (PowerPoint export)
+                if (win.g_oPresentation && win.g_oPresentation.gotoSlide) {
+                    win.g_oPresentation.gotoSlide(targetSlide - 1);
+                    console.log('[SCORM Navigation] iSpring g_oPresentation.gotoSlide called');
+                    return true;
+                }
+                if (win.g_oPres && win.g_oPres.gotoSlide) {
+                    win.g_oPres.gotoSlide(targetSlide - 1);
+                    console.log('[SCORM Navigation] iSpring g_oPres.gotoSlide called');
+                    return true;
+                }
+
+                // Method 5: PresentationAPI/Manager
+                if (win.PresentationAPI && win.PresentationAPI.gotoSlide) {
+                    win.PresentationAPI.gotoSlide(targetSlide - 1);
+                    console.log('[SCORM Navigation] iSpring PresentationAPI.gotoSlide called');
+                    return true;
+                }
+                if (win.PresentationManager && win.PresentationManager.gotoSlide) {
+                    win.PresentationManager.gotoSlide(targetSlide - 1);
+                    console.log('[SCORM Navigation] iSpring PresentationManager.gotoSlide called');
+                    return true;
+                }
+
+                // Method 6: player object
+                if (win.player) {
+                    if (win.player.gotoSlide) {
+                        win.player.gotoSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] iSpring player.gotoSlide called');
+                        return true;
+                    }
+                    if (win.player.goToSlide) {
+                        win.player.goToSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] iSpring player.goToSlide called');
+                        return true;
+                    }
+                    if (win.player.setSlideIndex) {
+                        win.player.setSlideIndex(targetSlide - 1);
+                        console.log('[SCORM Navigation] iSpring player.setSlideIndex called');
+                        return true;
+                    }
+                }
+
+                // Method 7: ISPRING global object
+                if (win.ISPRING) {
+                    if (win.ISPRING.gotoSlide) {
+                        win.ISPRING.gotoSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] iSpring ISPRING.gotoSlide called');
+                        return true;
+                    }
+                    if (win.ISPRING.presentation && win.ISPRING.presentation.gotoSlide) {
+                        win.ISPRING.presentation.gotoSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] iSpring ISPRING.presentation.gotoSlide called');
+                        return true;
+                    }
+                }
+
+                // Method 8: Try clicking slide thumbnail/navigation
+                var slideNavItems = doc.querySelectorAll('.slide-thumbnail, .slide-nav-item, [data-slide-index], .outline-item, .toc-item');
+                console.log('[SCORM Navigation] iSpring found', slideNavItems.length, 'slide nav items');
+                if (slideNavItems.length >= targetSlide) {
+                    var targetItem = slideNavItems[targetSlide - 1];
+                    if (targetItem) {
+                        var clickTarget = targetItem.querySelector('a, button') || targetItem;
+                        clickTarget.click();
+                        console.log('[SCORM Navigation] iSpring clicked slide nav item', targetSlide - 1);
+                        return true;
+                    }
+                }
+
+                // Method 9: Try dispatching custom events that iSpring might listen to
+                var slideEvent = new CustomEvent('gotoSlide', { detail: { slideIndex: targetSlide - 1 } });
+                doc.dispatchEvent(slideEvent);
+                win.dispatchEvent(slideEvent);
+                console.log('[SCORM Navigation] iSpring dispatched gotoSlide event');
+
             } catch (e) {
                 console.log('[SCORM Navigation] iSpring navigation error:', e.message);
             }
@@ -2147,6 +2317,85 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
         }
 
+        // Try Articulate Rise 360
+        var rise360Player = findRise360Player();
+        if (rise360Player && rise360Player.window) {
+            try {
+                var win = rise360Player.window;
+                var doc = rise360Player.document;
+
+                // Method 1: Rise 360 hash navigation (lessons/sections)
+                // Rise uses URL hash like #/lessons/0, #/lessons/1, etc.
+                var currentHash = win.location.hash;
+                console.log('[SCORM Navigation] Rise 360 current hash:', currentHash);
+
+                // Try different Rise 360 hash patterns
+                var hashPatterns = [
+                    '#/lessons/' + (targetSlide - 1),
+                    '#/lesson/' + (targetSlide - 1),
+                    '#/sections/' + (targetSlide - 1),
+                    '#/section/' + (targetSlide - 1),
+                    '#/' + (targetSlide - 1)
+                ];
+
+                for (var p = 0; p < hashPatterns.length; p++) {
+                    try {
+                        win.location.hash = hashPatterns[p];
+                        console.log('[SCORM Navigation] Rise 360 hash navigation attempted:', hashPatterns[p]);
+                        // Give it a moment and check if it worked
+                        return true;
+                    } catch (e) {}
+                }
+
+                // Method 2: Rise 360 internal state/API
+                if (win.__RISE_STATE__ && win.__RISE_STATE__.goToLesson) {
+                    win.__RISE_STATE__.goToLesson(targetSlide - 1);
+                    console.log('[SCORM Navigation] Rise 360 goToLesson called');
+                    return true;
+                }
+                if (win.Rise && win.Rise.navigation && win.Rise.navigation.goTo) {
+                    win.Rise.navigation.goTo(targetSlide - 1);
+                    console.log('[SCORM Navigation] Rise 360 Rise.navigation.goTo called');
+                    return true;
+                }
+                if (win.riseNavigation && win.riseNavigation.goToLesson) {
+                    win.riseNavigation.goToLesson(targetSlide - 1);
+                    console.log('[SCORM Navigation] Rise 360 riseNavigation.goToLesson called');
+                    return true;
+                }
+
+                // Method 3: Click on navigation item
+                var navItems = doc.querySelectorAll('.rise-nav-item, .lesson-nav-item, [data-lesson-index], .nav-item, .outline__item');
+                console.log('[SCORM Navigation] Rise 360 found', navItems.length, 'nav items');
+                if (navItems.length >= targetSlide) {
+                    var targetNav = navItems[targetSlide - 1];
+                    if (targetNav) {
+                        // Try clicking the nav item or its link
+                        var clickTarget = targetNav.querySelector('a, button') || targetNav;
+                        clickTarget.click();
+                        console.log('[SCORM Navigation] Rise 360 clicked nav item', targetSlide - 1);
+                        return true;
+                    }
+                }
+
+                // Method 4: Look for and click lesson links in sidebar/outline
+                var lessonLinks = doc.querySelectorAll('a[href*="lesson"], a[href*="section"], .lesson-link, .outline-link');
+                console.log('[SCORM Navigation] Rise 360 found', lessonLinks.length, 'lesson links');
+                for (var l = 0; l < lessonLinks.length; l++) {
+                    var link = lessonLinks[l];
+                    var href = link.getAttribute('href') || '';
+                    if (href.includes('/' + (targetSlide - 1)) || href.includes('/' + targetSlide)) {
+                        link.click();
+                        console.log('[SCORM Navigation] Rise 360 clicked lesson link:', href);
+                        return true;
+                    }
+                }
+
+            } catch (e) {
+                console.log('[SCORM Navigation] Rise 360 navigation error:', e.message);
+            }
+        }
+
         // Generic: Try to set SCORM lesson_location and trigger refresh
         // This is a last resort and may not work with all content
         try {
@@ -2162,6 +2411,103 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
         } catch (e) {
             console.log('[SCORM Navigation] SCORM API navigation error:', e.message);
+        }
+
+        // Try to find and navigate in inner SCORM content iframes
+        var iframes = document.querySelectorAll('iframe');
+        for (var i = 0; i < iframes.length; i++) {
+            try {
+                var innerWin = iframes[i].contentWindow;
+                if (!innerWin) continue;
+
+                // Try posting navigation message to inner iframe
+                innerWin.postMessage({
+                    type: 'scorm-navigate-to-slide',
+                    cmid: cmid,
+                    slide: targetSlide
+                }, '*');
+                console.log('[SCORM Navigation] Posted navigation to inner iframe');
+
+                // Try direct navigation methods in inner iframe
+                try {
+                    var innerDoc = innerWin.document;
+
+                    // Check for common slide navigation functions
+                    if (innerWin.goToSlide) {
+                        innerWin.goToSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] Inner iframe goToSlide called');
+                        return true;
+                    }
+                    if (innerWin.gotoSlide) {
+                        innerWin.gotoSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] Inner iframe gotoSlide called');
+                        return true;
+                    }
+                    if (innerWin.setSlide) {
+                        innerWin.setSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] Inner iframe setSlide called');
+                        return true;
+                    }
+                    if (innerWin.jumpToSlide) {
+                        innerWin.jumpToSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] Inner iframe jumpToSlide called');
+                        return true;
+                    }
+
+                    // Try Storyline's GetPlayer in inner iframe
+                    if (innerWin.GetPlayer) {
+                        var player = innerWin.GetPlayer();
+                        if (player) {
+                            // Storyline uses 0-based slide indices, but some use variable names
+                            try {
+                                if (player.SetVar) player.SetVar('JumpToSlide', targetSlide);
+                            } catch(e) {}
+                            try {
+                                if (player.SetVar) player.SetVar('Jump', targetSlide);
+                            } catch(e) {}
+                            console.log('[SCORM Navigation] Inner iframe GetPlayer SetVar attempted');
+                        }
+                    }
+
+                    // Try iSpring APIs in inner iframe
+                    if (innerWin.iSpringPresentationAPI && innerWin.iSpringPresentationAPI.gotoSlide) {
+                        innerWin.iSpringPresentationAPI.gotoSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] Inner iframe iSpring API gotoSlide called');
+                        return true;
+                    }
+                    if (innerWin.g_oPresentation && innerWin.g_oPresentation.gotoSlide) {
+                        innerWin.g_oPresentation.gotoSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] Inner iframe iSpring g_oPresentation.gotoSlide called');
+                        return true;
+                    }
+                    if (innerWin.ispringPresentationConnector && innerWin.ispringPresentationConnector.gotoSlide) {
+                        innerWin.ispringPresentationConnector.gotoSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] Inner iframe iSpring connector gotoSlide called');
+                        return true;
+                    }
+                    if (innerWin.player && innerWin.player.gotoSlide) {
+                        innerWin.player.gotoSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] Inner iframe iSpring player.gotoSlide called');
+                        return true;
+                    }
+                    if (innerWin.ISPRING && innerWin.ISPRING.gotoSlide) {
+                        innerWin.ISPRING.gotoSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] Inner iframe iSpring ISPRING.gotoSlide called');
+                        return true;
+                    }
+
+                    // Try video player seek (if content is video-based)
+                    if (innerWin.player && innerWin.player.seekTo) {
+                        // Can't convert slide to time without mapping
+                        console.log('[SCORM Navigation] Inner iframe has video player, cannot convert slide to time');
+                    }
+
+                } catch (e) {
+                    // Cross-origin, continue to next iframe
+                }
+            } catch (e) {
+                // Cross-origin frame access, skip
+            }
         }
 
         console.log('[SCORM Navigation] No direct navigation method available. User must navigate manually to slide:', targetSlide);

@@ -231,8 +231,11 @@ class update_checker {
             $message->fullmessagehtml = $htmlmessage;
             $message->smallmessage = $subject;
             $message->notification = 1;
-            $message->contexturl = new \moodle_url('/local/sm_estratoos_plugin/update.php');
-            $message->contexturlname = get_string('updateplugin', 'local_sm_estratoos_plugin');
+            // NOTE: We intentionally do NOT set contexturl here.
+            // The contexturl stores an absolute URL based on $CFG->wwwroot at creation time.
+            // If the notification is viewed on a different Moodle instance, clicking it
+            // would redirect to the original server (e.g., moodle.smartlxp.com).
+            // Instead, the message text guides users to navigate manually.
 
             try {
                 message_send($message);

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012711</version>
+        <version>2025012712</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.11</release>
+        <release>2.0.12</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,37 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.11/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.12/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.11</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.12</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.11 - Message Forwarding & Debug Logging</h3>
+            <h3>Version 2.0.12 - Rise 360 Navigation & Notification Fix</h3>
 
             <h4>New Features</h4>
             <ul>
-                <li>Embed renderer forwards navigation messages between parent and player.php iframe</li>
-                <li>Bidirectional message forwarding for nested iframe communication</li>
+                <li>Enhanced Articulate Rise 360 detection (more DOM patterns)</li>
+                <li>Rise 360 navigation via hash, internal state, and nav item clicking</li>
+                <li>Inner iframe navigation forwarding for nested SCORM content</li>
             </ul>
 
-            <h4>Improvements</h4>
+            <h4>Bug Fixes</h4>
             <ul>
-                <li>Debug logging for all received postMessage events</li>
-                <li>Logs message origin, type, and data for troubleshooting</li>
+                <li>Fixed notification click redirecting to wrong Moodle server</li>
+                <li>Removed contexturl from notifications to prevent cross-server redirects</li>
+                <li>Notifications now guide users to navigate manually via menu path</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.11: Message forwarding & debug logging</li>
                 <li>v2.0.10: Slide navigation from parent window</li>
                 <li>v2.0.9: Fix slide indexing</li>
                 <li>v2.0.8: LZ-String decompression</li>
                 <li>v2.0.7: Multi-vendor SCORM detection</li>
-                <li>v2.0.0: WebSocket event observers</li>
             </ul>
             ]]>
         </releasenotes>
