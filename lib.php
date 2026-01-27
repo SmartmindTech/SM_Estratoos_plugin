@@ -2170,6 +2170,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     // Listen for navigation requests from SmartLearning parent window
     window.addEventListener('message', function(event) {
+        // Debug: log all received messages
+        console.log('[SCORM Navigation] Message received from:', event.origin, 'type:', event.data?.type, 'data:', event.data);
+
         // Check for navigation request message
         if (event.data && event.data.type === 'scorm-navigate-to-slide') {
             var targetCmid = event.data.cmid;

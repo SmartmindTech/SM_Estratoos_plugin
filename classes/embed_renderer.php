@@ -243,6 +243,26 @@ class embed_renderer {
             setTimeout(hideNavigation, 1000);
             setTimeout(hideNavigation, 2000);
         };
+
+        // Forward navigation messages from parent (ActivityEmbed) to inner iframe (player.php)
+        window.addEventListener("message", function(event) {
+            console.log("[Embed Renderer] Message received:", event.data?.type, event.origin);
+
+            // Forward SCORM navigation requests to inner iframe
+            if (event.data && event.data.type === "scorm-navigate-to-slide") {
+                console.log("[Embed Renderer] Forwarding navigation to player.php iframe");
+                if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage(event.data, "*");
+                }
+            }
+
+            // Also forward any messages from player.php back to parent
+            if (event.source === iframe.contentWindow && event.data) {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(event.data, "*");
+                }
+            }
+        }, false);
     })();
     </script>
 </body>

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012710</version>
+        <version>2025012711</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.10</release>
+        <release>2.0.11</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,31 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.10/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.11/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.10</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.11</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.10 - Slide Navigation from Parent Window</h3>
+            <h3>Version 2.0.11 - Message Forwarding & Debug Logging</h3>
 
             <h4>New Features</h4>
             <ul>
-                <li>navigateToSlide() function for programmatic navigation</li>
-                <li>Listen for 'scorm-navigate-to-slide' postMessage from SmartLearning</li>
-                <li>Navigation support for Articulate Storyline, Captivate, iSpring, Lectora</li>
-                <li>Sends 'scorm-navigation-result' response back to parent</li>
+                <li>Embed renderer forwards navigation messages between parent and player.php iframe</li>
+                <li>Bidirectional message forwarding for nested iframe communication</li>
             </ul>
 
-            <h4>Navigation Methods</h4>
+            <h4>Improvements</h4>
             <ul>
-                <li>Storyline: goToSlide, GetPlayer().SetVar, hash navigation</li>
-                <li>Captivate: cpCmndGotoSlide, cpAPIInterface.gotoSlide</li>
-                <li>iSpring: iSpringPresentationAPI.gotoSlide</li>
-                <li>Lectora: TrivAPI.GoToPage, trivExternalCall</li>
+                <li>Debug logging for all received postMessage events</li>
+                <li>Logs message origin, type, and data for troubleshooting</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.10: Slide navigation from parent window</li>
                 <li>v2.0.9: Fix slide indexing</li>
                 <li>v2.0.8: LZ-String decompression</li>
                 <li>v2.0.7: Multi-vendor SCORM detection</li>
