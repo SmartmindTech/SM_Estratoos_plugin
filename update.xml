@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012716</version>
+        <version>2025012717</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.16</release>
+        <release>2.0.17</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,36 +29,37 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.16/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.17/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.16</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.17</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.16 - URL-Based Slide Navigation for Embed</h3>
+            <h3>Version 2.0.17 - Prevent Storyline Navigation Revert</h3>
 
-            <h4>New Features</h4>
+            <h4>Improvements</h4>
             <ul>
-                <li>Navigate to specific slide via URL: embed.php?cmid=X&slide=Y</li>
-                <li>SessionStorage setup BEFORE iframe loads for reliable navigation</li>
-                <li>Always clears stale navigation data on page load (prevents accidental redirects)</li>
+                <li>Intercept suspend_data WRITES (LMSSetValue/SetValue) in addition to reads</li>
+                <li>Prevents Storyline from reverting slide position after navigation</li>
+                <li>First 3 writes are intercepted and modified to maintain target slide</li>
+                <li>Works with both SCORM 1.2 and SCORM 2004</li>
             </ul>
 
-            <h4>Usage</h4>
+            <h4>Technical Details</h4>
             <ul>
-                <li>Add ?slide=5 to embed URL to navigate directly to slide 5</li>
-                <li>Works with LMSGetValue interception from v2.0.15</li>
-                <li>Ideal for deep-linking into SCORM content</li>
+                <li>Problem: Storyline reads modified suspend_data but writes back internal state</li>
+                <li>Solution: Intercept SetValue calls and re-apply slide modification</li>
+                <li>MAX_WRITE_INTERCEPTS = 3 to allow eventual normal operation</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.16: URL-based slide navigation (?slide=X) for embed</li>
                 <li>v2.0.15: LMSGetValue interception for navigation</li>
                 <li>v2.0.14: Progress tracking & suspend_data enhancements</li>
                 <li>v2.0.12: Rise 360 navigation & notification fix</li>
-                <li>v2.0.10: Slide navigation from parent window</li>
             </ul>
             ]]>
         </releasenotes>

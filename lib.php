@@ -1091,7 +1091,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     // Check for pending slide navigation from sessionStorage (set before reload).
     var pendingSlideNavigation = null;
-    var suspendDataIntercepted = false; // Flag to only intercept once
+    var suspendDataIntercepted = false; // Flag to only intercept GET once
+    var suspendDataWriteInterceptCount = 0; // Counter for write interceptions
+    var MAX_WRITE_INTERCEPTS = 3; // Intercept first N writes to prevent Storyline from reverting
     try {
         var navData = sessionStorage.getItem('scorm_pending_navigation_' + cmid);
         if (navData) {
@@ -1177,25 +1179,42 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
             var originalSetValue = window.API.LMSSetValue;
             window.API.LMSSetValue = function(element, value) {
-                var result = originalSetValue.call(window.API, element, value);
+                var valueToWrite = value;
+
+                // Intercept suspend_data WRITES to prevent Storyline from reverting
+                // This is critical because Storyline reads our modified suspend_data
+                // but then immediately writes back its internal state
+                if (element === 'cmi.suspend_data' && pendingSlideNavigation && suspendDataWriteInterceptCount < MAX_WRITE_INTERCEPTS) {
+                    suspendDataWriteInterceptCount++;
+                    console.log('[SCORM 1.2] LMSSetValue intercepted for suspend_data (write #' + suspendDataWriteInterceptCount + ')');
+
+                    // Modify the written data to maintain target slide
+                    var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
+                    if (modifiedValue !== value) {
+                        console.log('[SCORM 1.2] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
+                        valueToWrite = modifiedValue;
+                    }
+                }
+
+                var result = originalSetValue.call(window.API, element, valueToWrite);
 
                 // DEBUG: Log all SCORM API calls to understand what the content sends.
-                console.log('[SCORM 1.2] LMSSetValue:', element, '=', value && value.substring ? value.substring(0, 200) : value);
+                console.log('[SCORM 1.2] LMSSetValue:', element, '=', valueToWrite && valueToWrite.substring ? valueToWrite.substring(0, 200) : valueToWrite);
 
                 // Track lesson_location changes.
-                if (element === 'cmi.core.lesson_location' && value !== lastLocation) {
-                    lastLocation = value;
-                    sendProgressUpdate(value, lastStatus, null, null);
+                if (element === 'cmi.core.lesson_location' && valueToWrite !== lastLocation) {
+                    lastLocation = valueToWrite;
+                    sendProgressUpdate(valueToWrite, lastStatus, null, null);
                 }
                 // Track lesson_status changes.
                 if (element === 'cmi.core.lesson_status') {
-                    lastStatus = value;
-                    sendProgressUpdate(lastLocation, value, null, null);
+                    lastStatus = valueToWrite;
+                    sendProgressUpdate(lastLocation, valueToWrite, null, null);
                 }
                 // Track score changes.
                 // IMPORTANT: Score represents FURTHEST PROGRESS, not current position.
                 if (element === 'cmi.core.score.raw') {
-                    var score = parseFloat(value);
+                    var score = parseFloat(valueToWrite);
                     if (!isNaN(score) && slidescount > 0 && score <= 100) {
                         // Calculate slide from score percentage.
                         var calculatedSlide = Math.round((score / 100) * slidescount);
@@ -1211,20 +1230,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         if (slideSource !== 'suspend_data' && lastSlide === null) {
                             console.log('[SCORM] Using score-based slide (fallback):', calculatedSlide);
                             slideSource = 'score';
-                            sendProgressUpdate(null, lastStatus, value, calculatedSlide);
+                            sendProgressUpdate(null, lastStatus, valueToWrite, calculatedSlide);
                         } else {
                             // Don't change currentSlide, but send update with furthestSlide for progress bar.
                             console.log('[SCORM] Score indicates furthest progress:', furthestSlide, '(current slide:', lastSlide, ')');
-                            sendProgressUpdate(lastLocation, lastStatus, value, null);
+                            sendProgressUpdate(lastLocation, lastStatus, valueToWrite, null);
                         }
                     } else {
-                        sendProgressUpdate(lastLocation, lastStatus, value, null);
+                        sendProgressUpdate(lastLocation, lastStatus, valueToWrite, null);
                     }
                 }
                 // Track suspend_data changes (Articulate Storyline stores slide position here).
-                if (element === 'cmi.suspend_data' && value !== lastSuspendData) {
-                    lastSuspendData = value;
-                    var slideNum = parseSlideFromSuspendData(value);
+                if (element === 'cmi.suspend_data' && valueToWrite !== lastSuspendData) {
+                    lastSuspendData = valueToWrite;
+                    var slideNum = parseSlideFromSuspendData(valueToWrite);
                     if (slideNum !== null && slideNum !== lastSlide) {
                         sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
                     }
@@ -1262,25 +1281,39 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
             var originalSetValue2004 = window.API_1484_11.SetValue;
             window.API_1484_11.SetValue = function(element, value) {
-                var result = originalSetValue2004.call(window.API_1484_11, element, value);
+                var valueToWrite = value;
+
+                // Intercept suspend_data WRITES to prevent Storyline from reverting
+                if (element === 'cmi.suspend_data' && pendingSlideNavigation && suspendDataWriteInterceptCount < MAX_WRITE_INTERCEPTS) {
+                    suspendDataWriteInterceptCount++;
+                    console.log('[SCORM 2004] SetValue intercepted for suspend_data (write #' + suspendDataWriteInterceptCount + ')');
+
+                    var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
+                    if (modifiedValue !== value) {
+                        console.log('[SCORM 2004] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
+                        valueToWrite = modifiedValue;
+                    }
+                }
+
+                var result = originalSetValue2004.call(window.API_1484_11, element, valueToWrite);
 
                 // DEBUG: Log all SCORM API calls to understand what the content sends.
-                console.log('[SCORM 2004] SetValue:', element, '=', value && value.substring ? value.substring(0, 200) : value);
+                console.log('[SCORM 2004] SetValue:', element, '=', valueToWrite && valueToWrite.substring ? valueToWrite.substring(0, 200) : valueToWrite);
 
                 // Track location changes.
-                if (element === 'cmi.location' && value !== lastLocation) {
-                    lastLocation = value;
-                    sendProgressUpdate(value, lastStatus, null, null);
+                if (element === 'cmi.location' && valueToWrite !== lastLocation) {
+                    lastLocation = valueToWrite;
+                    sendProgressUpdate(valueToWrite, lastStatus, null, null);
                 }
                 // Track completion_status changes.
                 if (element === 'cmi.completion_status') {
-                    lastStatus = value;
-                    sendProgressUpdate(lastLocation, value, null, null);
+                    lastStatus = valueToWrite;
+                    sendProgressUpdate(lastLocation, valueToWrite, null, null);
                 }
                 // Track score changes.
                 // IMPORTANT: Score represents FURTHEST PROGRESS, not current position.
                 if (element === 'cmi.score.raw') {
-                    var score = parseFloat(value);
+                    var score = parseFloat(valueToWrite);
                     if (!isNaN(score) && slidescount > 0 && score <= 100) {
                         // Calculate slide from score percentage.
                         var calculatedSlide = Math.round((score / 100) * slidescount);
@@ -1296,20 +1329,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         if (slideSource !== 'suspend_data' && lastSlide === null) {
                             console.log('[SCORM 2004] Using score-based slide (fallback):', calculatedSlide);
                             slideSource = 'score';
-                            sendProgressUpdate(null, lastStatus, value, calculatedSlide);
+                            sendProgressUpdate(null, lastStatus, valueToWrite, calculatedSlide);
                         } else {
                             // Don't change currentSlide, but send update with furthestSlide for progress bar.
                             console.log('[SCORM 2004] Score indicates furthest progress:', furthestSlide, '(current slide:', lastSlide, ')');
-                            sendProgressUpdate(lastLocation, lastStatus, value, null);
+                            sendProgressUpdate(lastLocation, lastStatus, valueToWrite, null);
                         }
                     } else {
-                        sendProgressUpdate(lastLocation, lastStatus, value, null);
+                        sendProgressUpdate(lastLocation, lastStatus, valueToWrite, null);
                     }
                 }
                 // Track suspend_data changes (Articulate Storyline stores slide position here).
-                if (element === 'cmi.suspend_data' && value !== lastSuspendData) {
-                    lastSuspendData = value;
-                    var slideNum = parseSlideFromSuspendData(value);
+                if (element === 'cmi.suspend_data' && valueToWrite !== lastSuspendData) {
+                    lastSuspendData = valueToWrite;
+                    var slideNum = parseSlideFromSuspendData(valueToWrite);
                     if (slideNum !== null && slideNum !== lastSlide) {
                         sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
                     }
