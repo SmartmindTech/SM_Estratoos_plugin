@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012719;  // YYYYMMDDXX format.
+$plugin->version = 2025012720;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.19';  // Prevent navigation reload loops, single direct API attempt.
+$plugin->release = '2.0.20';  // Disable write interception to preserve visited slides progress.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

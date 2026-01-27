@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012719</version>
+        <version>2025012720</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.19</release>
+        <release>2.0.20</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.19/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.20/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.19</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.20</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.19 - Prevent Navigation Reload Loops</h3>
+            <h3>Version 2.0.20 - Fix Progress Loss from Write Interception</h3>
 
-            <h4>Improvements</h4>
+            <h4>Bug Fix</h4>
             <ul>
-                <li>Clear sessionStorage immediately to prevent infinite reload loops</li>
-                <li>Single direct navigation attempt at 2s (instead of multiple)</li>
-                <li>Check if already at target slide before navigating</li>
-                <li>Direct Storyline API only - no reload-based navigation</li>
+                <li>Disabled suspend_data WRITE interception (was corrupting visited slides)</li>
+                <li>Now only intercept READS to set initial slide position</li>
+                <li>Let Storyline write its natural state to preserve progress</li>
+                <li>Fixes issue where visited slides array ("v") was being reset</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Uses goToSlide() or GetPlayer().SetVar('Jump') methods</li>
-                <li>Relies on suspend_data modification for initial navigation</li>
-                <li>Direct API call is fallback only if suspend_data didn't work</li>
-                <li>Prevents modifySuspendDataAndReload calls in fallback path</li>
+                <li>Problem: Write interception confused Storyline's internal state</li>
+                <li>Solution: Intercept LMSGetValue only, not LMSSetValue</li>
+                <li>Result: Navigation works AND progress is preserved</li>
+                <li>Both SCORM 1.2 and SCORM 2004 affected</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.19: Prevent navigation reload loops</li>
                 <li>v2.0.18: Enhanced resume field modification + fallback</li>
-                <li>v2.0.17: Intercept suspend_data writes to prevent revert</li>
+                <li>v2.0.17: Intercept suspend_data writes (now disabled)</li>
                 <li>v2.0.16: URL-based slide navigation (?slide=X) for embed</li>
-                <li>v2.0.15: LMSGetValue interception for navigation</li>
             </ul>
             ]]>
         </releasenotes>
