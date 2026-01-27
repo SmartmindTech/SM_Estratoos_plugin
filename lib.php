@@ -460,39 +460,216 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         return null;
     }
 
+    // LZ-String decompression for Articulate Storyline suspend_data.
+    // Storyline uses LZ compression before Base64 encoding.
+    var LZString = (function() {
+        var f = String.fromCharCode;
+        var keyStrBase64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+        var baseReverseDic = {};
+
+        function getBaseValue(alphabet, character) {
+            if (!baseReverseDic[alphabet]) {
+                baseReverseDic[alphabet] = {};
+                for (var i = 0; i < alphabet.length; i++) {
+                    baseReverseDic[alphabet][alphabet.charAt(i)] = i;
+                }
+            }
+            return baseReverseDic[alphabet][character];
+        }
+
+        function decompressFromBase64(input) {
+            if (input == null || input === "") return null;
+            try {
+                return _decompress(input.length, 32, function(index) {
+                    return getBaseValue(keyStrBase64, input.charAt(index));
+                });
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function _decompress(length, resetValue, getNextValue) {
+            var dictionary = [], enlargeIn = 4, dictSize = 4, numBits = 3;
+            var entry = "", result = [], w, c, resb;
+            var data = {val: getNextValue(0), position: resetValue, index: 1};
+
+            for (var i = 0; i < 3; i++) dictionary[i] = i;
+
+            var bits = 0, maxpower = Math.pow(2, 2), power = 1;
+            while (power != maxpower) {
+                resb = data.val & data.position;
+                data.position >>= 1;
+                if (data.position == 0) {
+                    data.position = resetValue;
+                    data.val = getNextValue(data.index++);
+                }
+                bits |= (resb > 0 ? 1 : 0) * power;
+                power <<= 1;
+            }
+
+            switch (bits) {
+                case 0:
+                    bits = 0; maxpower = Math.pow(2, 8); power = 1;
+                    while (power != maxpower) {
+                        resb = data.val & data.position;
+                        data.position >>= 1;
+                        if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                        bits |= (resb > 0 ? 1 : 0) * power;
+                        power <<= 1;
+                    }
+                    c = f(bits);
+                    break;
+                case 1:
+                    bits = 0; maxpower = Math.pow(2, 16); power = 1;
+                    while (power != maxpower) {
+                        resb = data.val & data.position;
+                        data.position >>= 1;
+                        if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                        bits |= (resb > 0 ? 1 : 0) * power;
+                        power <<= 1;
+                    }
+                    c = f(bits);
+                    break;
+                case 2:
+                    return "";
+            }
+            dictionary[3] = c;
+            w = c;
+            result.push(c);
+
+            while (true) {
+                if (data.index > length) return "";
+                bits = 0; maxpower = Math.pow(2, numBits); power = 1;
+                while (power != maxpower) {
+                    resb = data.val & data.position;
+                    data.position >>= 1;
+                    if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                    bits |= (resb > 0 ? 1 : 0) * power;
+                    power <<= 1;
+                }
+                switch (c = bits) {
+                    case 0:
+                        bits = 0; maxpower = Math.pow(2, 8); power = 1;
+                        while (power != maxpower) {
+                            resb = data.val & data.position;
+                            data.position >>= 1;
+                            if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                            bits |= (resb > 0 ? 1 : 0) * power;
+                            power <<= 1;
+                        }
+                        dictionary[dictSize++] = f(bits);
+                        c = dictSize - 1;
+                        enlargeIn--;
+                        break;
+                    case 1:
+                        bits = 0; maxpower = Math.pow(2, 16); power = 1;
+                        while (power != maxpower) {
+                            resb = data.val & data.position;
+                            data.position >>= 1;
+                            if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                            bits |= (resb > 0 ? 1 : 0) * power;
+                            power <<= 1;
+                        }
+                        dictionary[dictSize++] = f(bits);
+                        c = dictSize - 1;
+                        enlargeIn--;
+                        break;
+                    case 2:
+                        return result.join('');
+                }
+                if (enlargeIn == 0) { enlargeIn = Math.pow(2, numBits); numBits++; }
+                if (dictionary[c]) {
+                    entry = dictionary[c];
+                } else {
+                    if (c === dictSize) { entry = w + w.charAt(0); }
+                    else { return null; }
+                }
+                result.push(entry);
+                dictionary[dictSize++] = w + entry.charAt(0);
+                enlargeIn--;
+                if (enlargeIn == 0) { enlargeIn = Math.pow(2, numBits); numBits++; }
+                w = entry;
+            }
+        }
+
+        return { decompressFromBase64: decompressFromBase64 };
+    })();
+
+    // Track the source of slide position for priority handling.
+    var slideSource = null; // 'suspend_data', 'navigation', 'score'
+
     // Function to parse slide from suspend_data (multiple vendor formats).
     function parseSlideFromSuspendData(data) {
-        if (!data) return null;
+        if (!data || data.length < 5) return null;
 
+        // 1. Try to parse as JSON directly (some tools don't compress).
         try {
-            // 1. Try JSON parse (iSpring, some custom tools).
             var parsed = JSON.parse(data);
-            if (parsed.currentSlide !== undefined) return parseInt(parsed.currentSlide, 10);
-            if (parsed.slide !== undefined) return parseInt(parsed.slide, 10);
-            if (parsed.current !== undefined) return parseInt(parsed.current, 10);
-            if (parsed.position !== undefined) return parseInt(parsed.position, 10);
-            if (parsed.resume !== undefined) {
-                // Articulate format: resume might contain slide ref.
-                var match = parsed.resume.match(/(\d+)/);
-                if (match) return parseInt(match[1], 10);
+            var slideNum = extractSlideFromParsedData(parsed);
+            if (slideNum !== null) {
+                console.log('[suspend_data] Parsed JSON directly, slide:', slideNum);
+                slideSource = 'suspend_data';
+                return slideNum;
             }
-            // Check for nested structures.
-            if (parsed.v && parsed.v.current !== undefined) return parseInt(parsed.v.current, 10);
-            if (parsed.data && parsed.data.slide !== undefined) return parseInt(parsed.data.slide, 10);
         } catch (e) {
             // Not JSON, try other patterns.
         }
 
-        // 2. Articulate Storyline Base64 pattern - look for slide index in decoded content.
+        // 2. Articulate Storyline: LZ-compressed Base64.
         if (data.match(/^[A-Za-z0-9+/=]{20,}$/)) {
             try {
+                // Try LZ decompression first (most common for Storyline).
+                var decompressed = LZString.decompressFromBase64(data);
+                if (decompressed && decompressed.length > 0) {
+                    console.log('[suspend_data] LZ decompressed, length:', decompressed.length);
+
+                    // Try to parse decompressed JSON.
+                    try {
+                        var parsed = JSON.parse(decompressed);
+                        var slideNum = extractSlideFromParsedData(parsed);
+                        if (slideNum !== null) {
+                            console.log('[suspend_data] LZ+JSON slide:', slideNum);
+                            slideSource = 'suspend_data';
+                            return slideNum;
+                        }
+                    } catch (e) {
+                        // Not JSON, search for patterns in decompressed string.
+                    }
+
+                    // Search for resume patterns in decompressed text.
+                    var slideNum = extractSlideFromText(decompressed);
+                    if (slideNum !== null) {
+                        console.log('[suspend_data] LZ text slide:', slideNum);
+                        slideSource = 'suspend_data';
+                        return slideNum;
+                    }
+                }
+            } catch (e) {
+                console.log('[suspend_data] LZ decompression failed');
+            }
+
+            // Fallback: try plain Base64 decode.
+            try {
                 var decoded = atob(data);
-                // Look for slide patterns in decoded data.
-                var match = decoded.match(/slide[_\-]?(\d+)/i);
-                if (match) return parseInt(match[1], 10);
-                // Look for scene_slide pattern.
-                match = decoded.match(/(\d+)[_\-](\d+)/);
-                if (match) return parseInt(match[2], 10);
+
+                // Try JSON.
+                try {
+                    var parsed = JSON.parse(decoded);
+                    var slideNum = extractSlideFromParsedData(parsed);
+                    if (slideNum !== null) {
+                        console.log('[suspend_data] Base64+JSON slide:', slideNum);
+                        slideSource = 'suspend_data';
+                        return slideNum;
+                    }
+                } catch (e) {}
+
+                // Search for patterns.
+                var slideNum = extractSlideFromText(decoded);
+                if (slideNum !== null) {
+                    console.log('[suspend_data] Base64 text slide:', slideNum);
+                    slideSource = 'suspend_data';
+                    return slideNum;
+                }
             } catch (e) {
                 // Not valid Base64.
             }
@@ -502,27 +679,124 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (data.indexOf('=') !== -1 && data.indexOf('&') !== -1) {
             try {
                 var params = new URLSearchParams(data);
-                if (params.has('slide')) return parseInt(params.get('slide'), 10);
-                if (params.has('current')) return parseInt(params.get('current'), 10);
-                if (params.has('page')) return parseInt(params.get('page'), 10);
-            } catch (e) {
-                // URLSearchParams not supported or invalid data.
-            }
+                if (params.has('slide')) {
+                    slideSource = 'suspend_data';
+                    return parseInt(params.get('slide'), 10);
+                }
+                if (params.has('current')) {
+                    slideSource = 'suspend_data';
+                    return parseInt(params.get('current'), 10);
+                }
+                if (params.has('page')) {
+                    slideSource = 'suspend_data';
+                    return parseInt(params.get('page'), 10);
+                }
+            } catch (e) {}
         }
 
-        // 4. Articulate Storyline pattern: look for slide numbers in raw string.
-        var match = data.match(/["']?(?:slide|currentSlide|resume|current|position)["']?\s*[:=]\s*["']?(\d+)/i);
-        if (match) return parseInt(match[1], 10);
-
-        // 5. Look for scene/slide pattern (scene_slide format) - but NOT in Base64 data.
-        // Only apply if the data doesn't look like Base64.
-        if (!data.match(/^[A-Za-z0-9+/=]{20,}$/)) {
-            match = data.match(/(\d+)[_\-](\d+)/);
-            if (match) return parseInt(match[2], 10);
+        // 4. Search for patterns in raw string.
+        var slideNum = extractSlideFromText(data);
+        if (slideNum !== null) {
+            console.log('[suspend_data] Raw text slide:', slideNum);
+            slideSource = 'suspend_data';
+            return slideNum;
         }
 
         // If we can't parse suspend_data, return null.
-        // The score-based calculation will be used as fallback.
+        console.log('[suspend_data] Could not extract slide position from suspend_data');
+        return null;
+    }
+
+    // Extract slide number from parsed JSON structure.
+    function extractSlideFromParsedData(parsed) {
+        if (!parsed) return null;
+
+        // Direct properties.
+        if (parsed.currentSlide !== undefined) return parseInt(parsed.currentSlide, 10);
+        if (parsed.slide !== undefined) return parseInt(parsed.slide, 10);
+        if (parsed.current !== undefined) return parseInt(parsed.current, 10);
+        if (parsed.position !== undefined) return parseInt(parsed.position, 10);
+
+        // Articulate Storyline "resume" format (e.g., "1_6" = scene 1, slide 6).
+        if (parsed.resume !== undefined) {
+            var resume = String(parsed.resume);
+            // Format: scene_slide or just slide number.
+            var match = resume.match(/^(\d+)_(\d+)$/);
+            if (match) {
+                // scene_slide format - return the slide number.
+                console.log('[suspend_data] Resume format scene_slide:', match[1], '_', match[2]);
+                return parseInt(match[2], 10);
+            }
+            match = resume.match(/^(\d+)$/);
+            if (match) return parseInt(match[1], 10);
+        }
+
+        // Nested structures.
+        if (parsed.v && parsed.v.current !== undefined) return parseInt(parsed.v.current, 10);
+        if (parsed.data && parsed.data.slide !== undefined) return parseInt(parsed.data.slide, 10);
+
+        // Storyline "d" array format: [{n: "Resume", v: "1_6"}, ...].
+        if (parsed.d && Array.isArray(parsed.d)) {
+            for (var i = 0; i < parsed.d.length; i++) {
+                var item = parsed.d[i];
+                if (item.n === 'Resume' || item.n === 'resume') {
+                    var resume = String(item.v);
+                    var match = resume.match(/^(\d+)_(\d+)$/);
+                    if (match) {
+                        console.log('[suspend_data] Storyline d-array Resume:', match[1], '_', match[2]);
+                        return parseInt(match[2], 10);
+                    }
+                    match = resume.match(/^(\d+)$/);
+                    if (match) return parseInt(match[1], 10);
+                }
+            }
+        }
+
+        // Check for Player.CurrentSlideIndex in variables.
+        if (parsed.variables) {
+            if (parsed.variables.CurrentSlideIndex !== undefined) {
+                return parseInt(parsed.variables.CurrentSlideIndex, 10) + 1; // 0-based to 1-based.
+            }
+            if (parsed.variables['Player.CurrentSlideIndex'] !== undefined) {
+                return parseInt(parsed.variables['Player.CurrentSlideIndex'], 10) + 1;
+            }
+        }
+
+        return null;
+    }
+
+    // Extract slide number from text using patterns.
+    function extractSlideFromText(text) {
+        if (!text || typeof text !== 'string') return null;
+
+        // Look for explicit resume/slide patterns.
+        var patterns = [
+            /["']?resume["']?\s*[:=]\s*["']?(\d+)_(\d+)["']?/i,     // "resume": "1_6"
+            /["']?resume["']?\s*[:=]\s*["']?(\d+)["']?/i,           // "resume": "6"
+            /["']?currentSlide["']?\s*[:=]\s*["']?(\d+)["']?/i,     // "currentSlide": 6
+            /["']?CurrentSlideIndex["']?\s*[:=]\s*["']?(\d+)["']?/i, // "CurrentSlideIndex": 5
+            /["']?slide["']?\s*[:=]\s*["']?(\d+)["']?/i,            // "slide": 6
+            /n["']?\s*[:=]\s*["']?Resume["']?.*?v["']?\s*[:=]\s*["']?(\d+)_(\d+)["']?/i, // Storyline d-array
+        ];
+
+        for (var i = 0; i < patterns.length; i++) {
+            var match = text.match(patterns[i]);
+            if (match) {
+                // If scene_slide format, return slide number.
+                if (match[2] !== undefined) {
+                    return parseInt(match[2], 10);
+                }
+                return parseInt(match[1], 10);
+            }
+        }
+
+        // Look for scene_slide pattern only in non-random context.
+        // Must be preceded by a keyword to avoid matching random number pairs.
+        var match = text.match(/(?:resume|state|position|bookmark)['":\s]*(\d+)_(\d+)/i);
+        if (match) {
+            return parseInt(match[2], 10);
+        }
+
         return null;
     }
 
@@ -531,7 +805,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         var currentSlide = directSlide || parseSlideNumber(location) || lastSlide;
 
         // Update lastSlide if we have a new value.
-        if (currentSlide !== null) {
+        if (currentSlide !== null && currentSlide !== lastSlide) {
+            console.log('[SCORM Progress] Slide updated:', lastSlide, '->', currentSlide, '(source:', slideSource || 'unknown', ')');
             lastSlide = currentSlide;
         }
 
@@ -545,6 +820,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             lessonLocation: location || lastLocation,
             lessonStatus: status || lastStatus,
             score: score,
+            slideSource: slideSource, // Include source for debugging
             timestamp: Date.now()
         };
 
@@ -584,14 +860,28 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     lastStatus = value;
                     sendProgressUpdate(lastLocation, value, null, null);
                 }
-                // Track score changes - some SCORM packages use score as progress percentage.
+                // Track score changes.
+                // IMPORTANT: Score represents FURTHEST PROGRESS, not current position.
+                // Only use score for slide position if no suspend_data has been parsed yet.
                 if (element === 'cmi.core.score.raw') {
                     var score = parseFloat(value);
                     if (!isNaN(score) && slidescount > 0 && score <= 100) {
-                        // Score represents percentage, calculate current slide.
+                        // Calculate slide from score percentage.
                         var calculatedSlide = Math.round((score / 100) * slidescount);
                         calculatedSlide = Math.max(1, Math.min(calculatedSlide, slidescount));
-                        sendProgressUpdate(null, lastStatus, value, calculatedSlide);
+
+                        // Only use score-based slide if we don't have a suspend_data source.
+                        // suspend_data gives actual resume position, score gives furthest progress.
+                        if (slideSource !== 'suspend_data' && lastSlide === null) {
+                            console.log('[SCORM] Using score-based slide (fallback):', calculatedSlide);
+                            slideSource = 'score';
+                            sendProgressUpdate(null, lastStatus, value, calculatedSlide);
+                        } else {
+                            // Just log the score but don't change currentSlide.
+                            console.log('[SCORM] Score indicates furthest progress:', calculatedSlide, '(not overriding current:', lastSlide, ')');
+                            // Send update without changing currentSlide.
+                            sendProgressUpdate(lastLocation, lastStatus, value, null);
+                        }
                     } else {
                         sendProgressUpdate(lastLocation, lastStatus, value, null);
                     }
@@ -629,14 +919,28 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     lastStatus = value;
                     sendProgressUpdate(lastLocation, value, null, null);
                 }
-                // Track score changes - some SCORM packages use score as progress percentage.
+                // Track score changes.
+                // IMPORTANT: Score represents FURTHEST PROGRESS, not current position.
+                // Only use score for slide position if no suspend_data has been parsed yet.
                 if (element === 'cmi.score.raw') {
                     var score = parseFloat(value);
                     if (!isNaN(score) && slidescount > 0 && score <= 100) {
-                        // Score represents percentage, calculate current slide.
+                        // Calculate slide from score percentage.
                         var calculatedSlide = Math.round((score / 100) * slidescount);
                         calculatedSlide = Math.max(1, Math.min(calculatedSlide, slidescount));
-                        sendProgressUpdate(null, lastStatus, value, calculatedSlide);
+
+                        // Only use score-based slide if we don't have a suspend_data source.
+                        // suspend_data gives actual resume position, score gives furthest progress.
+                        if (slideSource !== 'suspend_data' && lastSlide === null) {
+                            console.log('[SCORM 2004] Using score-based slide (fallback):', calculatedSlide);
+                            slideSource = 'score';
+                            sendProgressUpdate(null, lastStatus, value, calculatedSlide);
+                        } else {
+                            // Just log the score but don't change currentSlide.
+                            console.log('[SCORM 2004] Score indicates furthest progress:', calculatedSlide, '(not overriding current:', lastSlide, ')');
+                            // Send update without changing currentSlide.
+                            sendProgressUpdate(lastLocation, lastStatus, value, null);
+                        }
                     } else {
                         sendProgressUpdate(lastLocation, lastStatus, value, null);
                     }
@@ -1615,6 +1919,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     }
 
     // Start generic SCORM monitoring (lower priority, longer delay).
+    // IMPORTANT: This is a fallback only when SCORM API tracking is not working.
     setTimeout(function() {
         genericCheckInterval = setInterval(function() {
             // Only run generic detection if no other tool detected anything
@@ -1624,10 +1929,26 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 return; // Another detector is working
             }
 
+            // IMPORTANT: If SCORM API tracking has already given us a valid slide number,
+            // don't override it with generic detection. The SCORM API (score.raw, suspend_data)
+            // is more reliable than DOM-based detection which can find false positives.
+            if (lastSlide !== null && lastSlide > 1) {
+                // SCORM API tracking is working, skip generic detection
+                return;
+            }
+
             var content = findGenericScormContent();
             if (content) {
                 var currentPosition = getGenericCurrentPosition(content);
-                if (currentPosition !== null && currentPosition !== genericSlideIndex) {
+                // Only report if:
+                // 1. We got a valid position
+                // 2. It's different from what we had
+                // 3. It's greater than 1 (to avoid common false positives)
+                // 4. It's within reasonable bounds (not more than slidescount if known)
+                if (currentPosition !== null &&
+                    currentPosition !== genericSlideIndex &&
+                    currentPosition > 1 &&
+                    (slidescount === 0 || currentPosition <= slidescount)) {
                     genericSlideIndex = currentPosition;
                     if (currentPosition !== lastSlide) {
                         console.log('[Generic] Position changed to:', currentPosition);
@@ -1656,10 +1977,14 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (findCaptivatePlayer()) detected.push('Adobe Captivate');
         if (findRise360Player()) detected.push('Articulate Rise 360');
         if (findLectoraPlayer()) detected.push('Lectora');
-        if (findGenericScormContent()) detected.push('Generic HTML5 SCORM');
 
+        // Report what's being used for tracking
         if (detected.length > 0) {
             console.log('[SCORM Multi-Tool Support] Detected: ' + detected.join(', '));
+        } else if (lastSlide !== null && lastSlide > 0) {
+            console.log('[SCORM Multi-Tool Support] Using SCORM API tracking (score/suspend_data). Current slide: ' + lastSlide);
+        } else if (findGenericScormContent()) {
+            console.log('[SCORM Multi-Tool Support] Using Generic HTML5 SCORM detection as fallback');
         } else {
             console.log('[SCORM Multi-Tool Support] No specific authoring tool detected. Using SCORM API tracking.');
         }

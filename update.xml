@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012707</version>
+        <version>2025012708</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.7</release>
+        <release>2.0.8</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,41 +29,37 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.7/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.8/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.7</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.8</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.7 - Multi-Vendor SCORM Detection</h3>
+            <h3>Version 2.0.8 - LZ-String Decompression for Storyline</h3>
 
             <h4>New Features</h4>
             <ul>
-                <li>Vendor-specific slide detection for Articulate Storyline</li>
-                <li>Vendor-specific slide detection for iSpring</li>
-                <li>Vendor-specific slide detection for Adobe Captivate</li>
-                <li>Vendor-specific section detection for Articulate Rise 360</li>
-                <li>Vendor-specific page detection for Lectora</li>
-                <li>Generic HTML5 SCORM fallback detection</li>
-                <li>Moodle 4.x normalized SCORM tables support (scorm_attempt + scorm_scoes_value)</li>
+                <li>LZ-String decompression for Articulate Storyline suspend_data</li>
+                <li>Enhanced resume pattern extraction from decompressed data</li>
+                <li>Slide source tracking for priority handling</li>
+                <li>Improved JSON extraction from compressed data</li>
             </ul>
 
             <h4>Improvements</h4>
             <ul>
-                <li>Progress calculation using score as percentage fallback</li>
-                <li>Improved suspend_data parsing (removed aggressive patterns)</li>
-                <li>Auto-detect authoring tool and use appropriate tracking method</li>
+                <li>Better handling of Storyline's compressed suspend_data format</li>
+                <li>More accurate slide position detection</li>
+                <li>Refactored suspend_data parsing with extractSlideFromParsedData helper</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.7: Multi-vendor SCORM detection</li>
                 <li>v2.0.6: Enhanced SCORM tracking</li>
                 <li>v2.0.5: Polling and MutationObserver</li>
-                <li>v2.0.4: Version bump</li>
                 <li>v2.0.3: Notification URL fix</li>
-                <li>v2.0.2: Moodle 4.x tables</li>
                 <li>v2.0.0: WebSocket event observers</li>
             </ul>
             ]]>

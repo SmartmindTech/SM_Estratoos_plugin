@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012707;  // YYYYMMDDXX format.
+$plugin->version = 2025012708;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.7';  // Multi-vendor SCORM detection (Storyline, iSpring, Captivate, Rise 360, Lectora) + Moodle 4.x tables.
+$plugin->release = '2.0.8';  // LZ-String decompression for Articulate Storyline suspend_data.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
