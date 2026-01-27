@@ -1091,16 +1091,19 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     // Check for pending slide navigation from sessionStorage (set before reload).
     var pendingSlideNavigation = null;
-    // Multiple intercept system: allow multiple LMSGetValue intercepts within a time window
-    // Storyline calls LMSGetValue multiple times during initialization; single intercept was insufficient
+    // Multiple intercept system: allow multiple SCORM API intercepts within a time window
+    // Storyline calls LMSGetValue/LMSSetValue multiple times during initialization
     var suspendDataInterceptCount = 0;
-    var MAX_INTERCEPTS = 5; // Intercept up to 5 reads
-    var interceptStartTime = null; // Set when first intercept happens
-    var INTERCEPT_WINDOW_MS = 3000; // Only intercept for first 3 seconds after first read
+    var MAX_INTERCEPTS = 5; // Intercept up to 5 reads/writes
+    var interceptStartTime = null; // Set when navigation is detected (NOT on first read)
+    var INTERCEPT_WINDOW_MS = 5000; // Only intercept for first 5 seconds (increased from 3)
     try {
         var navData = sessionStorage.getItem('scorm_pending_navigation_' + cmid);
         if (navData) {
             pendingSlideNavigation = JSON.parse(navData);
+            // Start the intercept timer immediately when navigation is detected
+            // This is critical because Storyline WRITES before it READS
+            interceptStartTime = Date.now();
             console.log('[SCORM Navigation] Found pending navigation:', pendingSlideNavigation);
             // Clear immediately to prevent re-use on subsequent reloads
             sessionStorage.removeItem('scorm_pending_navigation_' + cmid);
@@ -1202,21 +1205,24 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             window.API.LMSSetValue = function(element, value) {
                 var valueToWrite = value;
 
-                // DISABLED: Write interception was corrupting the visited slides array ("v")
-                // When we modified writes, Storyline's internal state got confused and reset
-                // the visited array, causing progress to be lost.
-                // Now we only intercept READS to trick Storyline into starting at target slide,
-                // but let it write its natural state to preserve progress.
-                //
-                // if (element === 'cmi.suspend_data' && pendingSlideNavigation && suspendDataWriteInterceptCount < MAX_WRITE_INTERCEPTS) {
-                //     suspendDataWriteInterceptCount++;
-                //     console.log('[SCORM 1.2] LMSSetValue intercepted for suspend_data (write #' + suspendDataWriteInterceptCount + ')');
-                //     var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
-                //     if (modifiedValue !== value) {
-                //         console.log('[SCORM 1.2] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
-                //         valueToWrite = modifiedValue;
-                //     }
-                // }
+                // RE-ENABLED: Write interception for suspend_data during navigation window.
+                // Only modifies the "l" field (slide position), NOT the visited array ("v").
+                // This prevents Storyline from writing back its cached old position (e.g., slide 23)
+                // when we're trying to navigate to a different slide (e.g., slide 13).
+                if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
+                    // Only intercept within the time/count window
+                    var withinWindow = interceptStartTime !== null && (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                    var underLimit = suspendDataInterceptCount <= MAX_INTERCEPTS;
+
+                    if (withinWindow && underLimit) {
+                        console.log('[SCORM 1.2] LMSSetValue intercepting suspend_data write for slide:', pendingSlideNavigation.slide);
+                        var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
+                        if (modifiedValue !== value) {
+                            console.log('[SCORM 1.2] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
+                            valueToWrite = modifiedValue;
+                        }
+                    }
+                }
 
                 var result = originalSetValue.call(window.API, element, valueToWrite);
 
@@ -1320,21 +1326,24 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             window.API_1484_11.SetValue = function(element, value) {
                 var valueToWrite = value;
 
-                // DISABLED: Write interception was corrupting the visited slides array ("v")
-                // When we modified writes, Storyline's internal state got confused and reset
-                // the visited array, causing progress to be lost.
-                // Now we only intercept READS to trick Storyline into starting at target slide,
-                // but let it write its natural state to preserve progress.
-                //
-                // if (element === 'cmi.suspend_data' && pendingSlideNavigation && suspendDataWriteInterceptCount < MAX_WRITE_INTERCEPTS) {
-                //     suspendDataWriteInterceptCount++;
-                //     console.log('[SCORM 2004] SetValue intercepted for suspend_data (write #' + suspendDataWriteInterceptCount + ')');
-                //     var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
-                //     if (modifiedValue !== value) {
-                //         console.log('[SCORM 2004] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
-                //         valueToWrite = modifiedValue;
-                //     }
-                // }
+                // RE-ENABLED: Write interception for suspend_data during navigation window.
+                // Only modifies the "l" field (slide position), NOT the visited array ("v").
+                // This prevents Storyline from writing back its cached old position (e.g., slide 23)
+                // when we're trying to navigate to a different slide (e.g., slide 13).
+                if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
+                    // Only intercept within the time/count window
+                    var withinWindow = interceptStartTime !== null && (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                    var underLimit = suspendDataInterceptCount <= MAX_INTERCEPTS;
+
+                    if (withinWindow && underLimit) {
+                        console.log('[SCORM 2004] SetValue intercepting suspend_data write for slide:', pendingSlideNavigation.slide);
+                        var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
+                        if (modifiedValue !== value) {
+                            console.log('[SCORM 2004] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
+                            valueToWrite = modifiedValue;
+                        }
+                    }
+                }
 
                 var result = originalSetValue2004.call(window.API_1484_11, element, valueToWrite);
 
