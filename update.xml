@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012718</version>
+        <version>2025012719</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.18</release>
+        <release>2.0.19</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.18/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.19/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.18</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.19</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.18 - Enhanced Resume Field + Direct Navigation Fallback</h3>
+            <h3>Version 2.0.19 - Prevent Navigation Reload Loops</h3>
 
             <h4>Improvements</h4>
             <ul>
-                <li>Modify "resume" field - the KEY field Storyline uses for resume position</li>
-                <li>Handles both formats: "resume":"0_7" (scene_slide) and "resume":"7"</li>
-                <li>Also modify CurrentSlideIndex and currentSlide fields</li>
-                <li>Direct navigation fallback at 1.5s, 3s, 5s after load</li>
+                <li>Clear sessionStorage immediately to prevent infinite reload loops</li>
+                <li>Single direct navigation attempt at 2s (instead of multiple)</li>
+                <li>Check if already at target slide before navigating</li>
+                <li>Direct Storyline API only - no reload-based navigation</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Storyline stores resume position in "resume" field, not just "l"</li>
-                <li>Format: "resume":"0_7" = scene 0, slide 7 (0-indexed)</li>
-                <li>Fallback uses navigateToSlide() function if suspend_data modification fails</li>
-                <li>Added debug logging for data samples</li>
+                <li>Uses goToSlide() or GetPlayer().SetVar('Jump') methods</li>
+                <li>Relies on suspend_data modification for initial navigation</li>
+                <li>Direct API call is fallback only if suspend_data didn't work</li>
+                <li>Prevents modifySuspendDataAndReload calls in fallback path</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.18: Enhanced resume field modification + fallback</li>
                 <li>v2.0.17: Intercept suspend_data writes to prevent revert</li>
                 <li>v2.0.16: URL-based slide navigation (?slide=X) for embed</li>
                 <li>v2.0.15: LMSGetValue interception for navigation</li>
-                <li>v2.0.14: Progress tracking & suspend_data enhancements</li>
             </ul>
             ]]>
         </releasenotes>

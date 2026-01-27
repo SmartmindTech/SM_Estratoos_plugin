@@ -1423,28 +1423,63 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     if (pendingSlideNavigation) {
         console.log('[SCORM Navigation] Setting up direct navigation fallback for slide:', pendingSlideNavigation.slide);
 
+        // Clear sessionStorage immediately to prevent infinite loop on reload
+        // The suspend_data interception already handled the navigation intent
+        try {
+            sessionStorage.removeItem('scorm_pending_navigation_' + cmid);
+            console.log('[SCORM Navigation] Cleared pending navigation from sessionStorage to prevent loop');
+        } catch (e) {}
+
         // Attempt direct navigation after SCORM content has likely loaded.
-        // We try multiple times with increasing delays to catch different initialization timings.
-        var directNavAttempts = [1500, 3000, 5000]; // Try at 1.5s, 3s, and 5s after load
+        // Only try ONCE at 2 seconds - the suspend_data modification should have already worked
         var targetSlide = pendingSlideNavigation.slide;
-        var navigationSucceeded = false;
+        var navigationAttempted = false;
 
-        directNavAttempts.forEach(function(delay) {
-            setTimeout(function() {
-                if (navigationSucceeded) return;
+        setTimeout(function() {
+            if (navigationAttempted) return;
+            navigationAttempted = true;
 
-                console.log('[SCORM Navigation] Attempting direct navigation (delay: ' + delay + 'ms) to slide:', targetSlide);
+            // Check if we're already at the target slide before attempting navigation
+            var currentSlide = lastSlide;
+            if (currentSlide === targetSlide) {
+                console.log('[SCORM Navigation] Already at target slide:', targetSlide, '- skipping direct navigation');
+                return;
+            }
 
-                // Try direct navigation using the navigateToSlide function
-                if (typeof navigateToSlide === 'function') {
-                    var success = navigateToSlide(targetSlide);
-                    if (success) {
-                        navigationSucceeded = true;
-                        console.log('[SCORM Navigation] Direct navigation succeeded at delay:', delay);
+            console.log('[SCORM Navigation] Attempting direct navigation to slide:', targetSlide, '(current:', currentSlide, ')');
+
+            // Try direct Storyline/Captivate/iSpring API methods ONLY
+            // Do NOT call modifySuspendDataAndReload to prevent infinite loops
+            var success = false;
+
+            // Try Articulate Storyline
+            var storylinePlayer = typeof findStorylinePlayer === 'function' ? findStorylinePlayer() : null;
+            if (storylinePlayer && storylinePlayer.window) {
+                try {
+                    var win = storylinePlayer.window;
+                    if (win.goToSlide) {
+                        win.goToSlide(targetSlide - 1);
+                        console.log('[SCORM Navigation] Storyline goToSlide called');
+                        success = true;
+                    } else if (win.GetPlayer) {
+                        var player = win.GetPlayer();
+                        if (player && player.SetVar) {
+                            player.SetVar('Jump', targetSlide);
+                            console.log('[SCORM Navigation] Storyline SetVar Jump called');
+                            success = true;
+                        }
                     }
+                } catch (e) {
+                    console.log('[SCORM Navigation] Storyline API error:', e.message);
                 }
-            }, delay);
-        });
+            }
+
+            if (success) {
+                console.log('[SCORM Navigation] Direct navigation API call succeeded');
+            } else {
+                console.log('[SCORM Navigation] No direct API available - relying on suspend_data modification');
+            }
+        }, 2000);
     }
 
     // Send initial progress message when page loads.
