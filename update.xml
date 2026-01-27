@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012705</version>
+        <version>2025012706</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.5</release>
+        <release>2.0.6</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,15 +29,15 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.5/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.6/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.5</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.6</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.5 - Enhanced SCORM Slide Tracking</h3>
+            <h3>Version 2.0.6 - Enhanced SCORM Slide Tracking</h3>
 
             <h4>New Features</h4>
             <ul>
@@ -57,6 +57,7 @@
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.5: Initial enhanced SCORM tracking</li>
                 <li>v2.0.4: Version bump</li>
                 <li>v2.0.3: Notification URLs use relative paths</li>
                 <li>v2.0.2: Support Moodle 4.x normalized SCORM tables</li>
