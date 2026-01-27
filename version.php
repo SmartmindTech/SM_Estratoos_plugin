@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012717;  // YYYYMMDDXX format.
+$plugin->version = 2025012718;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.17';  // Intercept suspend_data writes to prevent Storyline revert.
+$plugin->release = '2.0.18';  // Enhanced resume field modification + direct navigation fallback.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

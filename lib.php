@@ -1122,24 +1122,75 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 var decompressed = LZString.decompressFromBase64(originalData);
                 if (decompressed && decompressed.length > 0) {
                     console.log('[SCORM suspend_data intercept] Decompressed, length:', decompressed.length);
+                    console.log('[SCORM suspend_data intercept] Data sample:', decompressed.substring(0, 300));
 
-                    // Modify the "l" field which stores the last slide position
+                    var modified = decompressed;
+                    var changesMade = false;
+
+                    // 1. Modify the "resume" field - THIS IS THE KEY FIELD for Storyline resume
+                    // Format: "resume":"0_7" (scene 0, slide 7) - 0-indexed
+                    modified = modified.replace(
+                        /"resume"\s*:\s*"(\d+)_(\d+)"/g,
+                        function(match, scene, oldSlide) {
+                            console.log('[SCORM suspend_data intercept] Replacing "resume" scene_slide:', scene + '_' + oldSlide, '->', scene + '_' + targetIndex);
+                            changesMade = true;
+                            return '"resume":"' + scene + '_' + targetIndex + '"';
+                        }
+                    );
+
+                    // 2. Modify simple resume format: "resume":"7" or "resume":7
+                    modified = modified.replace(
+                        /"resume"\s*:\s*"?(\d+)"?(?![_\d])/g,
+                        function(match, oldSlide) {
+                            // Skip if already handled by scene_slide pattern
+                            if (match.indexOf('_') !== -1) return match;
+                            var hasQuotes = match.indexOf('"' + oldSlide) !== -1;
+                            var newValue = hasQuotes ? '"resume":"' + targetIndex + '"' : '"resume":' + targetIndex;
+                            console.log('[SCORM suspend_data intercept] Replacing "resume":', oldSlide, '->', targetIndex);
+                            changesMade = true;
+                            return newValue;
+                        }
+                    );
+
+                    // 3. Modify the "l" field which stores the last slide position
                     // Format: {"d":..., "l":7, ...} where "l" is the last/current slide (0-indexed)
-                    var modified = decompressed.replace(
+                    modified = modified.replace(
                         /"l"\s*:\s*(\d+)/g,
                         function(match, oldValue) {
                             console.log('[SCORM suspend_data intercept] Replacing "l":', oldValue, '->', targetIndex);
+                            changesMade = true;
                             return '"l":' + targetIndex;
                         }
                     );
 
-                    if (modified !== decompressed) {
+                    // 4. Also modify CurrentSlideIndex and currentSlide if present
+                    modified = modified.replace(
+                        /"CurrentSlideIndex"\s*:\s*(\d+)/g,
+                        function(match, oldValue) {
+                            console.log('[SCORM suspend_data intercept] Replacing "CurrentSlideIndex":', oldValue, '->', targetIndex);
+                            changesMade = true;
+                            return '"CurrentSlideIndex":' + targetIndex;
+                        }
+                    );
+                    modified = modified.replace(
+                        /"currentSlide"\s*:\s*(\d+)/g,
+                        function(match, oldValue) {
+                            console.log('[SCORM suspend_data intercept] Replacing "currentSlide":', oldValue, '->', targetIndex);
+                            changesMade = true;
+                            return '"currentSlide":' + targetIndex;
+                        }
+                    );
+
+                    if (changesMade) {
+                        console.log('[SCORM suspend_data intercept] Modified data sample:', modified.substring(0, 300));
                         // Re-compress with LZ-String
                         var recompressed = LZString.compressToBase64(modified);
                         if (recompressed) {
                             console.log('[SCORM suspend_data intercept] Re-compressed, new length:', recompressed.length);
                             return recompressed;
                         }
+                    } else {
+                        console.log('[SCORM suspend_data intercept] No fields found to modify');
                     }
                 }
             } catch (e) {
@@ -1365,6 +1416,35 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 clearInterval(interval);
             }
         }, 200);
+    }
+
+    // FALLBACK: If there's a pending navigation, also try direct navigation after SCORM initializes.
+    // The suspend_data modification works for resume, but direct navigation is more reliable.
+    if (pendingSlideNavigation) {
+        console.log('[SCORM Navigation] Setting up direct navigation fallback for slide:', pendingSlideNavigation.slide);
+
+        // Attempt direct navigation after SCORM content has likely loaded.
+        // We try multiple times with increasing delays to catch different initialization timings.
+        var directNavAttempts = [1500, 3000, 5000]; // Try at 1.5s, 3s, and 5s after load
+        var targetSlide = pendingSlideNavigation.slide;
+        var navigationSucceeded = false;
+
+        directNavAttempts.forEach(function(delay) {
+            setTimeout(function() {
+                if (navigationSucceeded) return;
+
+                console.log('[SCORM Navigation] Attempting direct navigation (delay: ' + delay + 'ms) to slide:', targetSlide);
+
+                // Try direct navigation using the navigateToSlide function
+                if (typeof navigateToSlide === 'function') {
+                    var success = navigateToSlide(targetSlide);
+                    if (success) {
+                        navigationSucceeded = true;
+                        console.log('[SCORM Navigation] Direct navigation succeeded at delay:', delay);
+                    }
+                }
+            }, delay);
+        });
     }
 
     // Send initial progress message when page loads.

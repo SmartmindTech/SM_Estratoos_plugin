@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012717</version>
+        <version>2025012718</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.17</release>
+        <release>2.0.18</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,37 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.17/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.18/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.17</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.18</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.17 - Prevent Storyline Navigation Revert</h3>
+            <h3>Version 2.0.18 - Enhanced Resume Field + Direct Navigation Fallback</h3>
 
             <h4>Improvements</h4>
             <ul>
-                <li>Intercept suspend_data WRITES (LMSSetValue/SetValue) in addition to reads</li>
-                <li>Prevents Storyline from reverting slide position after navigation</li>
-                <li>First 3 writes are intercepted and modified to maintain target slide</li>
-                <li>Works with both SCORM 1.2 and SCORM 2004</li>
+                <li>Modify "resume" field - the KEY field Storyline uses for resume position</li>
+                <li>Handles both formats: "resume":"0_7" (scene_slide) and "resume":"7"</li>
+                <li>Also modify CurrentSlideIndex and currentSlide fields</li>
+                <li>Direct navigation fallback at 1.5s, 3s, 5s after load</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Problem: Storyline reads modified suspend_data but writes back internal state</li>
-                <li>Solution: Intercept SetValue calls and re-apply slide modification</li>
-                <li>MAX_WRITE_INTERCEPTS = 3 to allow eventual normal operation</li>
+                <li>Storyline stores resume position in "resume" field, not just "l"</li>
+                <li>Format: "resume":"0_7" = scene 0, slide 7 (0-indexed)</li>
+                <li>Fallback uses navigateToSlide() function if suspend_data modification fails</li>
+                <li>Added debug logging for data samples</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.17: Intercept suspend_data writes to prevent revert</li>
                 <li>v2.0.16: URL-based slide navigation (?slide=X) for embed</li>
                 <li>v2.0.15: LMSGetValue interception for navigation</li>
                 <li>v2.0.14: Progress tracking & suspend_data enhancements</li>
-                <li>v2.0.12: Rise 360 navigation & notification fix</li>
             </ul>
             ]]>
         </releasenotes>
