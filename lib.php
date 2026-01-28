@@ -1105,10 +1105,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     var MAX_INTERCEPTS = 999; // Effectively unlimited - rely on time window instead
     var interceptStartTime = null; // Set when navigation is detected (NOT on first read)
     var INTERCEPT_WINDOW_MS = 10000; // Intercept for 10 seconds to cover slow SCORM init
+    var directNavigationTarget = null; // Store target for direct navigation fallback
+    var directNavigationAttempted = false; // Track if we've tried direct navigation
     try {
         var navData = sessionStorage.getItem('scorm_pending_navigation_' + cmid);
         if (navData) {
             pendingSlideNavigation = JSON.parse(navData);
+            // Store target for direct navigation fallback (in case intercepts fail)
+            directNavigationTarget = pendingSlideNavigation.slide;
+            directNavigationAttempted = false;
             // Start the intercept timer immediately when navigation is detected
             // This is critical because Storyline WRITES before it READS
             interceptStartTime = Date.now();
@@ -1554,6 +1559,30 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             lastLocation = currentLocation;
             console.log('[SCORM Poll] Location changed:', currentLocation);
             sendProgressUpdate(currentLocation, lastStatus, null, null);
+
+            // DIRECT NAVIGATION FALLBACK: If we have a target and haven't attempted navigation yet
+            // Check if current position doesn't match target and trigger direct navigation
+            if (directNavigationTarget !== null && !directNavigationAttempted) {
+                var currentSlideNum = parseInt(currentLocation, 10);
+                if (!isNaN(currentSlideNum) && currentSlideNum !== directNavigationTarget) {
+                    console.log('[SCORM Poll] Position mismatch! Current:', currentSlideNum, 'Target:', directNavigationTarget);
+                    console.log('[SCORM Poll] Triggering direct navigation fallback...');
+                    directNavigationAttempted = true;
+                    // Use setTimeout to let SCORM content fully initialize
+                    setTimeout(function() {
+                        if (typeof navigateToSlide === 'function') {
+                            var success = navigateToSlide(directNavigationTarget);
+                            console.log('[SCORM Poll] Direct navigation result:', success ? 'success' : 'failed');
+                        } else {
+                            console.log('[SCORM Poll] navigateToSlide function not available yet');
+                        }
+                    }, 500);
+                } else if (currentSlideNum === directNavigationTarget) {
+                    // Position matches target, clear the fallback
+                    console.log('[SCORM Poll] Position matches target, navigation successful');
+                    directNavigationTarget = null;
+                }
+            }
         }
 
         // Check if suspend_data changed.
