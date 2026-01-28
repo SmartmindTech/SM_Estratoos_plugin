@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012728</version>
+        <version>2025012729</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.28</release>
+        <release>2.0.29</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,39 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.28/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.29/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.28</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.29</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.28 - PHP-Level suspend_data Modification</h3>
+            <h3>Version 2.0.29 - Comprehensive suspend_data Field Modification</h3>
 
-            <h4>Major Improvement</h4>
+            <h4>Improvements</h4>
             <ul>
-                <li>PHP-level suspend_data modification BEFORE SCORM player loads</li>
-                <li>New lzstring_helper.php - PHP port of LZ-String library</li>
-                <li>Modifies database directly - JavaScript interception was too late</li>
-                <li>Supports Moodle 4.x (normalized tables) and legacy structure</li>
+                <li>Now modifies ALL relevant Storyline navigation fields</li>
+                <li>"l" field - last slide position (0-indexed)</li>
+                <li>"resume" field - scene_slide format "0_7"</li>
+                <li>d-array Resume variable {"n":"Resume","v":"0_7"}</li>
+                <li>Reverse d-array {"v":"0_7","n":"Resume"}</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>embed_renderer.php: modify_suspend_data_for_slide() method</li>
-                <li>Handles scorm_scoes_value (4.x) and scorm_scoes_track (legacy)</li>
-                <li>LZ-String compress/decompress for Articulate Storyline format</li>
-                <li>Modifies "l" field in suspend_data to target slide position</li>
+                <li>Both PHP (lzstring_helper.php) and JS (lib.php) updated</li>
+                <li>Uses anyChange flag to track if modification was needed</li>
+                <li>Preserves scene number, only changes slide number</li>
+                <li>Better logging for each field type modified</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.28: PHP-level suspend_data modification</li>
                 <li>v2.0.27: Correct suspend_data interpretation (Poll is truth)</li>
                 <li>v2.0.26: Skip score-based position during intercept</li>
                 <li>v2.0.24: Unlimited intercepts within 10s window</li>
-                <li>v2.0.22: Re-enable write interception (l field only)</li>
             </ul>
             ]]>
         </releasenotes>

@@ -1122,9 +1122,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     /**
      * Modify suspend_data to change the resume position.
-     * SIMPLIFIED: Only modify the "l" field which is the key field for Storyline position.
-     * Previous versions tried to modify "resume", "CurrentSlideIndex", etc. but this caused
-     * inconsistencies when Storyline read the data multiple times.
+     * Modifies BOTH the "l" field AND the "resume" field for Storyline navigation.
+     * The "l" field is the last slide index, "resume" is "scene_slide" format (e.g., "0_12").
      */
     function modifySuspendDataForSlide(originalData, targetSlide) {
         if (!originalData || originalData.length < 5) return originalData;
@@ -1137,30 +1136,71 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             try {
                 var decompressed = LZString.decompressFromBase64(originalData);
                 if (decompressed && decompressed.length > 0) {
-                    // ONLY modify "l" field - this was working in previous versions
-                    // The "l" field stores the last/current slide position (0-indexed)
-                    // Format: {"d":..., "l":7, ...}
-                    var foundField = false;
-                    var modified = decompressed.replace(
+                    var modified = decompressed;
+                    var anyChange = false;
+
+                    // 1. Modify "l" field - last slide position (0-indexed)
+                    modified = modified.replace(
                         /"l"\s*:\s*(\d+)/g,
                         function(match, oldValue) {
-                            foundField = true;
-                            console.log('[SCORM suspend_data] "l":', oldValue, '->', targetIndex);
-                            return '"l":' + targetIndex;
+                            if (parseInt(oldValue) !== targetIndex) {
+                                console.log('[SCORM suspend_data] "l":', oldValue, '->', targetIndex);
+                                anyChange = true;
+                                return '"l":' + targetIndex;
+                            }
+                            return match;
                         }
                     );
 
-                    if (modified !== decompressed) {
+                    // 2. Modify "resume" field - scene_slide format "0_7"
+                    // Keep the scene number, only change the slide number
+                    modified = modified.replace(
+                        /"resume"\s*:\s*"(\d+)_(\d+)"/g,
+                        function(match, scene, slide) {
+                            if (parseInt(slide) !== targetIndex) {
+                                console.log('[SCORM suspend_data] "resume":', scene + '_' + slide, '->', scene + '_' + targetIndex);
+                                anyChange = true;
+                                return '"resume":"' + scene + '_' + targetIndex + '"';
+                            }
+                            return match;
+                        }
+                    );
+
+                    // 3. Modify d-array Resume variable - {"n":"Resume","v":"0_7"}
+                    modified = modified.replace(
+                        /("n"\s*:\s*"Resume"\s*,\s*"v"\s*:\s*")(\d+)_(\d+)(")/gi,
+                        function(match, prefix, scene, slide, suffix) {
+                            if (parseInt(slide) !== targetIndex) {
+                                console.log('[SCORM suspend_data] d-array Resume:', scene + '_' + slide, '->', scene + '_' + targetIndex);
+                                anyChange = true;
+                                return prefix + scene + '_' + targetIndex + suffix;
+                            }
+                            return match;
+                        }
+                    );
+
+                    // 4. Modify reverse d-array - {"v":"0_7","n":"Resume"}
+                    modified = modified.replace(
+                        /("v"\s*:\s*")(\d+)_(\d+)("\s*,\s*"n"\s*:\s*"Resume")/gi,
+                        function(match, prefix, scene, slide, suffix) {
+                            if (parseInt(slide) !== targetIndex) {
+                                console.log('[SCORM suspend_data] reverse d-array:', scene + '_' + slide, '->', scene + '_' + targetIndex);
+                                anyChange = true;
+                                return prefix + scene + '_' + targetIndex + suffix;
+                            }
+                            return match;
+                        }
+                    );
+
+                    if (anyChange) {
                         // Re-compress with LZ-String
                         var recompressed = LZString.compressToBase64(modified);
                         if (recompressed) {
                             console.log('[SCORM suspend_data] Re-compressed successfully');
                             return recompressed;
                         }
-                    } else if (foundField) {
-                        console.log('[SCORM suspend_data] "l" field already at target index, no change needed');
                     } else {
-                        console.log('[SCORM suspend_data] No "l" field found in suspend_data');
+                        console.log('[SCORM suspend_data] All fields already at target, no change needed');
                     }
                 }
             } catch (e) {

@@ -531,10 +531,11 @@ class lzstring_helper {
     }
 
     /**
-     * Modify the "l" field in suspend_data for SCORM slide navigation.
+     * Modify suspend_data for SCORM slide navigation.
      *
      * This function takes compressed suspend_data, decompresses it,
-     * modifies the "l" field to point to the target slide, and recompresses.
+     * modifies BOTH the "l" field AND the "resume" field to point to the
+     * target slide, then recompresses.
      *
      * @param string $suspendData Original compressed suspend_data
      * @param int $targetSlide Target slide number (1-indexed)
@@ -552,16 +553,59 @@ class lzstring_helper {
             $decompressed = self::decompressFromBase64($suspendData);
 
             if ($decompressed && strlen($decompressed) > 0) {
-                // Modify the "l" field (Storyline resume position)
+                $modified = $decompressed;
+                $anyChange = false;
+
+                // 1. Modify the "l" field (last slide position, 0-indexed)
                 $modified = preg_replace_callback(
                     '/"l"\s*:\s*(\d+)/',
-                    function($matches) use ($targetIndex) {
+                    function($matches) use ($targetIndex, &$anyChange) {
+                        if ((int)$matches[1] !== $targetIndex) {
+                            $anyChange = true;
+                        }
                         return '"l":' . $targetIndex;
                     },
-                    $decompressed
+                    $modified
                 );
 
-                if ($modified !== $decompressed) {
+                // 2. Modify "resume" field - scene_slide format "0_7"
+                // Keep the scene number, only change the slide number
+                $modified = preg_replace_callback(
+                    '/"resume"\s*:\s*"(\d+)_(\d+)"/',
+                    function($matches) use ($targetIndex, &$anyChange) {
+                        if ((int)$matches[2] !== $targetIndex) {
+                            $anyChange = true;
+                        }
+                        return '"resume":"' . $matches[1] . '_' . $targetIndex . '"';
+                    },
+                    $modified
+                );
+
+                // 3. Modify d-array Resume variable - {"n":"Resume","v":"0_7"}
+                $modified = preg_replace_callback(
+                    '/("n"\s*:\s*"Resume"\s*,\s*"v"\s*:\s*")(\d+)_(\d+)(")/i',
+                    function($matches) use ($targetIndex, &$anyChange) {
+                        if ((int)$matches[3] !== $targetIndex) {
+                            $anyChange = true;
+                        }
+                        return $matches[1] . $matches[2] . '_' . $targetIndex . $matches[4];
+                    },
+                    $modified
+                );
+
+                // 4. Modify reverse d-array - {"v":"0_7","n":"Resume"}
+                $modified = preg_replace_callback(
+                    '/("v"\s*:\s*")(\d+)_(\d+)("\s*,\s*"n"\s*:\s*"Resume")/i',
+                    function($matches) use ($targetIndex, &$anyChange) {
+                        if ((int)$matches[3] !== $targetIndex) {
+                            $anyChange = true;
+                        }
+                        return $matches[1] . $matches[2] . '_' . $targetIndex . $matches[4];
+                    },
+                    $modified
+                );
+
+                if ($anyChange && $modified !== $decompressed) {
                     // Re-compress
                     $recompressed = self::compressToBase64($modified);
                     if ($recompressed) {
