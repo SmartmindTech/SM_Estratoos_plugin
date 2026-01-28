@@ -1321,6 +1321,34 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     function wrapScormApi() {
         // SCORM 1.2 API
         if (typeof window.API !== 'undefined' && window.API.LMSSetValue) {
+            // CRITICAL FIX v2.0.51: Directly modify the backing store BEFORE wrapping.
+            // Storyline does NOT call LMSGetValue('cmi.suspend_data') during initialization.
+            // It reads directly from Moodle's pre-populated cmi JavaScript object.
+            // By calling the original LMSSetValue, we update the cmi object at the source,
+            // ensuring correct data regardless of how Storyline reads it.
+            if (pendingSlideNavigation && window.API.LMSGetValue && window.API.LMSSetValue) {
+                try {
+                    // 1. Modify suspend_data in the backing store
+                    var currentSD = window.API.LMSGetValue.call(window.API, 'cmi.suspend_data');
+                    if (currentSD && currentSD.length > 5) {
+                        var modifiedSD = modifySuspendDataForSlide(currentSD, pendingSlideNavigation.slide);
+                        if (modifiedSD !== currentSD) {
+                            window.API.LMSSetValue.call(window.API, 'cmi.suspend_data', modifiedSD);
+                            console.log('[SCORM Navigation] DIRECTLY modified cmi.suspend_data in backing store for slide:', pendingSlideNavigation.slide);
+                        } else {
+                            console.log('[SCORM Navigation] Backing store suspend_data already has correct slide');
+                        }
+                    } else {
+                        console.log('[SCORM Navigation] No suspend_data in backing store to modify (empty or short)');
+                    }
+                    // 2. Set lesson_location directly in the backing store
+                    window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location', String(pendingSlideNavigation.slide));
+                    console.log('[SCORM Navigation] DIRECTLY set cmi.core.lesson_location in backing store to:', pendingSlideNavigation.slide);
+                } catch (e) {
+                    console.log('[SCORM Navigation] Error modifying SCORM 1.2 backing store:', e.message);
+                }
+            }
+
             // Wrap LMSGetValue FIRST to intercept suspend_data reads
             if (window.API.LMSGetValue && pendingSlideNavigation) {
                 var originalGetValue = window.API.LMSGetValue;
@@ -1508,6 +1536,32 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
         // SCORM 2004 API
         if (typeof window.API_1484_11 !== 'undefined' && window.API_1484_11.SetValue) {
+            // CRITICAL FIX v2.0.51: Directly modify the backing store BEFORE wrapping.
+            // Same reasoning as SCORM 1.2 - Storyline reads from Moodle's pre-populated
+            // data model object, NOT through GetValue calls.
+            if (pendingSlideNavigation && window.API_1484_11.GetValue && window.API_1484_11.SetValue) {
+                try {
+                    // 1. Modify suspend_data in the backing store
+                    var currentSD2004 = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.suspend_data');
+                    if (currentSD2004 && currentSD2004.length > 5) {
+                        var modifiedSD2004 = modifySuspendDataForSlide(currentSD2004, pendingSlideNavigation.slide);
+                        if (modifiedSD2004 !== currentSD2004) {
+                            window.API_1484_11.SetValue.call(window.API_1484_11, 'cmi.suspend_data', modifiedSD2004);
+                            console.log('[SCORM Navigation] DIRECTLY modified cmi.suspend_data in SCORM 2004 backing store for slide:', pendingSlideNavigation.slide);
+                        } else {
+                            console.log('[SCORM Navigation] SCORM 2004 backing store suspend_data already has correct slide');
+                        }
+                    } else {
+                        console.log('[SCORM Navigation] No SCORM 2004 suspend_data in backing store to modify (empty or short)');
+                    }
+                    // 2. Set location directly in the backing store
+                    window.API_1484_11.SetValue.call(window.API_1484_11, 'cmi.location', String(pendingSlideNavigation.slide));
+                    console.log('[SCORM Navigation] DIRECTLY set cmi.location in SCORM 2004 backing store to:', pendingSlideNavigation.slide);
+                } catch (e) {
+                    console.log('[SCORM Navigation] Error modifying SCORM 2004 backing store:', e.message);
+                }
+            }
+
             // Wrap GetValue FIRST to intercept suspend_data reads
             if (window.API_1484_11.GetValue && pendingSlideNavigation) {
                 var originalGetValue2004 = window.API_1484_11.GetValue;
@@ -1696,8 +1750,62 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         return false;
     }
 
-    // Try to wrap immediately, then retry with intervals.
-    if (!wrapScormApi()) {
+    // CRITICAL v2.0.51: Set up Object.defineProperty traps to detect API creation IMMEDIATELY.
+    // Previously, we polled every 200ms which left a gap where Storyline could read
+    // the cmi object before our wrapper was installed. With defineProperty, we wrap
+    // the API the INSTANT it is created (when Moodle assigns window.API = new SCORMapi(...)).
+    var apiWrapped = false;
+    if (pendingSlideNavigation) {
+        // Trap for SCORM 1.2 API
+        if (typeof window.API === 'undefined' || !window.API) {
+            (function() {
+                var _storedAPI = window.API;
+                try {
+                    Object.defineProperty(window, 'API', {
+                        get: function() { return _storedAPI; },
+                        set: function(newAPI) {
+                            _storedAPI = newAPI;
+                            if (newAPI && newAPI.LMSSetValue && !apiWrapped) {
+                                console.log('[SCORM Navigation] window.API created - wrapping IMMEDIATELY via defineProperty trap');
+                                apiWrapped = wrapScormApi();
+                            }
+                        },
+                        configurable: true,
+                        enumerable: true
+                    });
+                    console.log('[SCORM Navigation] Object.defineProperty trap set for window.API');
+                } catch (e) {
+                    console.log('[SCORM Navigation] Could not set defineProperty trap for API:', e.message);
+                }
+            })();
+        }
+        // Trap for SCORM 2004 API
+        if (typeof window.API_1484_11 === 'undefined' || !window.API_1484_11) {
+            (function() {
+                var _storedAPI2004 = window.API_1484_11;
+                try {
+                    Object.defineProperty(window, 'API_1484_11', {
+                        get: function() { return _storedAPI2004; },
+                        set: function(newAPI) {
+                            _storedAPI2004 = newAPI;
+                            if (newAPI && newAPI.SetValue && !apiWrapped) {
+                                console.log('[SCORM Navigation] window.API_1484_11 created - wrapping IMMEDIATELY via defineProperty trap');
+                                apiWrapped = wrapScormApi();
+                            }
+                        },
+                        configurable: true,
+                        enumerable: true
+                    });
+                    console.log('[SCORM Navigation] Object.defineProperty trap set for window.API_1484_11');
+                } catch (e) {
+                    console.log('[SCORM Navigation] Could not set defineProperty trap for API_1484_11:', e.message);
+                }
+            })();
+        }
+    }
+
+    // Try to wrap immediately (API may already exist), then retry with intervals as fallback.
+    if (!apiWrapped && !wrapScormApi()) {
         var attempts = 0;
         var interval = setInterval(function() {
             attempts++;
