@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012724;  // YYYYMMDDXX format.
+$plugin->version = 2025012725;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.24';  // Unlimited intercepts within 10s window for slow SCORM init.
+$plugin->release = '2.0.25';  // Prioritize "l" field over "resume" for current position.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

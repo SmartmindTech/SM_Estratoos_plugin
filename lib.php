@@ -946,6 +946,17 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     function extractSlideFromParsedData(parsed) {
         if (!parsed) return null;
 
+        // PRIORITY 1: Articulate Storyline "l" field (current location, 0-indexed).
+        // This is the ACTUAL current position, NOT the furthest progress.
+        // Must be checked BEFORE "resume" which stores furthest progress.
+        if (parsed.l !== undefined) {
+            var location = parseInt(parsed.l, 10);
+            if (!isNaN(location)) {
+                console.log('[suspend_data] Storyline "l" field (location):', location, '-> slide', location + 1);
+                return location + 1; // Convert from 0-indexed to 1-indexed
+            }
+        }
+
         // Direct properties.
         if (parsed.currentSlide !== undefined) return parseInt(parsed.currentSlide, 10);
         if (parsed.slide !== undefined) return parseInt(parsed.slide, 10);
@@ -953,6 +964,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (parsed.position !== undefined) return parseInt(parsed.position, 10);
 
         // Articulate Storyline "resume" format (e.g., "1_6" = scene 1, slide 6).
+        // NOTE: This is the FURTHEST progress, not current position. Only use as fallback.
         if (parsed.resume !== undefined) {
             var resume = String(parsed.resume);
             // Format: scene_slide or just slide number.
@@ -1005,7 +1017,18 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     function extractSlideFromText(text) {
         if (!text || typeof text !== 'string') return null;
 
-        // Look for explicit resume/slide patterns.
+        // PRIORITY 1: Articulate Storyline "l" field (current location, 0-indexed).
+        // This is the ACTUAL current position, NOT the furthest progress.
+        // Pattern: "l":12 or "l": 12 (with or without quotes around key)
+        var locationMatch = text.match(/["']?l["']?\s*:\s*(\d+)/);
+        if (locationMatch) {
+            var location = parseInt(locationMatch[1], 10);
+            console.log('[suspend_data] Text "l" field (location):', location, '-> slide', location + 1);
+            return location + 1; // Convert from 0-indexed to 1-indexed
+        }
+
+        // PRIORITY 2: Look for explicit resume/slide patterns.
+        // NOTE: "resume" is the FURTHEST progress, not current position. Only use as fallback.
         // These patterns capture 0-based indices from Storyline's internal format.
         var patterns = [
             /["']?resume["']?\s*[:=]\s*["']?(\d+)_(\d+)["']?/i,     // "resume": "1_5" (scene_slide)
