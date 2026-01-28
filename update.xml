@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012726</version>
+        <version>2025012727</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.26</release>
+        <release>2.0.27</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,37 +29,37 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.26/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.27/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.26</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.27</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.26 - Skip Score-Based Position During Intercept</h3>
+            <h3>Version 2.0.27 - Correct suspend_data Interpretation</h3>
 
-            <h4>Bug Fix</h4>
+            <h4>Important Fix</h4>
             <ul>
-                <li>Don't use score-based position during intercept window</li>
-                <li>Prevents score from overriding pending navigation target</li>
-                <li>Better "l" field logging (distinguishes "at target" vs "not found")</li>
-                <li>Both SCORM 1.2 and SCORM 2004 updated</li>
+                <li>"l" field is FURTHEST progress, NOT current position</li>
+                <li>Removed "l" from current position detection</li>
+                <li>Poll mechanism is now source of truth for current position</li>
+                <li>suspend_data only updates furthestSlide, not current slide</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Added inInterceptWindow check before score-based fallback</li>
-                <li>Score represents furthest progress, not navigation intent</li>
-                <li>Added foundField flag for better logging in suspend_data modification</li>
-                <li>Maintains navigation accuracy during intercept period</li>
+                <li>Removed "l" field priority from extractSlideFromParsedData()</li>
+                <li>Removed "l" field regex from extractSlideFromText()</li>
+                <li>suspend_data tracking now only updates furthestSlide variable</li>
+                <li>sendProgressUpdate() no longer overrides current position from suspend_data</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v2.0.25: Prioritize "l" field over "resume" for position</li>
+                <li>v2.0.26: Skip score-based position during intercept</li>
+                <li>v2.0.25: Prioritize "l" field (incorrect - now fixed)</li>
                 <li>v2.0.24: Unlimited intercepts within 10s window</li>
-                <li>v2.0.23: Skip suspend_data tracking during intercept</li>
                 <li>v2.0.22: Re-enable write interception (l field only)</li>
             </ul>
             ]]>

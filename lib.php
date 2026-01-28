@@ -946,16 +946,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     function extractSlideFromParsedData(parsed) {
         if (!parsed) return null;
 
-        // PRIORITY 1: Articulate Storyline "l" field (current location, 0-indexed).
-        // This is the ACTUAL current position, NOT the furthest progress.
-        // Must be checked BEFORE "resume" which stores furthest progress.
-        if (parsed.l !== undefined) {
-            var location = parseInt(parsed.l, 10);
-            if (!isNaN(location)) {
-                console.log('[suspend_data] Storyline "l" field (location):', location, '-> slide', location + 1);
-                return location + 1; // Convert from 0-indexed to 1-indexed
-            }
-        }
+        // NOTE: The "l" field in Storyline suspend_data is the FURTHEST/RESUME position,
+        // NOT the current viewing position. Do NOT use it for current slide detection.
+        // The Poll mechanism is the source of truth for current position.
 
         // Direct properties.
         if (parsed.currentSlide !== undefined) return parseInt(parsed.currentSlide, 10);
@@ -1014,21 +1007,13 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     // Extract slide number from text using patterns.
     // IMPORTANT: Storyline uses 0-based indexing internally, so we add 1 to get 1-based slide numbers.
+    // NOTE: The "l" field in Storyline suspend_data is the FURTHEST/RESUME position,
+    // NOT the current viewing position. Do NOT use it for current slide detection.
+    // The Poll mechanism is the source of truth for current position.
     function extractSlideFromText(text) {
         if (!text || typeof text !== 'string') return null;
 
-        // PRIORITY 1: Articulate Storyline "l" field (current location, 0-indexed).
-        // This is the ACTUAL current position, NOT the furthest progress.
-        // Pattern: "l":12 or "l": 12 (with or without quotes around key)
-        var locationMatch = text.match(/["']?l["']?\s*:\s*(\d+)/);
-        if (locationMatch) {
-            var location = parseInt(locationMatch[1], 10);
-            console.log('[suspend_data] Text "l" field (location):', location, '-> slide', location + 1);
-            return location + 1; // Convert from 0-indexed to 1-indexed
-        }
-
-        // PRIORITY 2: Look for explicit resume/slide patterns.
-        // NOTE: "resume" is the FURTHEST progress, not current position. Only use as fallback.
+        // Look for explicit resume/slide patterns.
         // These patterns capture 0-based indices from Storyline's internal format.
         var patterns = [
             /["']?resume["']?\s*[:=]\s*["']?(\d+)_(\d+)["']?/i,     // "resume": "1_5" (scene_slide)
@@ -1301,18 +1286,25 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
                 // Track suspend_data changes (Articulate Storyline stores slide position here).
-                // IMPORTANT: Skip tracking during intercept window because parseSlideFromSuspendData
-                // looks at multiple fields (resume, CurrentSlideIndex, etc.) which we don't modify.
-                // This would cause incorrect position reporting during navigation.
+                // IMPORTANT: Storyline's suspend_data contains FURTHEST progress (resume), NOT current position.
+                // The Poll mechanism is the source of truth for current position.
+                // Only use suspend_data for furthest progress updates, not current position.
                 if (element === 'cmi.suspend_data' && valueToWrite !== lastSuspendData) {
-                    var skipTracking = pendingSlideNavigation && interceptStartTime !== null &&
+                    var inInterceptWindow = pendingSlideNavigation && interceptStartTime !== null &&
                         (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
 
                     lastSuspendData = valueToWrite;
-                    if (!skipTracking) {
+                    if (!inInterceptWindow) {
                         var slideNum = parseSlideFromSuspendData(valueToWrite);
-                        if (slideNum !== null && slideNum !== lastSlide) {
-                            sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                        if (slideNum !== null) {
+                            // ONLY update furthestSlide from suspend_data, NOT current position
+                            // Current position comes from Poll mechanism
+                            if (furthestSlide === null || slideNum > furthestSlide) {
+                                furthestSlide = slideNum;
+                                console.log('[SCORM 1.2] suspend_data indicates furthest progress:', furthestSlide);
+                                // Send update with furthest slide but DON'T change current position
+                                sendProgressUpdate(lastLocation, lastStatus, null, null);
+                            }
                         }
                     } else {
                         console.log('[SCORM 1.2] Skipping suspend_data tracking during intercept window');
@@ -1437,18 +1429,25 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
                 // Track suspend_data changes (Articulate Storyline stores slide position here).
-                // IMPORTANT: Skip tracking during intercept window because parseSlideFromSuspendData
-                // looks at multiple fields (resume, CurrentSlideIndex, etc.) which we don't modify.
-                // This would cause incorrect position reporting during navigation.
+                // IMPORTANT: Storyline's suspend_data contains FURTHEST progress (resume), NOT current position.
+                // The Poll mechanism is the source of truth for current position.
+                // Only use suspend_data for furthest progress updates, not current position.
                 if (element === 'cmi.suspend_data' && valueToWrite !== lastSuspendData) {
-                    var skipTracking = pendingSlideNavigation && interceptStartTime !== null &&
+                    var inInterceptWindow = pendingSlideNavigation && interceptStartTime !== null &&
                         (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
 
                     lastSuspendData = valueToWrite;
-                    if (!skipTracking) {
+                    if (!inInterceptWindow) {
                         var slideNum = parseSlideFromSuspendData(valueToWrite);
-                        if (slideNum !== null && slideNum !== lastSlide) {
-                            sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                        if (slideNum !== null) {
+                            // ONLY update furthestSlide from suspend_data, NOT current position
+                            // Current position comes from Poll mechanism
+                            if (furthestSlide === null || slideNum > furthestSlide) {
+                                furthestSlide = slideNum;
+                                console.log('[SCORM 2004] suspend_data indicates furthest progress:', furthestSlide);
+                                // Send update with furthest slide but DON'T change current position
+                                sendProgressUpdate(lastLocation, lastStatus, null, null);
+                            }
                         }
                     } else {
                         console.log('[SCORM 2004] Skipping suspend_data tracking during intercept window');
