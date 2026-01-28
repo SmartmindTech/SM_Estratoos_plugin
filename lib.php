@@ -1136,6 +1136,18 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             // This is critical because Storyline WRITES before it READS
             interceptStartTime = Date.now();
             console.log('[SCORM Navigation] Found pending navigation:', pendingSlideNavigation);
+
+            // CRITICAL: Initialize furthestSlide from the passed value
+            // SessionStorage is origin-specific, so the frontend passes furthest via the embed URL
+            // This ensures progress is preserved during tag navigation
+            if (pendingSlideNavigation.furthest !== null && pendingSlideNavigation.furthest !== undefined) {
+                var passedFurthest = parseInt(pendingSlideNavigation.furthest, 10);
+                if (!isNaN(passedFurthest) && passedFurthest > 0) {
+                    furthestSlide = passedFurthest;
+                    console.log('[SCORM Navigation] Initialized furthestSlide from navigation data:', furthestSlide);
+                }
+            }
+
             // Clear immediately to prevent re-use on subsequent reloads
             sessionStorage.removeItem('scorm_pending_navigation_' + cmid);
             // Also clear any previous fallback reload marker - new navigation means fresh start

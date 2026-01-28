@@ -49,17 +49,22 @@ class embed_renderer {
     /** @var int|null Target slide for SCORM navigation */
     private $targetSlide;
 
+    /** @var int|null Furthest slide reached (for progress preservation across origins) */
+    private $furthestSlide;
+
     /**
      * Constructor.
      *
      * @param \cm_info $cm Course module info
      * @param int|null $targetSlide Optional target slide for direct SCORM navigation
+     * @param int|null $furthestSlide Optional furthest slide for progress preservation
      */
-    public function __construct(\cm_info $cm, ?int $targetSlide = null) {
+    public function __construct(\cm_info $cm, ?int $targetSlide = null, ?int $furthestSlide = null) {
         $this->cm = $cm;
         $this->context = \context_module::instance($cm->id);
         $this->activityType = $cm->modname;
         $this->targetSlide = $targetSlide;
+        $this->furthestSlide = $furthestSlide;
     }
 
     /**
@@ -599,14 +604,17 @@ class embed_renderer {
 ";
         if ($this->targetSlide !== null) {
             $slide = (int)$this->targetSlide;
+            // Include furthestSlide if provided (for progress preservation across origins)
+            $furthestJs = $this->furthestSlide !== null ? (int)$this->furthestSlide : 'null';
             $slideSetupScript .= "
     // Set up sessionStorage for direct slide navigation BEFORE iframe loads
     (function() {
         var navData = {
             slide: {$slide},
             cmid: {$cmid},
+            furthest: {$furthestJs},
             timestamp: Date.now(),
-            version: 3  // v3: multiple intercepts with time window
+            version: 4  // v4: includes furthest for cross-origin progress preservation
         };
         sessionStorage.setItem('scorm_pending_navigation_{$cmid}', JSON.stringify(navData));
         console.log('[Embed Renderer] Set pending navigation:', navData);

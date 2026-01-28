@@ -203,6 +203,10 @@ $cmid = required_param('cmid', PARAM_INT);
 // Get optional slide parameter for direct SCORM navigation.
 $targetSlide = optional_param('slide', null, PARAM_INT);
 
+// Get optional furthest parameter to preserve progress during tag navigation.
+// This is passed from the frontend since sessionStorage is origin-specific.
+$furthestSlide = optional_param('furthest', null, PARAM_INT);
+
 // Get course module.
 try {
     $cm = get_coursemodule_from_id('', $cmid, 0, false, MUST_EXIST);
@@ -296,7 +300,7 @@ $modinfo = get_fast_modinfo($course);
 $cminfo = $modinfo->get_cm($cm->id);
 
 // Render the activity.
-$renderer = new embed_renderer($cminfo, $targetSlide);
+$renderer = new embed_renderer($cminfo, $targetSlide, $furthestSlide);
 $html = $renderer->render();
 
 // Output HTML.

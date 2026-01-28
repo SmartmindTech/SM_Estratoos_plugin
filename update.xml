@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012845</version>
+        <version>2025012846</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.45</release>
+        <release>2.0.46</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,40 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.45/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.46/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.45</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.46</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.45 - Sync lesson_location with suspend_data</h3>
+            <h3>Version 2.0.46 - Cross-Origin Progress Preservation</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixed: Storyline loading at stale lesson_location instead of suspend_data position</li>
-                <li>On tag navigation: update BOTH suspend_data AND lesson_location in database</li>
-                <li>On normal load: sync lesson_location with suspend_data slide value</li>
+                <li>Fixed: Progress showing 0% or wrong value during tag navigation</li>
+                <li>SessionStorage is origin-specific - frontend and Moodle iframe can't share it</li>
+                <li>Frontend now passes furthest via embed URL parameter</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Added update_lesson_location() to set database value for target slide</li>
-                <li>Added sync_lesson_location_with_suspend_data() for normal loads</li>
-                <li>Added getSlideFromSuspendData() helper to parse slide from LZ-compressed data</li>
-                <li>Supports both Moodle 4.x normalized tables and legacy scorm_scoes_track</li>
+                <li>Added 'furthest' parameter to embed.php</li>
+                <li>embed_renderer passes furthest in navigation data (version 4)</li>
+                <li>lib.php initializes furthestSlide from navigation data</li>
+                <li>Progress bar shows correct value during intercept window</li>
+            </ul>
+
+            <h4>Frontend Change Required</h4>
+            <ul>
+                <li>Add 'furthest' parameter to embed URL when navigating via tag</li>
+                <li>Example: embed.php?cmid=2&slide=13&furthest=5</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.44: Block furthestSlide updates until user surpasses tag target</li>
+                <li>v2.0.45: Sync lesson_location with suspend_data</li>
             </ul>
             ]]>
         </releasenotes>
