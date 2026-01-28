@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012832;  // YYYYMMDDXX format.
+$plugin->version = 2025012833;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.32';  // Fix reload loops with separate fallback tracking key.
+$plugin->release = '2.0.33';  // Use postMessage to request parent reload instead of window.reload.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

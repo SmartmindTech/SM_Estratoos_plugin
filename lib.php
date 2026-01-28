@@ -3362,9 +3362,62 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
         }
 
-        // If no iframe found, reload the whole page (will re-read suspend_data)
+        // If no iframe found, try to send a message to the parent (SmartLearning Vue app)
+        // asking it to reload the embed. This is more elegant than window.location.reload()
+        // because it doesn't cause cascading re-initialization of the Vue app.
         if (!reloaded) {
-            console.log('[SCORM suspend_data] No iframe found, reloading current window');
+            console.log('[SCORM suspend_data] No iframe found, requesting parent to reload embed');
+
+            // Try to send message to parent window (SmartLearning Vue app)
+            try {
+                var pendingNav = sessionStorage.getItem('scorm_pending_navigation_' + cmid);
+                var targetSlide = pendingNav ? JSON.parse(pendingNav).slide : null;
+
+                // Send message to all parent frames up to top
+                var currentWindow = window;
+                var messageSent = false;
+
+                while (currentWindow !== window.top) {
+                    try {
+                        currentWindow.parent.postMessage({
+                            type: 'scorm-reload-embed',
+                            cmid: cmid,
+                            slide: targetSlide,
+                            timestamp: Date.now()
+                        }, '*');
+                        console.log('[SCORM suspend_data] Posted reload-embed message to parent');
+                        messageSent = true;
+                    } catch (e) {
+                        // Cross-origin, continue to next parent
+                    }
+                    currentWindow = currentWindow.parent;
+                }
+
+                // Also try posting to top window directly
+                if (window.top !== window) {
+                    try {
+                        window.top.postMessage({
+                            type: 'scorm-reload-embed',
+                            cmid: cmid,
+                            slide: targetSlide,
+                            timestamp: Date.now()
+                        }, '*');
+                        console.log('[SCORM suspend_data] Posted reload-embed message to top window');
+                        messageSent = true;
+                    } catch (e) {}
+                }
+
+                // If message was sent, don't reload - let the parent handle it
+                if (messageSent) {
+                    console.log('[SCORM suspend_data] Waiting for parent to reload embed...');
+                    return;
+                }
+            } catch (e) {
+                console.log('[SCORM suspend_data] Could not send message to parent:', e.message);
+            }
+
+            // Fallback: reload the whole page if postMessage failed
+            console.log('[SCORM suspend_data] Fallback: reloading current window');
             window.location.reload();
         }
     }
