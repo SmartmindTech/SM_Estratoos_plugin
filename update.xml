@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012723</version>
+        <version>2025012724</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.23</release>
+        <release>2.0.24</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,37 +29,37 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.23/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.24/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.23</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.24</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.23 - Skip Tracking During Intercept Window</h3>
+            <h3>Version 2.0.24 - Unlimited Intercepts, Extended Window</h3>
 
-            <h4>Bug Fix</h4>
+            <h4>Improvements</h4>
             <ul>
-                <li>Skip suspend_data tracking during navigation intercept window</li>
-                <li>parseSlideFromSuspendData reads fields we don't modify (resume, etc.)</li>
-                <li>Prevents incorrect position reporting during navigation</li>
-                <li>Tracking resumes after intercept window closes</li>
+                <li>MAX_INTERCEPTS: 5 → 999 (effectively unlimited)</li>
+                <li>INTERCEPT_WINDOW_MS: 5s → 10s for slow SCORM initialization</li>
+                <li>Rely on time window instead of count limit</li>
+                <li>Better support for complex SCORM packages</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Only "l" field is modified during interception</li>
-                <li>Other fields (resume, CurrentSlideIndex) keep old values</li>
-                <li>Sending progress from unmodified fields caused wrong position</li>
-                <li>Both SCORM 1.2 and SCORM 2004 updated</li>
+                <li>Storyline calls SCORM API many times during init</li>
+                <li>Previous 5-intercept limit was too restrictive</li>
+                <li>10-second window covers slow network/complex packages</li>
+                <li>Time-based limiting is more reliable than count-based</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.23: Skip suspend_data tracking during intercept</li>
                 <li>v2.0.22: Re-enable write interception (l field only)</li>
                 <li>v2.0.21: Multiple intercepts (5 reads, 3s window)</li>
-                <li>v2.0.20: Disabled write interception (was too aggressive)</li>
                 <li>v2.0.16: URL-based slide navigation (?slide=X) for embed</li>
             </ul>
             ]]>

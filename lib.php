@@ -1092,11 +1092,11 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     // Check for pending slide navigation from sessionStorage (set before reload).
     var pendingSlideNavigation = null;
     // Multiple intercept system: allow multiple SCORM API intercepts within a time window
-    // Storyline calls LMSGetValue/LMSSetValue multiple times during initialization
+    // Storyline calls LMSGetValue/LMSSetValue many times during initialization
     var suspendDataInterceptCount = 0;
-    var MAX_INTERCEPTS = 5; // Intercept up to 5 reads/writes
+    var MAX_INTERCEPTS = 999; // Effectively unlimited - rely on time window instead
     var interceptStartTime = null; // Set when navigation is detected (NOT on first read)
-    var INTERCEPT_WINDOW_MS = 5000; // Only intercept for first 5 seconds (increased from 3)
+    var INTERCEPT_WINDOW_MS = 10000; // Intercept for 10 seconds to cover slow SCORM init
     try {
         var navData = sessionStorage.getItem('scorm_pending_navigation_' + cmid);
         if (navData) {
