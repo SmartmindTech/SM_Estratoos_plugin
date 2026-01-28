@@ -1155,9 +1155,11 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     // ONLY modify "l" field - this was working in previous versions
                     // The "l" field stores the last/current slide position (0-indexed)
                     // Format: {"d":..., "l":7, ...}
+                    var foundField = false;
                     var modified = decompressed.replace(
                         /"l"\s*:\s*(\d+)/g,
                         function(match, oldValue) {
+                            foundField = true;
                             console.log('[SCORM suspend_data] "l":', oldValue, '->', targetIndex);
                             return '"l":' + targetIndex;
                         }
@@ -1170,8 +1172,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             console.log('[SCORM suspend_data] Re-compressed successfully');
                             return recompressed;
                         }
+                    } else if (foundField) {
+                        console.log('[SCORM suspend_data] "l" field already at target index, no change needed');
                     } else {
-                        console.log('[SCORM suspend_data] No "l" field found to modify');
+                        console.log('[SCORM suspend_data] No "l" field found in suspend_data');
                     }
                 }
             } catch (e) {
@@ -1277,8 +1281,13 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             console.log('[SCORM] Furthest progress updated:', furthestSlide);
                         }
 
-                        // Only use score-based slide for CURRENT position if no suspend_data.
-                        if (slideSource !== 'suspend_data' && lastSlide === null) {
+                        // Check if we're in the intercept window - don't use score as current position
+                        var inInterceptWindow = pendingSlideNavigation && interceptStartTime !== null &&
+                            (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+
+                        // Only use score-based slide for CURRENT position if no suspend_data AND not in intercept window.
+                        // During intercept window, we have a pending navigation target, so don't override with score.
+                        if (slideSource !== 'suspend_data' && lastSlide === null && !inInterceptWindow) {
                             console.log('[SCORM] Using score-based slide (fallback):', calculatedSlide);
                             slideSource = 'score';
                             sendProgressUpdate(null, lastStatus, valueToWrite, calculatedSlide);
@@ -1408,8 +1417,13 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             console.log('[SCORM 2004] Furthest progress updated:', furthestSlide);
                         }
 
-                        // Only use score-based slide for CURRENT position if no suspend_data.
-                        if (slideSource !== 'suspend_data' && lastSlide === null) {
+                        // Check if we're in the intercept window - don't use score as current position
+                        var inInterceptWindow = pendingSlideNavigation && interceptStartTime !== null &&
+                            (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+
+                        // Only use score-based slide for CURRENT position if no suspend_data AND not in intercept window.
+                        // During intercept window, we have a pending navigation target, so don't override with score.
+                        if (slideSource !== 'suspend_data' && lastSlide === null && !inInterceptWindow) {
                             console.log('[SCORM 2004] Using score-based slide (fallback):', calculatedSlide);
                             slideSource = 'score';
                             sendProgressUpdate(null, lastStatus, valueToWrite, calculatedSlide);

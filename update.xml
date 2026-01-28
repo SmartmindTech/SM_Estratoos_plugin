@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012725</version>
+        <version>2025012726</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.25</release>
+        <release>2.0.26</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.25/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.26/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.25</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.26</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.25 - Prioritize "l" Field for Current Position</h3>
+            <h3>Version 2.0.26 - Skip Score-Based Position During Intercept</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Prioritize "l" field over "resume" when extracting slide position</li>
-                <li>"l" field = ACTUAL current position (0-indexed)</li>
-                <li>"resume" field = FURTHEST progress (now fallback only)</li>
-                <li>Fixes incorrect position when user navigates backward</li>
+                <li>Don't use score-based position during intercept window</li>
+                <li>Prevents score from overriding pending navigation target</li>
+                <li>Better "l" field logging (distinguishes "at target" vs "not found")</li>
+                <li>Both SCORM 1.2 and SCORM 2004 updated</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Updated extractSlideFromParsedData() with priority check</li>
-                <li>Updated extractSlideFromText() with "l" field regex</li>
-                <li>Converts 0-indexed "l" to 1-indexed slide number</li>
-                <li>Added clarifying comments about field semantics</li>
+                <li>Added inInterceptWindow check before score-based fallback</li>
+                <li>Score represents furthest progress, not navigation intent</li>
+                <li>Added foundField flag for better logging in suspend_data modification</li>
+                <li>Maintains navigation accuracy during intercept period</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.25: Prioritize "l" field over "resume" for position</li>
                 <li>v2.0.24: Unlimited intercepts within 10s window</li>
                 <li>v2.0.23: Skip suspend_data tracking during intercept</li>
                 <li>v2.0.22: Re-enable write interception (l field only)</li>
-                <li>v2.0.16: URL-based slide navigation (?slide=X) for embed</li>
             </ul>
             ]]>
         </releasenotes>
