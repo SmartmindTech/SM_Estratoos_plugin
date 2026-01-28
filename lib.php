@@ -831,7 +831,25 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
     // Track the source of slide position for priority handling.
     var slideSource = null; // 'suspend_data', 'navigation', 'score'
-    var furthestSlide = null; // Track the furthest slide reached (from score)
+
+    // Track the furthest slide reached (from score)
+    // IMPORTANT: Initialize from sessionStorage to prevent reset on iframe reload!
+    // The frontend stores the true maximum in sessionStorage, which persists across reloads.
+    // This prevents progress from appearing to go backwards when Storyline writes low init scores.
+    var furthestSlide = null;
+    try {
+        var storedFurthest = sessionStorage.getItem('scorm_furthest_slide_' + cmid);
+        if (storedFurthest) {
+            furthestSlide = parseInt(storedFurthest, 10);
+            if (isNaN(furthestSlide) || furthestSlide < 1) {
+                furthestSlide = null;
+            } else {
+                console.log('[SCORM Plugin] Restored furthest slide from sessionStorage:', furthestSlide);
+            }
+        }
+    } catch (e) {
+        // sessionStorage not available
+    }
 
     // Function to parse slide from suspend_data (multiple vendor formats).
     function parseSlideFromSuspendData(data) {

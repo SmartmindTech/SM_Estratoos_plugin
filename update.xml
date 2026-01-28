@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012841</version>
+        <version>2025012842</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.41</release>
+        <release>2.0.42</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.41/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.42/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.41</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.42</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.41 - Persistent lesson_location Interception</h3>
+            <h3>Version 2.0.42 - Restore furthestSlide from sessionStorage</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li>lesson_location intercept now has NO time limit</li>
-                <li>Interception continues for entire SCORM session</li>
-                <li>Poll reads lesson_location - must return target slide</li>
-                <li>pendingSlideNavigation preserved after suspend_data window closes</li>
+                <li>Initialize furthestSlide from sessionStorage on load</li>
+                <li>Prevents progress reset on iframe reload</li>
+                <li>Uses key scorm_furthest_slide_{cmid}</li>
+                <li>Frontend stores true maximum in sessionStorage</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Removed time window check from lesson_location/location intercept</li>
-                <li>suspend_data still uses time-limited window</li>
-                <li>pendingSlideNavigation no longer nulled when suspend_data window closes</li>
-                <li>Ensures consistent slide position for entire session</li>
+                <li>Storyline writes low init scores when starting</li>
+                <li>Without persistence, furthestSlide resets to null on reload</li>
+                <li>sessionStorage persists across iframe reloads</li>
+                <li>Graceful fallback if sessionStorage unavailable</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.40: Added lesson_location interception (time-limited)</li>
+                <li>v2.0.41: Persistent lesson_location interception (no time limit)</li>
             </ul>
             ]]>
         </releasenotes>
