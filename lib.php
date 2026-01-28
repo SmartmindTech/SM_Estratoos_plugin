@@ -1355,13 +1355,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 window.API.LMSGetValue = function(element) {
                     var result = originalGetValue.call(window.API, element);
 
-                    // CRITICAL: Intercept lesson_location reads - NO TIME LIMIT
-                    // Storyline uses lesson_location for initial slide position, not suspend_data
-                    // If we only modify suspend_data, Storyline ignores it and uses the DB value
-                    // The poll also reads lesson_location - it must return our target, not the DB value
-                    // We keep intercepting for the entire SCORM session (until iframe unloads)
-                    // BUT: Check if our navigation is still active (user may have clicked elsewhere)
+                    // Intercept lesson_location reads WITHIN the intercept window.
+                    // During initialization, Storyline uses lesson_location for its resume position.
+                    // After the window, stop intercepting so the position bar tracks natural navigation.
                     if (element === 'cmi.core.lesson_location' && pendingSlideNavigation) {
+                        var withinWindow = interceptStartTime !== null &&
+                            (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                        if (!withinWindow) {
+                            return result; // Window expired - let actual value through
+                        }
                         if (!isOurNavigationStillActive()) {
                             console.log('[SCORM 1.2] lesson_location: navigation superseded, returning original:', result);
                             return result;
@@ -1413,25 +1415,18 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             window.API.LMSSetValue = function(element, value) {
                 var valueToWrite = value;
 
-                // RE-ENABLED: Write interception for suspend_data during tag navigation.
-                // Only modifies the "l" field (slide position), NOT the visited array ("v").
-                // This prevents Storyline from writing back its internal state (e.g., slide 0)
-                // when we're navigating to a different slide via tag (e.g., slide 13).
-                // IMPORTANT: Unlike READ intercepts (which have a time limit), WRITE intercepts
-                // must continue for the entire session because Storyline's internal state
-                // doesn't match the displayed slide (we intercept lesson_location to show slide 13,
-                // but Storyline internally thinks it's at slide 0).
+                // Write interception for suspend_data during tag navigation WITHIN the intercept window.
+                // Prevents Storyline from writing back its internal state (e.g., slide 0)
+                // during initialization when we're navigating to a different slide.
+                // After the window, stop intercepting so position bar tracks natural navigation.
                 if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
-                    // CRITICAL: Check if our navigation is still active
-                    // If user clicked rapidly to a different slide, a newer navigation has taken over
-                    // We should NOT intercept - let the write pass through unchanged
-                    if (!isOurNavigationStillActive()) {
+                    var withinWriteWindow = interceptStartTime !== null &&
+                        (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                    if (!withinWriteWindow) {
+                        // Window expired - let Storyline write its actual state
+                    } else if (!isOurNavigationStillActive()) {
                         console.log('[SCORM 1.2] LMSSetValue: navigation superseded, NOT intercepting write');
-                        // Don't modify - let original value through
                     } else {
-                        // NO TIME LIMIT for write intercepts - keep modifying for entire session
-                        // This is necessary because Storyline's internal state (slide 0) doesn't match
-                        // what we're displaying via lesson_location intercept (slide 13)
                         console.log('[SCORM 1.2] LMSSetValue intercepting suspend_data write for slide:', pendingSlideNavigation.slide);
                         var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
                         if (modifiedValue !== value) {
@@ -1568,13 +1563,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 window.API_1484_11.GetValue = function(element) {
                     var result = originalGetValue2004.call(window.API_1484_11, element);
 
-                    // CRITICAL: Intercept location reads - NO TIME LIMIT
-                    // Storyline uses cmi.location for initial slide position, not suspend_data
-                    // If we only modify suspend_data, Storyline ignores it and uses the DB value
-                    // The poll also reads location - it must return our target, not the DB value
-                    // We keep intercepting for the entire SCORM session (until iframe unloads)
-                    // BUT: Check if our navigation is still active (user may have clicked elsewhere)
+                    // Intercept location reads WITHIN the intercept window.
+                    // During initialization, Storyline uses cmi.location for its resume position.
+                    // After the window, stop intercepting so the position bar tracks natural navigation.
                     if (element === 'cmi.location' && pendingSlideNavigation) {
+                        var withinWindow = interceptStartTime !== null &&
+                            (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                        if (!withinWindow) {
+                            return result; // Window expired - let actual value through
+                        }
                         if (!isOurNavigationStillActive()) {
                             console.log('[SCORM 2004] location: navigation superseded, returning original:', result);
                             return result;
@@ -1626,25 +1623,18 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             window.API_1484_11.SetValue = function(element, value) {
                 var valueToWrite = value;
 
-                // RE-ENABLED: Write interception for suspend_data during tag navigation.
-                // Only modifies the "l" field (slide position), NOT the visited array ("v").
-                // This prevents Storyline from writing back its internal state (e.g., slide 0)
-                // when we're navigating to a different slide via tag (e.g., slide 13).
-                // IMPORTANT: Unlike READ intercepts (which have a time limit), WRITE intercepts
-                // must continue for the entire session because Storyline's internal state
-                // doesn't match the displayed slide (we intercept location to show slide 13,
-                // but Storyline internally thinks it's at slide 0).
+                // Write interception for suspend_data during tag navigation WITHIN the intercept window.
+                // Prevents Storyline from writing back its internal state (e.g., slide 0)
+                // during initialization when we're navigating to a different slide.
+                // After the window, stop intercepting so position bar tracks natural navigation.
                 if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
-                    // CRITICAL: Check if our navigation is still active
-                    // If user clicked rapidly to a different slide, a newer navigation has taken over
-                    // We should NOT intercept - let the write pass through unchanged
-                    if (!isOurNavigationStillActive()) {
+                    var withinWriteWindow = interceptStartTime !== null &&
+                        (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                    if (!withinWriteWindow) {
+                        // Window expired - let Storyline write its actual state
+                    } else if (!isOurNavigationStillActive()) {
                         console.log('[SCORM 2004] SetValue: navigation superseded, NOT intercepting write');
-                        // Don't modify - let original value through
                     } else {
-                        // NO TIME LIMIT for write intercepts - keep modifying for entire session
-                        // This is necessary because Storyline's internal state (slide 0) doesn't match
-                        // what we're displaying via location intercept (slide 13)
                         console.log('[SCORM 2004] SetValue intercepting suspend_data write for slide:', pendingSlideNavigation.slide);
                         var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
                         if (modifiedValue !== value) {

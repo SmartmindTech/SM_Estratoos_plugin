@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012851</version>
+        <version>2025012852</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.51</release>
+        <release>2.0.52</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,41 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.51/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.52/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.51</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.52</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.51 - Directly Modify cmi Backing Store + Instant API Traps</h3>
+            <h3>Version 2.0.52 - Fix Position Bar Not Tracking Natural Navigation</h3>
 
-            <h4>Root Cause Found</h4>
+            <h4>Bug Fix</h4>
             <ul>
-                <li>Storyline does NOT call LMSGetValue('cmi.suspend_data') during initialization</li>
-                <li>It reads directly from Moodle's pre-populated cmi JavaScript object</li>
-                <li>Our LMSGetValue interceptor NEVER catches the initial read</li>
-                <li>Additionally, 200ms polling gap could let Storyline read before wrapper installed</li>
+                <li>Position bar was stuck at tag target slide even when user navigated within Storyline</li>
+                <li>lesson_location read intercept and suspend_data write intercept had NO time limit</li>
+                <li>They kept overriding values for the entire SCORM session, blocking position updates</li>
             </ul>
 
-            <h4>Fix: Direct Backing Store Modification</h4>
+            <h4>Changes</h4>
             <ul>
-                <li>Before wrapping LMSGetValue/LMSSetValue, directly call original LMSSetValue</li>
-                <li>Updates cmi.suspend_data and cmi.core.lesson_location in the backing store</li>
-                <li>Storyline reads the correct data regardless of whether it uses the API or direct access</li>
-            </ul>
-
-            <h4>Fix: Object.defineProperty API Traps</h4>
-            <ul>
-                <li>Uses Object.defineProperty on window.API and window.API_1484_11</li>
-                <li>Detects API creation INSTANTLY (eliminates 200ms polling gap)</li>
-                <li>Wrapper is installed the exact moment Moodle assigns the API object</li>
+                <li>Added 10-second time limit to lesson_location/cmi.location READ intercept</li>
+                <li>Added 10-second time limit to suspend_data WRITE intercept</li>
+                <li>After intercept window: all interception stops, position bar tracks naturally</li>
+                <li>During intercept window: tag navigation still forces correct slide initialization</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.50: Added navigation_starting signal (still insufficient)</li>
+                <li>v2.0.51: Direct cmi backing store modification + Object.defineProperty API traps</li>
             </ul>
             ]]>
         </releasenotes>
