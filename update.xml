@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012833</version>
+        <version>2025012834</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.33</release>
+        <release>2.0.34</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.33/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.34/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.33</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.34</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.33 - PostMessage Reload for SmartLearning Integration</h3>
+            <h3>Version 2.0.34 - Disable Direct Navigation Fallback</h3>
 
-            <h4>Improvement</h4>
+            <h4>Bug Fix</h4>
             <ul>
-                <li>Send scorm-reload-embed postMessage to parent instead of window.reload</li>
-                <li>SmartLearning Vue app can handle reload more elegantly</li>
-                <li>Prevents cascading re-initialization of the Vue app</li>
-                <li>Fallback to window.location.reload() if postMessage fails</li>
+                <li>Disabled direct navigation fallback - JS intercepts work correctly</li>
+                <li>Fallback was causing unnecessary double-loads</li>
+                <li>cmi.core.lesson_location updates slower than visual display</li>
+                <li>Now just log and wait for SCORM to update</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Message type: 'scorm-reload-embed' with cmid, slide, timestamp</li>
-                <li>Posts to all parent frames up to window.top</li>
-                <li>If messageSent, wait for parent to handle reload</li>
-                <li>More elegant than full page reload for embedded contexts</li>
+                <li>Removed directNavigationAttempted check and setTimeout</li>
+                <li>Clear target when position matches, log when mismatched</li>
+                <li>Visual display is correct, SCORM location catches up later</li>
+                <li>Simplifies code and prevents reload loops</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.33: PostMessage reload for SmartLearning integration</li>
                 <li>v2.0.32: Anti-reload-loop with separate tracking key</li>
                 <li>v2.0.31: Add skipReload param to navigateToSlide</li>
                 <li>v2.0.30: Re-enable direct navigation fallback</li>
-                <li>v2.0.29: Comprehensive suspend_data field modification</li>
             </ul>
             ]]>
         </releasenotes>

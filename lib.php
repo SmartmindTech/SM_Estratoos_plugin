@@ -1562,33 +1562,22 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             console.log('[SCORM Poll] Location changed:', currentLocation);
             sendProgressUpdate(currentLocation, lastStatus, null, null);
 
-            // DIRECT NAVIGATION FALLBACK: If we have a target and haven't attempted navigation yet
-            // Check if current position doesn't match target and trigger direct navigation
-            if (directNavigationTarget !== null && !directNavigationAttempted) {
+            // DIRECT NAVIGATION FALLBACK: DISABLED
+            // The JavaScript intercepts are working correctly - Storyline shows the correct slide.
+            // The fallback was causing unnecessary double-loads because cmi.core.lesson_location
+            // updates slower than the visual display.
+            // Just log and clear the target when position matches (or after timeout).
+            if (directNavigationTarget !== null) {
                 var currentSlideNum = parseInt(currentLocation, 10);
-                if (!isNaN(currentSlideNum) && currentSlideNum !== directNavigationTarget) {
-                    console.log('[SCORM Poll] Position mismatch! Current:', currentSlideNum, 'Target:', directNavigationTarget);
-                    console.log('[SCORM Poll] Triggering direct navigation fallback...');
-                    directNavigationAttempted = true;
-                    // Use setTimeout to let SCORM content fully initialize
-                    setTimeout(function() {
-                        if (typeof navigateToSlide === 'function') {
-                            // Don't use skipReload - let it attempt reload if needed
-                            // The modifySuspendDataAndReload function has anti-loop protection
-                            var success = navigateToSlide(directNavigationTarget, false);
-                            console.log('[SCORM Poll] Direct navigation result:', success ? 'success' : 'failed');
-                        } else {
-                            console.log('[SCORM Poll] navigateToSlide function not available yet');
-                        }
-                    }, 500);
-                } else if (currentSlideNum === directNavigationTarget) {
-                    // Position matches target, clear the fallback
+                if (!isNaN(currentSlideNum) && currentSlideNum === directNavigationTarget) {
                     console.log('[SCORM Poll] Position matches target, navigation successful');
                     directNavigationTarget = null;
-                    // Clear the fallback reload marker so future navigations can work
                     try {
                         sessionStorage.removeItem('scorm_fallback_reload_' + cmid);
                     } catch (e) {}
+                } else {
+                    // Log mismatch but don't trigger fallback - the visual display is correct
+                    console.log('[SCORM Poll] Position reported:', currentSlideNum, '(target:', directNavigationTarget, ') - waiting for SCORM to update');
                 }
             }
         }
