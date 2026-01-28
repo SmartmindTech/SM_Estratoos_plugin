@@ -597,6 +597,18 @@ class embed_renderer {
         // IMPORTANT: Always clear any existing entry first to prevent stale navigation on page reload.
         $cmid = (int)$this->cm->id;
         $slideSetupScript = "
+    // CRITICAL: Set 'navigation starting' signal IMMEDIATELY
+    // This runs as soon as embed.php loads, BEFORE the iframe even starts loading
+    // OLD iframes will check this and stop intercepting if they see a newer timestamp
+    (function() {
+        var startingTimestamp = Date.now();
+        sessionStorage.setItem('scorm_navigation_starting_{$cmid}', JSON.stringify({
+            timestamp: startingTimestamp,
+            targetSlide: " . ($this->targetSlide !== null ? (int)$this->targetSlide : 'null') . "
+        }));
+        console.log('[Embed Renderer] Set navigation starting signal:', startingTimestamp);
+    })();
+
     // Clear any stale navigation data first (prevents redirect on page reload)
     (function() {
         sessionStorage.removeItem('scorm_pending_navigation_{$cmid}');

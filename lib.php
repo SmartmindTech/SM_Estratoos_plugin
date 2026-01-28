@@ -1184,16 +1184,40 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
      * Check if our navigation is still the active one.
      * If a newer navigation has started (user clicked something else), we should stop intercepting.
      * This prevents race conditions when user clicks rapidly between different slides.
+     *
+     * We check TWO things:
+     * 1. scorm_current_navigation_ - set when player.php loads (may be too late)
+     * 2. scorm_navigation_starting_ - set IMMEDIATELY when embed.php loads (catches race condition)
      */
     function isOurNavigationStillActive() {
         if (!ourNavigationId) return true; // No navigation, no check needed
         try {
+            // Check 1: Is there a newer current navigation? (set by player.php)
             var currentNav = sessionStorage.getItem('scorm_current_navigation_' + cmid);
             if (currentNav) {
                 var parsed = JSON.parse(currentNav);
                 if (parsed.navId && parsed.navId !== ourNavigationId) {
                     console.log('[SCORM Navigation] Our navigation SUPERSEDED - newer navigation active:', parsed.navId, '(ours:', ourNavigationId, ')');
                     return false;
+                }
+            }
+
+            // Check 2: Is there a 'navigation starting' signal with a newer timestamp?
+            // This catches the race condition where embed.php has loaded but player.php hasn't yet.
+            // The 'navigation starting' signal is set IMMEDIATELY when embed.php loads.
+            var startingNav = sessionStorage.getItem('scorm_navigation_starting_' + cmid);
+            if (startingNav && interceptStartTime) {
+                var startingParsed = JSON.parse(startingNav);
+                if (startingParsed.timestamp && startingParsed.timestamp > interceptStartTime) {
+                    // A newer navigation has started (embed.php loaded after our intercept started)
+                    // Check if it's a different target
+                    if (pendingSlideNavigation && startingParsed.targetSlide !== null &&
+                        startingParsed.targetSlide !== pendingSlideNavigation.slide) {
+                        console.log('[SCORM Navigation] Our navigation SUPERSEDED - newer navigation starting:',
+                            startingParsed.targetSlide, 'at', startingParsed.timestamp,
+                            '(ours:', pendingSlideNavigation.slide, 'at', interceptStartTime, ')');
+                        return false;
+                    }
                 }
             }
         } catch (e) {

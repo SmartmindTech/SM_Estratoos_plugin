@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012849</version>
+        <version>2025012850</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.49</release>
+        <release>2.0.50</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,42 +29,43 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.49/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.50/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.49</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.50</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.49 - Fix Intermittent Wrong Slide Navigation</h3>
+            <h3>Version 2.0.50 - Fix Race Condition with Navigation Starting Signal</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixed: Sometimes navigation went to wrong slide during rapid clicks</li>
-                <li>OLD iframe was writing suspend_data BEFORE NEW navigation ID was set</li>
-                <li>embed_renderer now sets scorm_current_navigation IMMEDIATELY</li>
+                <li>Fixed: OLD iframe could still write wrong slide before NEW navId was set</li>
+                <li>Added 'navigation_starting' signal that runs IMMEDIATELY when embed.php loads</li>
+                <li>OLD iframe now checks this signal and stops intercepting if newer navigation started</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>navId now generated in embed_renderer.php (not player.php)</li>
-                <li>scorm_current_navigation_ set IMMEDIATELY when embed.php loads</li>
-                <li>OLD iframes see new navId instantly, stop intercepting</li>
-                <li>Navigation data version bumped to v5</li>
+                <li>embed_renderer.php sets scorm_navigation_starting_{cmid} FIRST (before iframe loads)</li>
+                <li>isOurNavigationStillActive() now checks TWO things:</li>
+                <li>1. scorm_current_navigation_ (set by player.php - may be too late)</li>
+                <li>2. scorm_navigation_starting_ (set by embed.php - catches race condition)</li>
+                <li>Compares timestamps to detect if newer navigation started</li>
             </ul>
 
-            <h4>Root Cause</h4>
+            <h4>Race Condition Timeline</h4>
             <ul>
-                <li>OLD iframe checks isOurNavigationStillActive() before writing</li>
-                <li>But scorm_current_navigation_ was only set by player.php</li>
-                <li>If OLD iframe writes before player.php loads, check passes incorrectly</li>
-                <li>Fix: set scorm_current_navigation_ in embed_renderer.php first</li>
+                <li>T0: User clicks navigation</li>
+                <li>T1: embed.php loads, sets navigation_starting signal IMMEDIATELY</li>
+                <li>T2: OLD iframe writes, checks signal, sees newer timestamp → STOPS intercepting</li>
+                <li>T3: player.php loads, sets scorm_current_navigation_</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.48: Remove time limit for suspend_data write intercepts</li>
+                <li>v2.0.49: navId generated in embed_renderer.php</li>
             </ul>
             ]]>
         </releasenotes>
