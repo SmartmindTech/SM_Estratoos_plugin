@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012847</version>
+        <version>2025012848</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.47</release>
+        <release>2.0.48</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,42 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.47/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.48/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.47</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.48</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.47 - Fix Race Condition on Rapid Click Navigation</h3>
+            <h3>Version 2.0.48 - Fix Tag Navigation Resume Position</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixed: Wrong slide displayed when clicking rapidly between tag and go-back</li>
-                <li>Old iframe's intercept would continue modifying writes after new navigation started</li>
-                <li>Added navigation ID system to detect superseded navigations</li>
+                <li>Fixed: SCORM resuming at slide 1 instead of tag target after tag navigation</li>
+                <li>Storyline's internal state (slide 0) was being written to DB after intercept window</li>
+                <li>suspend_data write intercepts now continue for entire tag navigation session</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Each navigation now has a unique ID (timestamp + random)</li>
-                <li>Added 'scorm_current_navigation_{cmid}' sessionStorage key</li>
-                <li>Before each intercept, JS checks if its navigation is still active</li>
-                <li>If a newer navigation exists, old iframe stops intercepting</li>
-                <li>Applied to both SCORM 1.2 and SCORM 2004 APIs</li>
+                <li>Removed 10-second time limit for suspend_data WRITE intercepts</li>
+                <li>Write intercepts continue as long as tag navigation is active</li>
+                <li>READ intercepts still have time limit (only needed during initialization)</li>
+                <li>Intercepts stop when navigation is superseded (user clicks elsewhere)</li>
+            </ul>
+
+            <h4>Root Cause</h4>
+            <ul>
+                <li>lesson_location intercept shows slide 13 correctly (no time limit)</li>
+                <li>But Storyline internally starts at slide 0</li>
+                <li>After 10s, Storyline writes suspend_data with slide 0 (unchanged)</li>
+                <li>Fix: keep modifying writes to maintain tag target slide</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.46: Cross-origin progress preservation via furthest parameter</li>
+                <li>v2.0.47: Navigation ID system for rapid click detection</li>
             </ul>
             ]]>
         </releasenotes>
