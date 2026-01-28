@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012853</version>
+        <version>2025012854</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.53</release>
+        <release>2.0.54</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.53/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.54/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.53</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.54</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.53 - Fix Position Bar Tracking + Persist Progress Across Reloads</h3>
+            <h3>Version 2.0.54 - Write Furthest Slide to DB for Correct Resume Position</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Position bar now tracks back-and-forth navigation (not stuck at furthest slide)</li>
-                <li>Forward navigation from tag target slide now updates position correctly</li>
-                <li>furthestSlide/grade no longer resets on page refresh after tag navigation</li>
+                <li>After tag jump, resume position is now the furthest natural slide (not the tag target)</li>
+                <li>Fixes "can't get back to slide 16" after tag-jumping to slide 13</li>
+                <li>Reduces initial progress dip on page refresh (DB stores furthest position)</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Reverted suspend_data WRITE intercept to NO time limit (protects DB resume position)</li>
-                <li>Track position from ORIGINAL suspend_data value (before write modification)</li>
-                <li>Send actual slide number as directSlide to sendProgressUpdate</li>
-                <li>Persist furthestSlide in sessionStorage to survive iframe reloads</li>
-                <li>Applied same fixes to both SCORM 1.2 and SCORM 2004 handlers</li>
+                <li>Write interceptor now has two phases:
+                    <ul>
+                        <li>During intercept window (10s): force TAG TARGET for Storyline initialization</li>
+                        <li>After intercept window: force FURTHEST SLIDE for correct resume position</li>
+                    </ul>
+                </li>
+                <li>If user naturally exceeds furthest, writes flow through normally</li>
+                <li>Applied to both SCORM 1.2 and SCORM 2004 handlers</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.52: Added time limits to read intercepts (kept for reads, reverted for writes)</li>
+                <li>v2.0.53: Fix position bar tracking + persist furthestSlide in sessionStorage</li>
             </ul>
             ]]>
         </releasenotes>

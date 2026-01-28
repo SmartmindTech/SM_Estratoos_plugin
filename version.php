@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012853;  // YYYYMMDDXX format.
+$plugin->version = 2025012854;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.53';  // Fix position bar tracking + persist furthestSlide across reloads.
+$plugin->release = '2.0.54';  // Write furthest slide to DB after intercept window for correct resume.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
