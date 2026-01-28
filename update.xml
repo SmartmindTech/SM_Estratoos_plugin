@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012729</version>
+        <version>2025012830</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.29</release>
+        <release>2.0.30</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,39 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.29/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.30/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.29</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.30</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.29 - Comprehensive suspend_data Field Modification</h3>
+            <h3>Version 2.0.30 - Re-enable Direct Navigation Fallback</h3>
 
-            <h4>Improvements</h4>
+            <h4>Bug Fix</h4>
             <ul>
-                <li>Now modifies ALL relevant Storyline navigation fields</li>
-                <li>"l" field - last slide position (0-indexed)</li>
-                <li>"resume" field - scene_slide format "0_7"</li>
-                <li>d-array Resume variable {"n":"Resume","v":"0_7"}</li>
-                <li>Reverse d-array {"v":"0_7","n":"Resume"}</li>
+                <li>Re-enable direct navigation fallback for SCORM slide navigation</li>
+                <li>Fixes first click not navigating to correct slide</li>
+                <li>suspend_data modification alone wasn't enough</li>
+                <li>Storyline reads initial position before JS intercepts are active</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Both PHP (lzstring_helper.php) and JS (lib.php) updated</li>
-                <li>Uses anyChange flag to track if modification was needed</li>
-                <li>Preserves scene number, only changes slide number</li>
-                <li>Better logging for each field type modified</li>
+                <li>Add directNavigationTarget and directNavigationAttempted variables</li>
+                <li>Store navigation target before clearing pendingSlideNavigation</li>
+                <li>Trigger navigateToSlide() from Poll when position mismatch detected</li>
+                <li>Combines PHP-level + JS-level navigation for reliability</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.29: Comprehensive suspend_data field modification</li>
                 <li>v2.0.28: PHP-level suspend_data modification</li>
                 <li>v2.0.27: Correct suspend_data interpretation (Poll is truth)</li>
                 <li>v2.0.26: Skip score-based position during intercept</li>
-                <li>v2.0.24: Unlimited intercepts within 10s window</li>
             </ul>
             ]]>
         </releasenotes>
