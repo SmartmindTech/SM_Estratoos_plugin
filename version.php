@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012836;  // YYYYMMDDXX format.
+$plugin->version = 2025012837;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.36';  // Fix URL escaping: use addslashes() instead of s() for JS context.
+$plugin->release = '2.0.37';  // Defer iframe creation with setTimeout(0) after sessionStorage verify.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

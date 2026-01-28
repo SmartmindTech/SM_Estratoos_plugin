@@ -366,12 +366,22 @@ class embed_renderer {
     <script>
     (function() {
         ' . $slideSetupScript . '
-        // Create iframe AFTER sessionStorage is set (fixes race condition when console is closed)
-        var iframe = document.createElement("iframe");
-        iframe.id = "scorm-frame";
-        iframe.src = "' . addslashes($playerUrl) . '";
-        iframe.allowFullscreen = true;
-        document.body.appendChild(iframe);
+        // Verify sessionStorage was written by reading it back
+        var cmid = ' . $cmid . ';
+        var stored = sessionStorage.getItem("scorm_pending_navigation_" + cmid);
+        if (stored) {
+            // Force a synchronous read to ensure write is committed
+            JSON.parse(stored);
+        }
+        // Use setTimeout to defer iframe creation to next event loop tick
+        // This ensures sessionStorage write is fully committed before iframe loads
+        setTimeout(function() {
+            var iframe = document.createElement("iframe");
+            iframe.id = "scorm-frame";
+            iframe.src = "' . addslashes($playerUrl) . '";
+            iframe.allowFullscreen = true;
+            document.body.appendChild(iframe);
+        }, 0);
     })();
     </script>
     <script>

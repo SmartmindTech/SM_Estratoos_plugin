@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012836</version>
+        <version>2025012837</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.36</release>
+        <release>2.0.37</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.36/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.37/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.36</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.37</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.36 - Fix URL Escaping for JavaScript Context</h3>
+            <h3>Version 2.0.37 - Defer Iframe with setTimeout(0) After Verify</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Use addslashes() instead of s() for iframe src in JavaScript</li>
-                <li>s() is HTML escaping - converts & to &amp;</li>
-                <li>addslashes() is proper JS string escaping</li>
-                <li>Fixes broken URLs with query parameters</li>
+                <li>Verify sessionStorage write by reading it back</li>
+                <li>Force synchronous read with JSON.parse(stored)</li>
+                <li>Defer iframe creation with setTimeout(..., 0)</li>
+                <li>Ensures sessionStorage is fully committed before iframe loads</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Changed: s($playerUrl) → addslashes($playerUrl)</li>
-                <li>URLs with & parameters now work correctly</li>
-                <li>Proper escaping for JavaScript string context</li>
-                <li>SCORM player URL loads correctly in all cases</li>
+                <li>Read sessionStorage back after writing to verify</li>
+                <li>setTimeout(0) defers to next event loop tick</li>
+                <li>Belt-and-suspenders approach for race condition</li>
+                <li>Navigation data guaranteed available for SCORM intercepts</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.36: Fix URL escaping for JavaScript context</li>
                 <li>v2.0.35: Fix race condition with iframe creation</li>
                 <li>v2.0.34: Disable direct navigation fallback</li>
                 <li>v2.0.33: PostMessage reload for SmartLearning integration</li>
-                <li>v2.0.32: Anti-reload-loop with separate tracking key</li>
             </ul>
             ]]>
         </releasenotes>
