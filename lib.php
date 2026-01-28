@@ -1075,8 +1075,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
         // Update lastSlide if we have a new value.
         if (currentSlide !== null && currentSlide !== lastSlide) {
-            console.log('[SCORM Progress] Slide updated:', lastSlide, '->', currentSlide, '(source:', slideSource || 'unknown', ')');
-            lastSlide = currentSlide;
+            // v2.0.59: Only allow lastSlide to decrease from directSlide (suspend_data).
+            // Lesson_location (poll-based) can be stale during resume init, causing a brief dip.
+            if (directSlide !== null || lastSlide === null || currentSlide > lastSlide) {
+                console.log('[SCORM Progress] Slide updated:', lastSlide, '->', currentSlide, '(source:', directSlide ? 'directSlide' : (slideSource || 'unknown'), ')');
+                lastSlide = currentSlide;
+            } else {
+                console.log('[SCORM Progress] Suppressed backward movement from poll:', currentSlide, '(keeping:', lastSlide, ')');
+                currentSlide = lastSlide;
+            }
         }
 
         // Build message object.

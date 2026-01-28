@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012858;  // YYYYMMDDXX format.
+$plugin->version = 2025012859;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.58';  // On-the-fly resume correction (fixes defineProperty trap timing issue).
+$plugin->release = '2.0.59';  // Fix position bar dip during resume (suppress stale poll-based backward movement).
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
