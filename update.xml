@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012857</version>
+        <version>2025012858</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.57</release>
+        <release>2.0.58</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.57/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.58/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.57</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.58</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.57 - Persist Furthest Progress in Moodle Score</h3>
+            <h3>Version 2.0.58 - On-the-fly Resume Correction</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Furthest slide progress is now properly registered in Moodle's SCORM score</li>
-                <li>Score no longer regresses when navigating backwards or jumping via tags</li>
-                <li>Progress shows correctly on page refresh</li>
+                <li>Fixes resume still showing slide 13 instead of 16 after page refresh</li>
+                <li>Root cause: defineProperty trap fires before cmi data is populated, so pre-computed resume correction gets empty data and doesn't install interceptors</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Score write interception: cmi.core.score.raw (1.2) and cmi.score.raw (2004) never written below furthest-based score</li>
-                <li>Scheduled post-init writes now also correct score in Moodle DB</li>
-                <li>Initial progress message sends furthestSlide on page load for immediate correct display</li>
+                <li>Read interceptors now compute corrections ON-THE-FLY when reads happen (data is available at that point), instead of pre-computing at trap time (when data may be empty)</li>
+                <li>Read interceptor installed whenever furthestSlide is known, not just when pre-computed correction succeeded</li>
+                <li>Write interceptor for suspend_data always active when furthestSlide is known (prevents ANY backwards regression in DB)</li>
+                <li>Scheduled post-init write always runs when furthestSlide is known</li>
+                <li>Time-based window (10s) for resume read intercepts to avoid interfering with natural navigation</li>
                 <li>All changes applied to both SCORM 1.2 and SCORM 2004</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.56: Read+write interceptors for resume correction</li>
+                <li>v2.0.57: Score write interception, persist furthest in Moodle DB</li>
             </ul>
             ]]>
         </releasenotes>
