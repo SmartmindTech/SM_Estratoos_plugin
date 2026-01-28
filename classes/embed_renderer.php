@@ -130,7 +130,7 @@ class embed_renderer {
      * hide the navigation elements (since same-origin allows iframe manipulation).
      */
     private function redirect_to_scorm(): string {
-        global $DB, $CFG;
+        global $DB, $CFG, $USER;
 
         require_once($CFG->dirroot . '/mod/scorm/locallib.php');
 
@@ -157,9 +157,150 @@ class embed_renderer {
             $DB->update_record('scorm', (object)$updates);
         }
 
+        // =====================================================================
+        // PHP-LEVEL SUSPEND_DATA MODIFICATION FOR DIRECT SLIDE NAVIGATION
+        // =====================================================================
+        // When targetSlide is set, we modify the suspend_data in Moodle's database
+        // BEFORE the SCORM player loads. This ensures Storyline reads the correct
+        // slide position on initial load (JavaScript interception happens too late).
+        // =====================================================================
+        if ($this->targetSlide !== null && $this->targetSlide > 0) {
+            $this->modify_suspend_data_for_slide($scorm->id, $sco->id, $USER->id, $this->targetSlide);
+        }
+
         // Build SCORM player URL and render iframe wrapper.
         $playerUrl = $CFG->wwwroot . '/mod/scorm/player.php?a=' . $scorm->id . '&scoid=' . $sco->id . '&display=popup';
         return $this->render_scorm_iframe($playerUrl, $scorm->name);
+    }
+
+    /**
+     * Modify suspend_data in the database to set the target slide position.
+     *
+     * This function handles both Moodle 4.x (normalized tables) and older Moodle
+     * (scorm_scoes_track table) structures.
+     *
+     * @param int $scormid SCORM instance ID
+     * @param int $scoid SCO ID
+     * @param int $userid User ID
+     * @param int $targetSlide Target slide number (1-indexed)
+     */
+    private function modify_suspend_data_for_slide(int $scormid, int $scoid, int $userid, int $targetSlide): void {
+        global $DB;
+
+        debugging("[Embed Renderer] Modifying suspend_data for slide {$targetSlide}", DEBUG_DEVELOPER);
+
+        // Check which table structure exists (Moodle 4.x vs older).
+        $dbman = $DB->get_manager();
+        $useNormalized = $dbman->table_exists('scorm_scoes_value');
+
+        if ($useNormalized) {
+            // Moodle 4.x+ normalized structure: scorm_attempt + scorm_scoes_value + scorm_element
+            $this->modify_suspend_data_normalized($scormid, $scoid, $userid, $targetSlide);
+        } else {
+            // Legacy structure: scorm_scoes_track
+            $this->modify_suspend_data_legacy($scormid, $scoid, $userid, $targetSlide);
+        }
+    }
+
+    /**
+     * Modify suspend_data in Moodle 4.x+ normalized tables.
+     *
+     * Tables: scorm_attempt, scorm_scoes_value, scorm_element
+     */
+    private function modify_suspend_data_normalized(int $scormid, int $scoid, int $userid, int $targetSlide): void {
+        global $DB;
+
+        // Get the latest attempt for this user.
+        $attemptRecord = $DB->get_record_sql(
+            "SELECT id, attempt FROM {scorm_attempt}
+             WHERE scormid = :scormid AND userid = :userid
+             ORDER BY attempt DESC LIMIT 1",
+            ['scormid' => $scormid, 'userid' => $userid]
+        );
+
+        if (!$attemptRecord) {
+            debugging("[Embed Renderer] No SCORM attempt found for user {$userid}", DEBUG_DEVELOPER);
+            return;
+        }
+
+        // Get the element ID for cmi.suspend_data.
+        $elementRecord = $DB->get_record('scorm_element', ['element' => 'cmi.suspend_data']);
+        if (!$elementRecord) {
+            debugging("[Embed Renderer] cmi.suspend_data element not found in scorm_element table", DEBUG_DEVELOPER);
+            return;
+        }
+
+        // Get the current suspend_data value.
+        $valueRecord = $DB->get_record('scorm_scoes_value', [
+            'attemptid' => $attemptRecord->id,
+            'scoid' => $scoid,
+            'elementid' => $elementRecord->id,
+        ]);
+
+        if (!$valueRecord || empty($valueRecord->value)) {
+            debugging("[Embed Renderer] No suspend_data found for attempt {$attemptRecord->id}", DEBUG_DEVELOPER);
+            return;
+        }
+
+        // Modify the suspend_data using LZ-String helper.
+        $modifiedData = lzstring_helper::modifySuspendDataSlide($valueRecord->value, $targetSlide);
+
+        if ($modifiedData !== null && $modifiedData !== $valueRecord->value) {
+            // Update the database.
+            $valueRecord->value = $modifiedData;
+            $valueRecord->timemodified = time();
+            $DB->update_record('scorm_scoes_value', $valueRecord);
+            debugging("[Embed Renderer] suspend_data modified successfully (normalized tables)", DEBUG_DEVELOPER);
+        } else {
+            debugging("[Embed Renderer] suspend_data modification failed or no change needed", DEBUG_DEVELOPER);
+        }
+    }
+
+    /**
+     * Modify suspend_data in legacy scorm_scoes_track table.
+     *
+     * Used in Moodle versions prior to 4.x.
+     */
+    private function modify_suspend_data_legacy(int $scormid, int $scoid, int $userid, int $targetSlide): void {
+        global $DB;
+
+        // Get the latest attempt number.
+        $attempt = $DB->get_field('scorm_scoes_track', 'MAX(attempt)', [
+            'scormid' => $scormid,
+            'userid' => $userid,
+        ]);
+
+        if (!$attempt) {
+            debugging("[Embed Renderer] No SCORM attempt found for user {$userid} (legacy)", DEBUG_DEVELOPER);
+            return;
+        }
+
+        // Get the current suspend_data record.
+        $trackRecord = $DB->get_record('scorm_scoes_track', [
+            'scormid' => $scormid,
+            'scoid' => $scoid,
+            'userid' => $userid,
+            'attempt' => $attempt,
+            'element' => 'cmi.suspend_data',
+        ]);
+
+        if (!$trackRecord || empty($trackRecord->value)) {
+            debugging("[Embed Renderer] No suspend_data found for attempt {$attempt} (legacy)", DEBUG_DEVELOPER);
+            return;
+        }
+
+        // Modify the suspend_data using LZ-String helper.
+        $modifiedData = lzstring_helper::modifySuspendDataSlide($trackRecord->value, $targetSlide);
+
+        if ($modifiedData !== null && $modifiedData !== $trackRecord->value) {
+            // Update the database.
+            $trackRecord->value = $modifiedData;
+            $trackRecord->timemodified = time();
+            $DB->update_record('scorm_scoes_track', $trackRecord);
+            debugging("[Embed Renderer] suspend_data modified successfully (legacy table)", DEBUG_DEVELOPER);
+        } else {
+            debugging("[Embed Renderer] suspend_data modification failed or no change needed (legacy)", DEBUG_DEVELOPER);
+        }
     }
 
     /**

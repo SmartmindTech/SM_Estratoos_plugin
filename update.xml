@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012727</version>
+        <version>2025012728</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.27</release>
+        <release>2.0.28</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,36 +29,36 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.27/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.28/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.27</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.28</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.27 - Correct suspend_data Interpretation</h3>
+            <h3>Version 2.0.28 - PHP-Level suspend_data Modification</h3>
 
-            <h4>Important Fix</h4>
+            <h4>Major Improvement</h4>
             <ul>
-                <li>"l" field is FURTHEST progress, NOT current position</li>
-                <li>Removed "l" from current position detection</li>
-                <li>Poll mechanism is now source of truth for current position</li>
-                <li>suspend_data only updates furthestSlide, not current slide</li>
+                <li>PHP-level suspend_data modification BEFORE SCORM player loads</li>
+                <li>New lzstring_helper.php - PHP port of LZ-String library</li>
+                <li>Modifies database directly - JavaScript interception was too late</li>
+                <li>Supports Moodle 4.x (normalized tables) and legacy structure</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Removed "l" field priority from extractSlideFromParsedData()</li>
-                <li>Removed "l" field regex from extractSlideFromText()</li>
-                <li>suspend_data tracking now only updates furthestSlide variable</li>
-                <li>sendProgressUpdate() no longer overrides current position from suspend_data</li>
+                <li>embed_renderer.php: modify_suspend_data_for_slide() method</li>
+                <li>Handles scorm_scoes_value (4.x) and scorm_scoes_track (legacy)</li>
+                <li>LZ-String compress/decompress for Articulate Storyline format</li>
+                <li>Modifies "l" field in suspend_data to target slide position</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.27: Correct suspend_data interpretation (Poll is truth)</li>
                 <li>v2.0.26: Skip score-based position during intercept</li>
-                <li>v2.0.25: Prioritize "l" field (incorrect - now fixed)</li>
                 <li>v2.0.24: Unlimited intercepts within 10s window</li>
                 <li>v2.0.22: Re-enable write interception (l field only)</li>
             </ul>
