@@ -360,10 +360,20 @@ class embed_renderer {
             display: block;
         }
     </style>
-    <script>' . $slideSetupScript . '</script>
 </head>
 <body>
-    <iframe id="scorm-frame" src="' . s($playerUrl) . '" allowfullscreen></iframe>
+    <!-- Iframe is created via JavaScript to ensure sessionStorage is set first -->
+    <script>
+    (function() {
+        ' . $slideSetupScript . '
+        // Create iframe AFTER sessionStorage is set (fixes race condition when console is closed)
+        var iframe = document.createElement("iframe");
+        iframe.id = "scorm-frame";
+        iframe.src = "' . s($playerUrl) . '";
+        iframe.allowFullscreen = true;
+        document.body.appendChild(iframe);
+    })();
+    </script>
     <script>
     (function() {
         var iframe = document.getElementById("scorm-frame");
