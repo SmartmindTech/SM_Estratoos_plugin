@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012855;  // YYYYMMDDXX format.
+$plugin->version = 2025012856;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.55';  // Correct resume position to furthest slide on session start.
+$plugin->release = '2.0.56';  // Read+write interceptors for resume correction (backing store alone insufficient).
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

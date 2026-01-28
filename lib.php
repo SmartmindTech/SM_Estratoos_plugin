@@ -1357,6 +1357,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             // v2.0.55: On resume (no tag navigation), if sessionStorage has a higher furthest
             // slide than the DB, correct the backing store so Storyline resumes at the furthest.
             // This fixes cases where a previous tag jump wrote a lower slide to the DB.
+            // v2.0.56: Also save the corrected data for read/write interceptors since
+            // backing store modification alone is not enough - Storyline may read the cmi
+            // object before our modification takes effect.
+            var resumeCorrectedSD = null;  // Set when resume correction is needed
+            var resumeCorrectionSlide = null;
+            var resumeReadInterceptCount = 0;
             if (!pendingSlideNavigation && furthestSlide !== null && window.API.LMSGetValue && window.API.LMSSetValue) {
                 try {
                     var resumeSD = window.API.LMSGetValue.call(window.API, 'cmi.suspend_data');
@@ -1367,6 +1373,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             if (corrected !== resumeSD) {
                                 window.API.LMSSetValue.call(window.API, 'cmi.suspend_data', corrected);
                                 window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+                                resumeCorrectedSD = corrected;
+                                resumeCorrectionSlide = furthestSlide;
                                 console.log('[SCORM Navigation] Corrected resume to furthest slide:', furthestSlide, '(DB had:', dbSlide, ')');
                             }
                         } else {
@@ -1378,8 +1386,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 }
             }
 
-            // Wrap LMSGetValue FIRST to intercept suspend_data reads
-            if (window.API.LMSGetValue && pendingSlideNavigation) {
+            // Wrap LMSGetValue to intercept reads.
+            // For tag navigation: intercept lesson_location and suspend_data reads.
+            // For resume correction: intercept suspend_data reads to return corrected value.
+            if (window.API.LMSGetValue && (pendingSlideNavigation || resumeCorrectedSD)) {
                 var originalGetValue = window.API.LMSGetValue;
                 window.API.LMSGetValue = function(element) {
                     var result = originalGetValue.call(window.API, element);
@@ -1399,6 +1409,22 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         }
                         console.log('[SCORM 1.2] Intercepting lesson_location, returning:', pendingSlideNavigation.slide);
                         return String(pendingSlideNavigation.slide);
+                    }
+
+                    // v2.0.56: Resume correction read intercept.
+                    // When we corrected the resume position, return the corrected suspend_data
+                    // during Storyline's initialization so it starts at the furthest slide.
+                    if (element === 'cmi.suspend_data' && resumeCorrectedSD && !pendingSlideNavigation) {
+                        if (resumeReadInterceptCount < 5) {
+                            resumeReadInterceptCount++;
+                            console.log('[SCORM 1.2] Resume read intercept #' + resumeReadInterceptCount + ': returning corrected suspend_data for slide', resumeCorrectionSlide);
+                            return resumeCorrectedSD;
+                        }
+                    }
+                    if (element === 'cmi.core.lesson_location' && resumeCorrectionSlide && !pendingSlideNavigation) {
+                        if (resumeReadInterceptCount < 5) {
+                            return String(resumeCorrectionSlide);
+                        }
                     }
 
                     // Intercept suspend_data reads within the time/count window
@@ -1437,7 +1463,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
                     return result;
                 };
-                console.log('[SCORM Navigation] LMSGetValue interceptor installed for pending navigation to slide:', pendingSlideNavigation.slide);
+                console.log('[SCORM Navigation] LMSGetValue interceptor installed' +
+                    (pendingSlideNavigation ? ' for navigation to slide: ' + pendingSlideNavigation.slide :
+                     ' for resume correction to slide: ' + resumeCorrectionSlide));
             }
 
             var originalSetValue = window.API.LMSSetValue;
@@ -1474,6 +1502,21 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 }
                             }
                             // If originalSlide >= furthestSlide, let natural write through
+                        }
+                    }
+                }
+
+                // v2.0.56: Write interception for resume correction.
+                // When Storyline initializes with the wrong slide (from stale cmi object),
+                // it writes back the wrong position. Force furthest slide in DB.
+                if (element === 'cmi.suspend_data' && resumeCorrectionSlide && !pendingSlideNavigation && furthestSlide !== null) {
+                    var originalSlide = parseSlideFromSuspendData(value);
+                    if (originalSlide !== null && originalSlide < furthestSlide) {
+                        var modifiedValue = modifySuspendDataForSlide(value, furthestSlide);
+                        if (modifiedValue !== value) {
+                            console.log('[SCORM 1.2] Resume write intercept: forcing furthest', furthestSlide,
+                                '(Storyline wrote:', originalSlide, ')');
+                            valueToWrite = modifiedValue;
                         }
                     }
                 }
@@ -1601,6 +1644,31 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 }, INTERCEPT_WINDOW_MS + 2000);
             }
 
+            // v2.0.56: Schedule a proactive write for resume correction.
+            // Ensures DB has the furthest slide after Storyline initialization settles.
+            if (resumeCorrectionSlide) {
+                setTimeout(function() {
+                    if (furthestSlide === null) return;
+                    try {
+                        var sd = origLMSGetValue12.call(window.API, 'cmi.suspend_data');
+                        if (sd && sd.length > 5) {
+                            var dbSlide = parseSlideFromSuspendData(sd);
+                            if (dbSlide !== null && dbSlide < furthestSlide) {
+                                var fixed = modifySuspendDataForSlide(sd, furthestSlide);
+                                if (fixed !== sd) {
+                                    origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
+                                    origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+                                    window.API.LMSCommit('');
+                                    console.log('[SCORM 1.2] Resume post-init: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('[SCORM 1.2] Resume post-init write error:', e.message);
+                    }
+                }, INTERCEPT_WINDOW_MS + 2000);
+            }
+
             return true;
         }
 
@@ -1637,6 +1705,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
 
             // v2.0.55: On resume (no tag navigation), correct backing store to furthest slide.
+            // v2.0.56: Also save corrected data for read/write interceptors.
+            var resumeCorrectedSD = null;
+            var resumeCorrectionSlide = null;
+            var resumeReadInterceptCount = 0;
             if (!pendingSlideNavigation && furthestSlide !== null && window.API_1484_11.GetValue && window.API_1484_11.SetValue) {
                 try {
                     var resumeSD2004 = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.suspend_data');
@@ -1647,6 +1719,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             if (corrected2004 !== resumeSD2004) {
                                 window.API_1484_11.SetValue.call(window.API_1484_11, 'cmi.suspend_data', corrected2004);
                                 window.API_1484_11.SetValue.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
+                                resumeCorrectedSD = corrected2004;
+                                resumeCorrectionSlide = furthestSlide;
                                 console.log('[SCORM Navigation] Corrected SCORM 2004 resume to furthest slide:', furthestSlide, '(DB had:', dbSlide2004, ')');
                             }
                         }
@@ -1657,7 +1731,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
 
             // Wrap GetValue FIRST to intercept suspend_data reads
-            if (window.API_1484_11.GetValue && pendingSlideNavigation) {
+            if (window.API_1484_11.GetValue && (pendingSlideNavigation || resumeCorrectedSD)) {
                 var originalGetValue2004 = window.API_1484_11.GetValue;
                 window.API_1484_11.GetValue = function(element) {
                     var result = originalGetValue2004.call(window.API_1484_11, element);
@@ -1677,6 +1751,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         }
                         console.log('[SCORM 2004] Intercepting location, returning:', pendingSlideNavigation.slide);
                         return String(pendingSlideNavigation.slide);
+                    }
+
+                    // v2.0.56: Resume correction read intercept.
+                    if (element === 'cmi.suspend_data' && resumeCorrectedSD && !pendingSlideNavigation) {
+                        if (resumeReadInterceptCount < 5) {
+                            resumeReadInterceptCount++;
+                            console.log('[SCORM 2004] Resume read intercept #' + resumeReadInterceptCount + ': returning corrected suspend_data for slide', resumeCorrectionSlide);
+                            return resumeCorrectedSD;
+                        }
+                    }
+                    if (element === 'cmi.location' && resumeCorrectionSlide && !pendingSlideNavigation) {
+                        if (resumeReadInterceptCount < 5) {
+                            return String(resumeCorrectionSlide);
+                        }
                     }
 
                     // Intercept suspend_data reads within the time/count window
@@ -1715,7 +1803,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
                     return result;
                 };
-                console.log('[SCORM Navigation] GetValue interceptor installed for pending navigation to slide:', pendingSlideNavigation.slide);
+                console.log('[SCORM Navigation] GetValue interceptor installed' +
+                    (pendingSlideNavigation ? ' for navigation to slide: ' + pendingSlideNavigation.slide :
+                     ' for resume correction to slide: ' + resumeCorrectionSlide));
             }
 
             var originalSetValue2004 = window.API_1484_11.SetValue;
@@ -1752,6 +1842,19 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 }
                             }
                             // If originalSlide >= furthestSlide, let natural write through
+                        }
+                    }
+                }
+
+                // v2.0.56: Write interception for resume correction.
+                if (element === 'cmi.suspend_data' && resumeCorrectionSlide && !pendingSlideNavigation && furthestSlide !== null) {
+                    var originalSlide = parseSlideFromSuspendData(value);
+                    if (originalSlide !== null && originalSlide < furthestSlide) {
+                        var modifiedValue = modifySuspendDataForSlide(value, furthestSlide);
+                        if (modifiedValue !== value) {
+                            console.log('[SCORM 2004] Resume write intercept: forcing furthest', furthestSlide,
+                                '(Storyline wrote:', originalSlide, ')');
+                            valueToWrite = modifiedValue;
                         }
                     }
                 }
@@ -1878,6 +1981,30 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 }, INTERCEPT_WINDOW_MS + 2000);
             }
 
+            // v2.0.56: Schedule a proactive write for resume correction (SCORM 2004).
+            if (resumeCorrectionSlide) {
+                setTimeout(function() {
+                    if (furthestSlide === null) return;
+                    try {
+                        var sd = origGetValue2004.call(window.API_1484_11, 'cmi.suspend_data');
+                        if (sd && sd.length > 5) {
+                            var dbSlide = parseSlideFromSuspendData(sd);
+                            if (dbSlide !== null && dbSlide < furthestSlide) {
+                                var fixed = modifySuspendDataForSlide(sd, furthestSlide);
+                                if (fixed !== sd) {
+                                    origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
+                                    origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
+                                    window.API_1484_11.Commit('');
+                                    console.log('[SCORM 2004] Resume post-init: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('[SCORM 2004] Resume post-init write error:', e.message);
+                    }
+                }, INTERCEPT_WINDOW_MS + 2000);
+            }
+
             return true;
         }
 
@@ -1889,7 +2016,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     // the cmi object before our wrapper was installed. With defineProperty, we wrap
     // the API the INSTANT it is created (when Moodle assigns window.API = new SCORMapi(...)).
     var apiWrapped = false;
-    if (pendingSlideNavigation) {
+    if (pendingSlideNavigation || furthestSlide !== null) {
         // Trap for SCORM 1.2 API
         if (typeof window.API === 'undefined' || !window.API) {
             (function() {
