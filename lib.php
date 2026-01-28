@@ -1322,6 +1322,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     function wrapScormApi() {
         // SCORM 1.2 API
         if (typeof window.API !== 'undefined' && window.API.LMSSetValue) {
+            // Save original references before any wrapping (needed for scheduled writes)
+            var origLMSGetValue12 = window.API.LMSGetValue;
+            var origLMSSetValue12 = window.API.LMSSetValue;
+
             // CRITICAL FIX v2.0.51: Directly modify the backing store BEFORE wrapping.
             // Storyline does NOT call LMSGetValue('cmi.suspend_data') during initialization.
             // It reads directly from Moodle's pre-populated cmi JavaScript object.
@@ -1347,6 +1351,30 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     console.log('[SCORM Navigation] DIRECTLY set cmi.core.lesson_location in backing store to:', pendingSlideNavigation.slide);
                 } catch (e) {
                     console.log('[SCORM Navigation] Error modifying SCORM 1.2 backing store:', e.message);
+                }
+            }
+
+            // v2.0.55: On resume (no tag navigation), if sessionStorage has a higher furthest
+            // slide than the DB, correct the backing store so Storyline resumes at the furthest.
+            // This fixes cases where a previous tag jump wrote a lower slide to the DB.
+            if (!pendingSlideNavigation && furthestSlide !== null && window.API.LMSGetValue && window.API.LMSSetValue) {
+                try {
+                    var resumeSD = window.API.LMSGetValue.call(window.API, 'cmi.suspend_data');
+                    if (resumeSD && resumeSD.length > 5) {
+                        var dbSlide = parseSlideFromSuspendData(resumeSD);
+                        if (dbSlide !== null && dbSlide < furthestSlide) {
+                            var corrected = modifySuspendDataForSlide(resumeSD, furthestSlide);
+                            if (corrected !== resumeSD) {
+                                window.API.LMSSetValue.call(window.API, 'cmi.suspend_data', corrected);
+                                window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+                                console.log('[SCORM Navigation] Corrected resume to furthest slide:', furthestSlide, '(DB had:', dbSlide, ')');
+                            }
+                        } else {
+                            console.log('[SCORM Navigation] DB slide', dbSlide, 'already at or beyond furthest', furthestSlide);
+                        }
+                    }
+                } catch (e) {
+                    console.log('[SCORM Navigation] Error correcting resume position:', e.message);
                 }
             }
 
@@ -1547,11 +1575,41 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
                 return result;
             };
+
+            // v2.0.55: Schedule a proactive write after the intercept window closes.
+            // Ensures the DB gets the furthest slide even if Storyline doesn't write naturally.
+            if (pendingSlideNavigation) {
+                setTimeout(function() {
+                    if (furthestSlide === null) return;
+                    try {
+                        var sd = origLMSGetValue12.call(window.API, 'cmi.suspend_data');
+                        if (sd && sd.length > 5) {
+                            var dbSlide = parseSlideFromSuspendData(sd);
+                            if (dbSlide !== null && dbSlide < furthestSlide) {
+                                var fixed = modifySuspendDataForSlide(sd, furthestSlide);
+                                if (fixed !== sd) {
+                                    origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
+                                    origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+                                    window.API.LMSCommit('');
+                                    console.log('[SCORM 1.2] Post-intercept: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('[SCORM 1.2] Post-intercept write error:', e.message);
+                    }
+                }, INTERCEPT_WINDOW_MS + 2000);
+            }
+
             return true;
         }
 
         // SCORM 2004 API
         if (typeof window.API_1484_11 !== 'undefined' && window.API_1484_11.SetValue) {
+            // Save original references before any wrapping
+            var origGetValue2004 = window.API_1484_11.GetValue;
+            var origSetValue2004ref = window.API_1484_11.SetValue;
+
             // CRITICAL FIX v2.0.51: Directly modify the backing store BEFORE wrapping.
             // Same reasoning as SCORM 1.2 - Storyline reads from Moodle's pre-populated
             // data model object, NOT through GetValue calls.
@@ -1575,6 +1633,26 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     console.log('[SCORM Navigation] DIRECTLY set cmi.location in SCORM 2004 backing store to:', pendingSlideNavigation.slide);
                 } catch (e) {
                     console.log('[SCORM Navigation] Error modifying SCORM 2004 backing store:', e.message);
+                }
+            }
+
+            // v2.0.55: On resume (no tag navigation), correct backing store to furthest slide.
+            if (!pendingSlideNavigation && furthestSlide !== null && window.API_1484_11.GetValue && window.API_1484_11.SetValue) {
+                try {
+                    var resumeSD2004 = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.suspend_data');
+                    if (resumeSD2004 && resumeSD2004.length > 5) {
+                        var dbSlide2004 = parseSlideFromSuspendData(resumeSD2004);
+                        if (dbSlide2004 !== null && dbSlide2004 < furthestSlide) {
+                            var corrected2004 = modifySuspendDataForSlide(resumeSD2004, furthestSlide);
+                            if (corrected2004 !== resumeSD2004) {
+                                window.API_1484_11.SetValue.call(window.API_1484_11, 'cmi.suspend_data', corrected2004);
+                                window.API_1484_11.SetValue.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
+                                console.log('[SCORM Navigation] Corrected SCORM 2004 resume to furthest slide:', furthestSlide, '(DB had:', dbSlide2004, ')');
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log('[SCORM Navigation] Error correcting SCORM 2004 resume position:', e.message);
                 }
             }
 
@@ -1775,6 +1853,31 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
                 return result;
             };
+
+            // v2.0.55: Schedule a proactive write after the intercept window closes (SCORM 2004).
+            if (pendingSlideNavigation) {
+                setTimeout(function() {
+                    if (furthestSlide === null) return;
+                    try {
+                        var sd = origGetValue2004.call(window.API_1484_11, 'cmi.suspend_data');
+                        if (sd && sd.length > 5) {
+                            var dbSlide = parseSlideFromSuspendData(sd);
+                            if (dbSlide !== null && dbSlide < furthestSlide) {
+                                var fixed = modifySuspendDataForSlide(sd, furthestSlide);
+                                if (fixed !== sd) {
+                                    origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
+                                    origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
+                                    window.API_1484_11.Commit('');
+                                    console.log('[SCORM 2004] Post-intercept: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('[SCORM 2004] Post-intercept write error:', e.message);
+                    }
+                }, INTERCEPT_WINDOW_MS + 2000);
+            }
+
             return true;
         }
 
