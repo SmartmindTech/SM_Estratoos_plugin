@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012843;  // YYYYMMDDXX format.
+$plugin->version = 2025012844;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.43';  // Only update furthestSlide during natural navigation, not tag jumps.
+$plugin->release = '2.0.44';  // Block furthestSlide updates until user naturally surpasses tag target.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

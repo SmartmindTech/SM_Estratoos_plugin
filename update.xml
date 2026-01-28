@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012843</version>
+        <version>2025012844</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.43</release>
+        <release>2.0.44</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.43/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.44/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.43</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.44</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.43 - Only Update Furthest During Natural Navigation</h3>
+            <h3>Version 2.0.44 - Block Progress Until User Surpasses Tag Target</h3>
 
-            <h4>Changes</h4>
+            <h4>Bug Fix</h4>
             <ul>
-                <li>Don't update furthestSlide during tag jumps (intercept window)</li>
-                <li>User didn't VIEW slides during jump, so progress shouldn't increase</li>
-                <li>Score from Storyline init reflects load position, not actual progress</li>
-                <li>Added logging when ignoring score during tag navigation</li>
+                <li>Fixed: After 10s intercept window, score updates incorrectly increased furthestSlide</li>
+                <li>Now: furthestSlide only updates when user naturally surpasses tag target</li>
+                <li>Example: Jump from slide 5 to 13 via tag → progress stays at 5 until user reaches 14+</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Check inInterceptWindow before updating furthestSlide</li>
-                <li>Only natural navigation (no pending tag jump) updates furthest</li>
+                <li>Added naturallyBeyondTarget check: calculatedSlide > pendingSlideNavigation.slide</li>
+                <li>Blocks all score updates at or below tag target after intercept window</li>
+                <li>Progress resumes once user naturally navigates beyond the jumped-to slide</li>
                 <li>Applies to both SCORM 1.2 and SCORM 2004 handlers</li>
-                <li>Prevents false progress increase from init scores</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.42: Restore furthestSlide from sessionStorage on reload</li>
+                <li>v2.0.43: Only update furthest during natural navigation (intercept window only)</li>
             </ul>
             ]]>
         </releasenotes>
