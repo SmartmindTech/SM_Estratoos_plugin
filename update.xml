@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012842</version>
+        <version>2025012843</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.42</release>
+        <release>2.0.43</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.42/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.43/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.42</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.43</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.42 - Restore furthestSlide from sessionStorage</h3>
+            <h3>Version 2.0.43 - Only Update Furthest During Natural Navigation</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li>Initialize furthestSlide from sessionStorage on load</li>
-                <li>Prevents progress reset on iframe reload</li>
-                <li>Uses key scorm_furthest_slide_{cmid}</li>
-                <li>Frontend stores true maximum in sessionStorage</li>
+                <li>Don't update furthestSlide during tag jumps (intercept window)</li>
+                <li>User didn't VIEW slides during jump, so progress shouldn't increase</li>
+                <li>Score from Storyline init reflects load position, not actual progress</li>
+                <li>Added logging when ignoring score during tag navigation</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Storyline writes low init scores when starting</li>
-                <li>Without persistence, furthestSlide resets to null on reload</li>
-                <li>sessionStorage persists across iframe reloads</li>
-                <li>Graceful fallback if sessionStorage unavailable</li>
+                <li>Check inInterceptWindow before updating furthestSlide</li>
+                <li>Only natural navigation (no pending tag jump) updates furthest</li>
+                <li>Applies to both SCORM 1.2 and SCORM 2004 handlers</li>
+                <li>Prevents false progress increase from init scores</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.41: Persistent lesson_location interception (no time limit)</li>
+                <li>v2.0.42: Restore furthestSlide from sessionStorage on reload</li>
             </ul>
             ]]>
         </releasenotes>

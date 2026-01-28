@@ -1336,15 +1336,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         var calculatedSlide = Math.round((score / 100) * slidescount);
                         calculatedSlide = Math.max(1, Math.min(calculatedSlide, slidescount));
 
-                        // Always store as furthest progress (for progress bar).
-                        if (furthestSlide === null || calculatedSlide > furthestSlide) {
-                            furthestSlide = calculatedSlide;
-                            console.log('[SCORM] Furthest progress updated:', furthestSlide);
-                        }
-
-                        // Check if we're in the intercept window - don't use score as current position
+                        // Check if we're in the intercept window (tag navigation in progress)
                         var inInterceptWindow = pendingSlideNavigation && interceptStartTime !== null &&
                             (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+
+                        // IMPORTANT: Only update furthest during NATURAL navigation, not during tag jumps!
+                        // When user jumps via tag (intercept window), they didn't VIEW the slides,
+                        // so furthest should NOT increase. The score from Storyline during init
+                        // reflects where it loaded, not how far the user actually progressed.
+                        if (!inInterceptWindow && (furthestSlide === null || calculatedSlide > furthestSlide)) {
+                            furthestSlide = calculatedSlide;
+                            console.log('[SCORM] Furthest progress updated:', furthestSlide);
+                        } else if (inInterceptWindow) {
+                            console.log('[SCORM] Ignoring score during tag navigation:', calculatedSlide, '(keeping furthest:', furthestSlide, ')');
+                        }
 
                         // Only use score-based slide for CURRENT position if no suspend_data AND not in intercept window.
                         // During intercept window, we have a pending navigation target, so don't override with score.
@@ -1490,15 +1495,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         var calculatedSlide = Math.round((score / 100) * slidescount);
                         calculatedSlide = Math.max(1, Math.min(calculatedSlide, slidescount));
 
-                        // Always store as furthest progress (for progress bar).
-                        if (furthestSlide === null || calculatedSlide > furthestSlide) {
-                            furthestSlide = calculatedSlide;
-                            console.log('[SCORM 2004] Furthest progress updated:', furthestSlide);
-                        }
-
-                        // Check if we're in the intercept window - don't use score as current position
+                        // Check if we're in the intercept window (tag navigation in progress)
                         var inInterceptWindow = pendingSlideNavigation && interceptStartTime !== null &&
                             (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+
+                        // IMPORTANT: Only update furthest during NATURAL navigation, not during tag jumps!
+                        // When user jumps via tag (intercept window), they didn't VIEW the slides,
+                        // so furthest should NOT increase. The score from Storyline during init
+                        // reflects where it loaded, not how far the user actually progressed.
+                        if (!inInterceptWindow && (furthestSlide === null || calculatedSlide > furthestSlide)) {
+                            furthestSlide = calculatedSlide;
+                            console.log('[SCORM 2004] Furthest progress updated:', furthestSlide);
+                        } else if (inInterceptWindow) {
+                            console.log('[SCORM 2004] Ignoring score during tag navigation:', calculatedSlide, '(keeping furthest:', furthestSlide, ')');
+                        }
 
                         // Only use score-based slide for CURRENT position if no suspend_data AND not in intercept window.
                         // During intercept window, we have a pending navigation target, so don't override with score.
