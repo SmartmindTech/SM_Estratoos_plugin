@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012837</version>
+        <version>2025012838</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.37</release>
+        <release>2.0.38</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.37/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.38/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.37</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.38</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.37 - Defer Iframe with setTimeout(0) After Verify</h3>
+            <h3>Version 2.0.38 - Fast Polling for SCORM API Wrap</h3>
 
-            <h4>Bug Fix</h4>
+            <h4>Critical Fix</h4>
             <ul>
-                <li>Verify sessionStorage write by reading it back</li>
-                <li>Force synchronous read with JSON.parse(stored)</li>
-                <li>Defer iframe creation with setTimeout(..., 0)</li>
-                <li>Ensures sessionStorage is fully committed before iframe loads</li>
+                <li>Fast 10ms polling for first 500ms when navigation pending</li>
+                <li>Storyline reads suspend_data IMMEDIATELY after API creation</li>
+                <li>Previous 200ms interval was too slow - API missed</li>
+                <li>Set iframe.onload BEFORE iframe.src to ensure handler fires</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Read sessionStorage back after writing to verify</li>
-                <li>setTimeout(0) defers to next event loop tick</li>
-                <li>Belt-and-suspenders approach for race condition</li>
-                <li>Navigation data guaranteed available for SCORM intercepts</li>
+                <li>lib.php: 10ms polling during critical 500ms window</li>
+                <li>lib.php: Switch to 200ms after critical window</li>
+                <li>embed_renderer.php: Consolidated into single IIFE</li>
+                <li>embed_renderer.php: Set src last after all handlers attached</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.37: Defer iframe with setTimeout(0) after verify</li>
                 <li>v2.0.36: Fix URL escaping for JavaScript context</li>
                 <li>v2.0.35: Fix race condition with iframe creation</li>
                 <li>v2.0.34: Disable direct navigation fallback</li>
-                <li>v2.0.33: PostMessage reload for SmartLearning integration</li>
             </ul>
             ]]>
         </releasenotes>
