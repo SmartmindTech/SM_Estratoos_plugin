@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012844</version>
+        <version>2025012845</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.44</release>
+        <release>2.0.45</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.44/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.45/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.44</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.45</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.44 - Block Progress Until User Surpasses Tag Target</h3>
+            <h3>Version 2.0.45 - Sync lesson_location with suspend_data</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixed: After 10s intercept window, score updates incorrectly increased furthestSlide</li>
-                <li>Now: furthestSlide only updates when user naturally surpasses tag target</li>
-                <li>Example: Jump from slide 5 to 13 via tag → progress stays at 5 until user reaches 14+</li>
+                <li>Fixed: Storyline loading at stale lesson_location instead of suspend_data position</li>
+                <li>On tag navigation: update BOTH suspend_data AND lesson_location in database</li>
+                <li>On normal load: sync lesson_location with suspend_data slide value</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Added naturallyBeyondTarget check: calculatedSlide > pendingSlideNavigation.slide</li>
-                <li>Blocks all score updates at or below tag target after intercept window</li>
-                <li>Progress resumes once user naturally navigates beyond the jumped-to slide</li>
-                <li>Applies to both SCORM 1.2 and SCORM 2004 handlers</li>
+                <li>Added update_lesson_location() to set database value for target slide</li>
+                <li>Added sync_lesson_location_with_suspend_data() for normal loads</li>
+                <li>Added getSlideFromSuspendData() helper to parse slide from LZ-compressed data</li>
+                <li>Supports both Moodle 4.x normalized tables and legacy scorm_scoes_track</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.43: Only update furthest during natural navigation (intercept window only)</li>
+                <li>v2.0.44: Block furthestSlide updates until user surpasses tag target</li>
             </ul>
             ]]>
         </releasenotes>

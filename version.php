@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012844;  // YYYYMMDDXX format.
+$plugin->version = 2025012845;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.44';  // Block furthestSlide updates until user naturally surpasses tag target.
+$plugin->release = '2.0.45';  // Sync lesson_location with suspend_data to prevent stale positions.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

@@ -533,6 +533,45 @@ class lzstring_helper {
     /**
      * Modify suspend_data for SCORM slide navigation.
      *
+     * Get the slide number from compressed suspend_data.
+     *
+     * This function decompresses the suspend_data and extracts the slide number
+     * from the "l" field (which is 0-indexed, so we add 1 for 1-indexed result).
+     *
+     * @param string $suspendData Compressed suspend_data
+     * @return int|null Slide number (1-indexed), or null on failure
+     */
+    public static function getSlideFromSuspendData(string $suspendData): ?int {
+        if (empty($suspendData)) {
+            return null;
+        }
+
+        try {
+            $decompressed = self::decompressFromBase64($suspendData);
+
+            if ($decompressed && strlen($decompressed) > 0) {
+                // Look for "l" field (0-indexed slide position)
+                if (preg_match('/"l"\s*:\s*(\d+)/', $decompressed, $matches)) {
+                    $slideIndex = (int)$matches[1]; // 0-indexed
+                    return $slideIndex + 1; // Convert to 1-indexed
+                }
+
+                // Fallback: look for "resume" field format "scene_slide"
+                if (preg_match('/"resume"\s*:\s*"(\d+)_(\d+)"/', $decompressed, $matches)) {
+                    $slideIndex = (int)$matches[2]; // 0-indexed
+                    return $slideIndex + 1; // Convert to 1-indexed
+                }
+            }
+        } catch (\Exception $e) {
+            debugging("[lzstring_helper] getSlideFromSuspendData exception: " . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+
+        return null;
+    }
+
+    /**
+     * Modify suspend_data to set a specific slide position.
+     *
      * This function takes compressed suspend_data, decompresses it,
      * modifies BOTH the "l" field AND the "resume" field to point to the
      * target slide, then recompresses.

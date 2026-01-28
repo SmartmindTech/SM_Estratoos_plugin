@@ -158,14 +158,19 @@ class embed_renderer {
         }
 
         // =====================================================================
-        // PHP-LEVEL SUSPEND_DATA MODIFICATION FOR DIRECT SLIDE NAVIGATION
+        // PHP-LEVEL SUSPEND_DATA AND LESSON_LOCATION SYNC
         // =====================================================================
-        // When targetSlide is set, we modify the suspend_data in Moodle's database
-        // BEFORE the SCORM player loads. This ensures Storyline reads the correct
-        // slide position on initial load (JavaScript interception happens too late).
+        // Storyline uses lesson_location (from database) to determine initial
+        // slide position. We must keep lesson_location in sync with suspend_data
+        // to prevent loading at stale positions from previous tag navigations.
         // =====================================================================
         if ($this->targetSlide !== null && $this->targetSlide > 0) {
+            // Tag navigation: modify suspend_data AND lesson_location
             $this->modify_suspend_data_for_slide($scorm->id, $sco->id, $USER->id, $this->targetSlide);
+            $this->update_lesson_location($scorm->id, $sco->id, $USER->id, $this->targetSlide);
+        } else {
+            // Normal load: sync lesson_location with suspend_data to prevent stale values
+            $this->sync_lesson_location_with_suspend_data($scorm->id, $sco->id, $USER->id);
         }
 
         // Build SCORM player URL and render iframe wrapper.
@@ -300,6 +305,276 @@ class embed_renderer {
             debugging("[Embed Renderer] suspend_data modified successfully (legacy table)", DEBUG_DEVELOPER);
         } else {
             debugging("[Embed Renderer] suspend_data modification failed or no change needed (legacy)", DEBUG_DEVELOPER);
+        }
+    }
+
+    /**
+     * Update lesson_location in the database to match the target slide.
+     *
+     * Storyline uses lesson_location (not suspend_data) to determine initial position.
+     * We must update this value to ensure Storyline loads at the correct slide.
+     *
+     * @param int $scormid SCORM instance ID
+     * @param int $scoid SCO ID
+     * @param int $userid User ID
+     * @param int $targetSlide Target slide number (1-indexed)
+     */
+    private function update_lesson_location(int $scormid, int $scoid, int $userid, int $targetSlide): void {
+        global $DB;
+
+        debugging("[Embed Renderer] Updating lesson_location to slide {$targetSlide}", DEBUG_DEVELOPER);
+
+        // Check which table structure exists (Moodle 4.x vs older).
+        $dbman = $DB->get_manager();
+        $useNormalized = $dbman->table_exists('scorm_scoes_value');
+
+        if ($useNormalized) {
+            $this->update_lesson_location_normalized($scormid, $scoid, $userid, $targetSlide);
+        } else {
+            $this->update_lesson_location_legacy($scormid, $scoid, $userid, $targetSlide);
+        }
+    }
+
+    /**
+     * Update lesson_location in Moodle 4.x+ normalized tables.
+     */
+    private function update_lesson_location_normalized(int $scormid, int $scoid, int $userid, int $targetSlide): void {
+        global $DB;
+
+        // Get the latest attempt.
+        $attemptRecord = $DB->get_record_sql(
+            "SELECT id, attempt FROM {scorm_attempt}
+             WHERE scormid = :scormid AND userid = :userid
+             ORDER BY attempt DESC LIMIT 1",
+            ['scormid' => $scormid, 'userid' => $userid]
+        );
+
+        if (!$attemptRecord) {
+            debugging("[Embed Renderer] No SCORM attempt found for lesson_location update", DEBUG_DEVELOPER);
+            return;
+        }
+
+        // Get the element ID for cmi.core.lesson_location.
+        $elementRecord = $DB->get_record('scorm_element', ['element' => 'cmi.core.lesson_location']);
+        if (!$elementRecord) {
+            debugging("[Embed Renderer] cmi.core.lesson_location element not found", DEBUG_DEVELOPER);
+            return;
+        }
+
+        // Get current value record.
+        $valueRecord = $DB->get_record('scorm_scoes_value', [
+            'attemptid' => $attemptRecord->id,
+            'scoid' => $scoid,
+            'elementid' => $elementRecord->id,
+        ]);
+
+        $newValue = (string)$targetSlide;
+
+        if ($valueRecord) {
+            // Update existing record.
+            $valueRecord->value = $newValue;
+            $valueRecord->timemodified = time();
+            $DB->update_record('scorm_scoes_value', $valueRecord);
+            debugging("[Embed Renderer] lesson_location updated to {$newValue} (normalized)", DEBUG_DEVELOPER);
+        } else {
+            // Insert new record.
+            $newRecord = new \stdClass();
+            $newRecord->attemptid = $attemptRecord->id;
+            $newRecord->scoid = $scoid;
+            $newRecord->elementid = $elementRecord->id;
+            $newRecord->value = $newValue;
+            $newRecord->timemodified = time();
+            $DB->insert_record('scorm_scoes_value', $newRecord);
+            debugging("[Embed Renderer] lesson_location created with {$newValue} (normalized)", DEBUG_DEVELOPER);
+        }
+    }
+
+    /**
+     * Update lesson_location in legacy scorm_scoes_track table.
+     */
+    private function update_lesson_location_legacy(int $scormid, int $scoid, int $userid, int $targetSlide): void {
+        global $DB;
+
+        // Get the latest attempt number.
+        $attempt = $DB->get_field('scorm_scoes_track', 'MAX(attempt)', [
+            'scormid' => $scormid,
+            'userid' => $userid,
+        ]);
+
+        if (!$attempt) {
+            debugging("[Embed Renderer] No SCORM attempt found for lesson_location update (legacy)", DEBUG_DEVELOPER);
+            return;
+        }
+
+        // Get current lesson_location record.
+        $trackRecord = $DB->get_record('scorm_scoes_track', [
+            'scormid' => $scormid,
+            'scoid' => $scoid,
+            'userid' => $userid,
+            'attempt' => $attempt,
+            'element' => 'cmi.core.lesson_location',
+        ]);
+
+        $newValue = (string)$targetSlide;
+
+        if ($trackRecord) {
+            // Update existing record.
+            $trackRecord->value = $newValue;
+            $trackRecord->timemodified = time();
+            $DB->update_record('scorm_scoes_track', $trackRecord);
+            debugging("[Embed Renderer] lesson_location updated to {$newValue} (legacy)", DEBUG_DEVELOPER);
+        } else {
+            // Insert new record.
+            $newRecord = new \stdClass();
+            $newRecord->scormid = $scormid;
+            $newRecord->scoid = $scoid;
+            $newRecord->userid = $userid;
+            $newRecord->attempt = $attempt;
+            $newRecord->element = 'cmi.core.lesson_location';
+            $newRecord->value = $newValue;
+            $newRecord->timemodified = time();
+            $DB->insert_record('scorm_scoes_track', $newRecord);
+            debugging("[Embed Renderer] lesson_location created with {$newValue} (legacy)", DEBUG_DEVELOPER);
+        }
+    }
+
+    /**
+     * Sync lesson_location with suspend_data on normal loads.
+     *
+     * This prevents stale lesson_location values from causing Storyline to load
+     * at incorrect positions. The suspend_data contains the true resume position.
+     *
+     * @param int $scormid SCORM instance ID
+     * @param int $scoid SCO ID
+     * @param int $userid User ID
+     */
+    private function sync_lesson_location_with_suspend_data(int $scormid, int $scoid, int $userid): void {
+        global $DB;
+
+        debugging("[Embed Renderer] Syncing lesson_location with suspend_data", DEBUG_DEVELOPER);
+
+        // Check which table structure exists.
+        $dbman = $DB->get_manager();
+        $useNormalized = $dbman->table_exists('scorm_scoes_value');
+
+        if ($useNormalized) {
+            $this->sync_lesson_location_normalized($scormid, $scoid, $userid);
+        } else {
+            $this->sync_lesson_location_legacy($scormid, $scoid, $userid);
+        }
+    }
+
+    /**
+     * Sync lesson_location with suspend_data in Moodle 4.x+ normalized tables.
+     */
+    private function sync_lesson_location_normalized(int $scormid, int $scoid, int $userid): void {
+        global $DB;
+
+        // Get the latest attempt.
+        $attemptRecord = $DB->get_record_sql(
+            "SELECT id, attempt FROM {scorm_attempt}
+             WHERE scormid = :scormid AND userid = :userid
+             ORDER BY attempt DESC LIMIT 1",
+            ['scormid' => $scormid, 'userid' => $userid]
+        );
+
+        if (!$attemptRecord) {
+            return;
+        }
+
+        // Get suspend_data element and value.
+        $suspendElement = $DB->get_record('scorm_element', ['element' => 'cmi.suspend_data']);
+        if (!$suspendElement) {
+            return;
+        }
+
+        $suspendValue = $DB->get_record('scorm_scoes_value', [
+            'attemptid' => $attemptRecord->id,
+            'scoid' => $scoid,
+            'elementid' => $suspendElement->id,
+        ]);
+
+        if (!$suspendValue || empty($suspendValue->value)) {
+            return;
+        }
+
+        // Parse slide from suspend_data.
+        $slideFromSuspendData = lzstring_helper::getSlideFromSuspendData($suspendValue->value);
+        if ($slideFromSuspendData === null || $slideFromSuspendData < 1) {
+            return;
+        }
+
+        // Get lesson_location element and current value.
+        $locationElement = $DB->get_record('scorm_element', ['element' => 'cmi.core.lesson_location']);
+        if (!$locationElement) {
+            return;
+        }
+
+        $locationValue = $DB->get_record('scorm_scoes_value', [
+            'attemptid' => $attemptRecord->id,
+            'scoid' => $scoid,
+            'elementid' => $locationElement->id,
+        ]);
+
+        $currentLocation = $locationValue ? (int)$locationValue->value : 0;
+
+        // Only sync if they differ.
+        if ($currentLocation !== $slideFromSuspendData) {
+            debugging("[Embed Renderer] Syncing lesson_location: {$currentLocation} -> {$slideFromSuspendData} (normalized)", DEBUG_DEVELOPER);
+            $this->update_lesson_location_normalized($scormid, $scoid, $userid, $slideFromSuspendData);
+        }
+    }
+
+    /**
+     * Sync lesson_location with suspend_data in legacy tables.
+     */
+    private function sync_lesson_location_legacy(int $scormid, int $scoid, int $userid): void {
+        global $DB;
+
+        // Get the latest attempt number.
+        $attempt = $DB->get_field('scorm_scoes_track', 'MAX(attempt)', [
+            'scormid' => $scormid,
+            'userid' => $userid,
+        ]);
+
+        if (!$attempt) {
+            return;
+        }
+
+        // Get suspend_data.
+        $suspendRecord = $DB->get_record('scorm_scoes_track', [
+            'scormid' => $scormid,
+            'scoid' => $scoid,
+            'userid' => $userid,
+            'attempt' => $attempt,
+            'element' => 'cmi.suspend_data',
+        ]);
+
+        if (!$suspendRecord || empty($suspendRecord->value)) {
+            return;
+        }
+
+        // Parse slide from suspend_data.
+        $slideFromSuspendData = lzstring_helper::getSlideFromSuspendData($suspendRecord->value);
+        if ($slideFromSuspendData === null || $slideFromSuspendData < 1) {
+            return;
+        }
+
+        // Get current lesson_location.
+        $locationRecord = $DB->get_record('scorm_scoes_track', [
+            'scormid' => $scormid,
+            'scoid' => $scoid,
+            'userid' => $userid,
+            'attempt' => $attempt,
+            'element' => 'cmi.core.lesson_location',
+        ]);
+
+        $currentLocation = $locationRecord ? (int)$locationRecord->value : 0;
+
+        // Only sync if they differ.
+        if ($currentLocation !== $slideFromSuspendData) {
+            debugging("[Embed Renderer] Syncing lesson_location: {$currentLocation} -> {$slideFromSuspendData} (legacy)", DEBUG_DEVELOPER);
+            $this->update_lesson_location_legacy($scormid, $scoid, $userid, $slideFromSuspendData);
         }
     }
 
