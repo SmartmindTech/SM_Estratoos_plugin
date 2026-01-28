@@ -433,6 +433,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     var lastStatus = null;
     var lastSlide = null;
     var lastSuspendData = null;
+    var lastSuspendDataOriginal = null;
 
     // Function to parse slide number from lesson_location.
     function parseSlideNumber(location) {
@@ -1415,22 +1416,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             window.API.LMSSetValue = function(element, value) {
                 var valueToWrite = value;
 
-                // Write interception for suspend_data during tag navigation WITHIN the intercept window.
-                // Prevents Storyline from writing back its internal state (e.g., slide 0)
-                // during initialization when we're navigating to a different slide.
-                // After the window, stop intercepting so position bar tracks natural navigation.
+                // Write interception for suspend_data - NO TIME LIMIT.
+                // Must keep modifying the DB to preserve correct resume position.
+                // Position bar tracking uses the ORIGINAL value (before modification).
                 if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
-                    var withinWriteWindow = interceptStartTime !== null &&
-                        (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
-                    if (!withinWriteWindow) {
-                        // Window expired - let Storyline write its actual state
-                    } else if (!isOurNavigationStillActive()) {
+                    if (!isOurNavigationStillActive()) {
                         console.log('[SCORM 1.2] LMSSetValue: navigation superseded, NOT intercepting write');
                     } else {
-                        console.log('[SCORM 1.2] LMSSetValue intercepting suspend_data write for slide:', pendingSlideNavigation.slide);
                         var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
                         if (modifiedValue !== value) {
-                            console.log('[SCORM 1.2] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
                             valueToWrite = modifiedValue;
                         }
                     }
@@ -1498,25 +1492,32 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         sendProgressUpdate(lastLocation, lastStatus, valueToWrite, null);
                     }
                 }
-                // Track suspend_data changes (Articulate Storyline stores slide position here).
-                // IMPORTANT: Storyline's suspend_data contains FURTHEST progress (resume), NOT current position.
-                // The Poll mechanism is the source of truth for current position.
-                // Only use suspend_data for furthest progress updates, not current position.
-                if (element === 'cmi.suspend_data' && valueToWrite !== lastSuspendData) {
+                // Track suspend_data changes for position and progress.
+                // Use the ORIGINAL value (before write interception) for actual position.
+                // The modified valueToWrite preserves the tag target in DB, but the
+                // original value reflects Storyline's actual current slide.
+                if (element === 'cmi.suspend_data' && value !== lastSuspendDataOriginal) {
                     var inInterceptWindow = pendingSlideNavigation && interceptStartTime !== null &&
                         (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
 
+                    lastSuspendDataOriginal = value;
                     lastSuspendData = valueToWrite;
                     if (!inInterceptWindow) {
-                        var slideNum = parseSlideFromSuspendData(valueToWrite);
+                        // Parse from ORIGINAL value to get Storyline's actual position
+                        var slideNum = parseSlideFromSuspendData(value);
                         if (slideNum !== null) {
-                            // ONLY update furthestSlide from suspend_data, NOT current position
-                            // Current position comes from Poll mechanism
+                            // Update furthestSlide (only increases)
                             if (furthestSlide === null || slideNum > furthestSlide) {
                                 furthestSlide = slideNum;
-                                console.log('[SCORM 1.2] suspend_data indicates furthest progress:', furthestSlide);
-                                // Send update with furthest slide but DON'T change current position
-                                sendProgressUpdate(lastLocation, lastStatus, null, null);
+                                console.log('[SCORM 1.2] Furthest progress updated from suspend_data:', furthestSlide);
+                                try {
+                                    sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                                } catch (e) {}
+                            }
+                            // Always send current position from suspend_data
+                            if (slideNum !== lastSlide) {
+                                console.log('[SCORM 1.2] Position from suspend_data:', slideNum);
+                                sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
                             }
                         }
                     } else {
@@ -1623,22 +1624,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             window.API_1484_11.SetValue = function(element, value) {
                 var valueToWrite = value;
 
-                // Write interception for suspend_data during tag navigation WITHIN the intercept window.
-                // Prevents Storyline from writing back its internal state (e.g., slide 0)
-                // during initialization when we're navigating to a different slide.
-                // After the window, stop intercepting so position bar tracks natural navigation.
+                // Write interception for suspend_data - NO TIME LIMIT.
+                // Must keep modifying the DB to preserve correct resume position.
+                // Position bar tracking uses the ORIGINAL value (before modification).
                 if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
-                    var withinWriteWindow = interceptStartTime !== null &&
-                        (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
-                    if (!withinWriteWindow) {
-                        // Window expired - let Storyline write its actual state
-                    } else if (!isOurNavigationStillActive()) {
+                    if (!isOurNavigationStillActive()) {
                         console.log('[SCORM 2004] SetValue: navigation superseded, NOT intercepting write');
                     } else {
-                        console.log('[SCORM 2004] SetValue intercepting suspend_data write for slide:', pendingSlideNavigation.slide);
                         var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
                         if (modifiedValue !== value) {
-                            console.log('[SCORM 2004] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
                             valueToWrite = modifiedValue;
                         }
                     }
@@ -1706,25 +1700,32 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                         sendProgressUpdate(lastLocation, lastStatus, valueToWrite, null);
                     }
                 }
-                // Track suspend_data changes (Articulate Storyline stores slide position here).
-                // IMPORTANT: Storyline's suspend_data contains FURTHEST progress (resume), NOT current position.
-                // The Poll mechanism is the source of truth for current position.
-                // Only use suspend_data for furthest progress updates, not current position.
-                if (element === 'cmi.suspend_data' && valueToWrite !== lastSuspendData) {
+                // Track suspend_data changes for position and progress.
+                // Use the ORIGINAL value (before write interception) for actual position.
+                // The modified valueToWrite preserves the tag target in DB, but the
+                // original value reflects Storyline's actual current slide.
+                if (element === 'cmi.suspend_data' && value !== lastSuspendDataOriginal) {
                     var inInterceptWindow = pendingSlideNavigation && interceptStartTime !== null &&
                         (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
 
+                    lastSuspendDataOriginal = value;
                     lastSuspendData = valueToWrite;
                     if (!inInterceptWindow) {
-                        var slideNum = parseSlideFromSuspendData(valueToWrite);
+                        // Parse from ORIGINAL value to get Storyline's actual position
+                        var slideNum = parseSlideFromSuspendData(value);
                         if (slideNum !== null) {
-                            // ONLY update furthestSlide from suspend_data, NOT current position
-                            // Current position comes from Poll mechanism
+                            // Update furthestSlide (only increases)
                             if (furthestSlide === null || slideNum > furthestSlide) {
                                 furthestSlide = slideNum;
-                                console.log('[SCORM 2004] suspend_data indicates furthest progress:', furthestSlide);
-                                // Send update with furthest slide but DON'T change current position
-                                sendProgressUpdate(lastLocation, lastStatus, null, null);
+                                console.log('[SCORM 2004] Furthest progress updated from suspend_data:', furthestSlide);
+                                try {
+                                    sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                                } catch (e) {}
+                            }
+                            // Always send current position from suspend_data
+                            if (slideNum !== lastSlide) {
+                                console.log('[SCORM 2004] Position from suspend_data:', slideNum);
+                                sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
                             }
                         }
                     } else {

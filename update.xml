@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012852</version>
+        <version>2025012853</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.52</release>
+        <release>2.0.53</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.52/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.53/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.52</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.53</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.52 - Fix Position Bar Not Tracking Natural Navigation</h3>
+            <h3>Version 2.0.53 - Fix Position Bar Tracking + Persist Progress Across Reloads</h3>
 
-            <h4>Bug Fix</h4>
+            <h4>Bug Fixes</h4>
             <ul>
-                <li>Position bar was stuck at tag target slide even when user navigated within Storyline</li>
-                <li>lesson_location read intercept and suspend_data write intercept had NO time limit</li>
-                <li>They kept overriding values for the entire SCORM session, blocking position updates</li>
+                <li>Position bar now tracks back-and-forth navigation (not stuck at furthest slide)</li>
+                <li>Forward navigation from tag target slide now updates position correctly</li>
+                <li>furthestSlide/grade no longer resets on page refresh after tag navigation</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Added 10-second time limit to lesson_location/cmi.location READ intercept</li>
-                <li>Added 10-second time limit to suspend_data WRITE intercept</li>
-                <li>After intercept window: all interception stops, position bar tracks naturally</li>
-                <li>During intercept window: tag navigation still forces correct slide initialization</li>
+                <li>Reverted suspend_data WRITE intercept to NO time limit (protects DB resume position)</li>
+                <li>Track position from ORIGINAL suspend_data value (before write modification)</li>
+                <li>Send actual slide number as directSlide to sendProgressUpdate</li>
+                <li>Persist furthestSlide in sessionStorage to survive iframe reloads</li>
+                <li>Applied same fixes to both SCORM 1.2 and SCORM 2004 handlers</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.51: Direct cmi backing store modification + Object.defineProperty API traps</li>
+                <li>v2.0.52: Added time limits to read intercepts (kept for reads, reverted for writes)</li>
             </ul>
             ]]>
         </releasenotes>
