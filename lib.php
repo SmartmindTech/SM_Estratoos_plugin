@@ -1510,50 +1510,14 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     }
 
     // Try to wrap immediately, then retry with intervals.
-    // CRITICAL: When there's a pending navigation, use VERY fast polling (10ms) for the first 500ms
-    // This is because Storyline reads suspend_data IMMEDIATELY after creating window.API,
-    // so we must wrap it before that first read. The 200ms interval was too slow.
     if (!wrapScormApi()) {
         var attempts = 0;
-        var fastPollingDuration = pendingSlideNavigation ? 500 : 0; // Only fast poll if navigation pending
-        var fastPollingInterval = 10; // 10ms during critical window
-        var slowPollingInterval = 200; // 200ms after critical window
-        var startTime = Date.now();
-
         var interval = setInterval(function() {
             attempts++;
-            if (wrapScormApi()) {
-                console.log('[SCORM API] Wrapped after ' + attempts + ' attempts (' + (Date.now() - startTime) + 'ms)');
-                clearInterval(interval);
-                return;
-            }
-
-            // Switch to slow polling after the critical window
-            var elapsed = Date.now() - startTime;
-            if (elapsed > fastPollingDuration && fastPollingDuration > 0) {
-                clearInterval(interval);
-                console.log('[SCORM API] Switching to slow polling after ' + elapsed + 'ms');
-                // Continue with slower interval
-                interval = setInterval(function() {
-                    attempts++;
-                    if (wrapScormApi() || attempts > 100) {
-                        if (wrapScormApi()) {
-                            console.log('[SCORM API] Wrapped after ' + attempts + ' attempts (slow)');
-                        }
-                        clearInterval(interval);
-                    }
-                }, slowPollingInterval);
-                return;
-            }
-
-            // Give up after too many attempts
-            if (attempts > 150) {
-                console.log('[SCORM API] Failed to wrap after ' + attempts + ' attempts');
+            if (wrapScormApi() || attempts > 50) {
                 clearInterval(interval);
             }
-        }, pendingSlideNavigation ? fastPollingInterval : slowPollingInterval);
-    } else {
-        console.log('[SCORM API] Wrapped immediately');
+        }, 200);
     }
 
     // DISABLED: Direct navigation fallback was causing conflicts with suspend_data interception.

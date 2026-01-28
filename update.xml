@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012838</version>
+        <version>2025012839</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.38</release>
+        <release>2.0.39</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.38/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.39/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.38</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.39</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.38 - Fast Polling for SCORM API Wrap</h3>
+            <h3>Version 2.0.39 - Revert to v2.0.34 Behavior</h3>
 
-            <h4>Critical Fix</h4>
+            <h4>Revert</h4>
             <ul>
-                <li>Fast 10ms polling for first 500ms when navigation pending</li>
-                <li>Storyline reads suspend_data IMMEDIATELY after API creation</li>
-                <li>Previous 200ms interval was too slow - API missed</li>
-                <li>Set iframe.onload BEFORE iframe.src to ensure handler fires</li>
+                <li>Reverted to v2.0.34 codebase</li>
+                <li>Removed changes from v2.0.35-v2.0.38 (caused issues)</li>
+                <li>Direct navigation fallback disabled</li>
+                <li>JS intercepts work correctly without extra complexity</li>
             </ul>
 
-            <h4>Technical Details</h4>
+            <h4>Stable Behavior</h4>
             <ul>
-                <li>lib.php: 10ms polling during critical 500ms window</li>
-                <li>lib.php: Switch to 200ms after critical window</li>
-                <li>embed_renderer.php: Consolidated into single IIFE</li>
-                <li>embed_renderer.php: Set src last after all handlers attached</li>
+                <li>Disabled direct navigation fallback</li>
+                <li>Fallback was causing unnecessary double-loads</li>
+                <li>cmi.core.lesson_location updates slower than visual display</li>
+                <li>Simplifies code and prevents reload loops</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v2.0.37: Defer iframe with setTimeout(0) after verify</li>
-                <li>v2.0.36: Fix URL escaping for JavaScript context</li>
-                <li>v2.0.35: Fix race condition with iframe creation</li>
-                <li>v2.0.34: Disable direct navigation fallback</li>
+                <li>v2.0.38: Fast polling (reverted)</li>
+                <li>v2.0.37: setTimeout defer (reverted)</li>
+                <li>v2.0.36: URL escaping fix (reverted)</li>
+                <li>v2.0.35: Race condition fix (reverted)</li>
             </ul>
             ]]>
         </releasenotes>

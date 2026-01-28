@@ -360,101 +360,82 @@ class embed_renderer {
             display: block;
         }
     </style>
+    <script>' . $slideSetupScript . '</script>
 </head>
 <body>
-    <!-- Iframe is created via JavaScript to ensure sessionStorage is set first -->
+    <iframe id="scorm-frame" src="' . s($playerUrl) . '" allowfullscreen></iframe>
     <script>
     (function() {
-        ' . $slideSetupScript . '
-        // Verify sessionStorage was written by reading it back
-        var cmid = ' . $cmid . ';
-        var stored = sessionStorage.getItem("scorm_pending_navigation_" + cmid);
-        if (stored) {
-            // Force a synchronous read to ensure write is committed
-            JSON.parse(stored);
+        var iframe = document.getElementById("scorm-frame");
+
+        function hideNavigation() {
+            try {
+                var doc = iframe.contentDocument || iframe.contentWindow.document;
+                if (!doc || !doc.body) return;
+
+                // Inject CSS - only hide nav elements, NOT toctree or tocbox (they contain content)
+                var styleId = "sm-embed-css";
+                if (!doc.getElementById(styleId)) {
+                    var style = doc.createElement("style");
+                    style.id = styleId;
+                    style.textContent = [
+                        "/* Hide only navigation, not content containers */",
+                        "#scormtop { display: none !important; }",
+                        "#scormnav { display: none !important; }",
+                        ".scorm-right { display: none !important; }",
+                        "#scorm_toc { display: none !important; }",
+                        "#scorm_toc_toggle { display: none !important; }",
+                        "#scorm_toc_toggle_btn { display: none !important; }",
+                        "#scorm_navpanel { display: none !important; }",
+                        ".toast-wrapper { display: none !important; }",
+                        "/* Make content area full width */",
+                        "#scorm_layout { width: 100% !important; }",
+                        "#scorm_layout > .yui3-u-1-5 { display: none !important; width: 0 !important; }",
+                        "#scorm_content { width: 100% !important; left: 0 !important; margin: 0 !important; }",
+                        "/* Full viewport */",
+                        "body, #page, .embedded-main, #scormpage, #tocbox, #toctree { margin: 0 !important; padding: 0 !important; width: 100% !important; height: 100% !important; }",
+                        "body { overflow: hidden !important; }"
+                    ].join("\\n");
+                    doc.head.appendChild(style);
+                }
+
+                // Direct hide
+                ["scormtop", "scormnav", "scorm_toc", "scorm_toc_toggle", "scorm_toc_toggle_btn", "scorm_navpanel"].forEach(function(id) {
+                    var el = doc.getElementById(id);
+                    if (el) el.style.display = "none";
+                });
+
+            } catch (e) {
+                // Cross-origin - ignore
+            }
         }
-        // Use setTimeout to defer iframe creation to next event loop tick
-        // This ensures sessionStorage write is fully committed before iframe loads
-        setTimeout(function() {
-            var iframe = document.createElement("iframe");
-            iframe.id = "scorm-frame";
-            iframe.allowFullscreen = true;
 
-            // Define hideNavigation function
-            function hideNavigation() {
-                try {
-                    var doc = iframe.contentDocument || iframe.contentWindow.document;
-                    if (!doc || !doc.body) return;
+        iframe.onload = function() {
+            hideNavigation();
+            setTimeout(hideNavigation, 300);
+            setTimeout(hideNavigation, 1000);
+            setTimeout(hideNavigation, 2000);
+        };
 
-                    // Inject CSS - only hide nav elements, NOT toctree or tocbox (they contain content)
-                    var styleId = "sm-embed-css";
-                    if (!doc.getElementById(styleId)) {
-                        var style = doc.createElement("style");
-                        style.id = styleId;
-                        style.textContent = [
-                            "/* Hide only navigation, not content containers */",
-                            "#scormtop { display: none !important; }",
-                            "#scormnav { display: none !important; }",
-                            ".scorm-right { display: none !important; }",
-                            "#scorm_toc { display: none !important; }",
-                            "#scorm_toc_toggle { display: none !important; }",
-                            "#scorm_toc_toggle_btn { display: none !important; }",
-                            "#scorm_navpanel { display: none !important; }",
-                            ".toast-wrapper { display: none !important; }",
-                            "/* Make content area full width */",
-                            "#scorm_layout { width: 100% !important; }",
-                            "#scorm_layout > .yui3-u-1-5 { display: none !important; width: 0 !important; }",
-                            "#scorm_content { width: 100% !important; left: 0 !important; margin: 0 !important; }",
-                            "/* Full viewport */",
-                            "body, #page, .embedded-main, #scormpage, #tocbox, #toctree { margin: 0 !important; padding: 0 !important; width: 100% !important; height: 100% !important; }",
-                            "body { overflow: hidden !important; }"
-                        ].join("\\n");
-                        doc.head.appendChild(style);
-                    }
+        // Forward navigation messages from parent (ActivityEmbed) to inner iframe (player.php)
+        window.addEventListener("message", function(event) {
+            console.log("[Embed Renderer] Message received:", event.data?.type, event.origin);
 
-                    // Direct hide
-                    ["scormtop", "scormnav", "scorm_toc", "scorm_toc_toggle", "scorm_toc_toggle_btn", "scorm_navpanel"].forEach(function(id) {
-                        var el = doc.getElementById(id);
-                        if (el) el.style.display = "none";
-                    });
-
-                } catch (e) {
-                    // Cross-origin - ignore
+            // Forward SCORM navigation requests to inner iframe
+            if (event.data && event.data.type === "scorm-navigate-to-slide") {
+                console.log("[Embed Renderer] Forwarding navigation to player.php iframe");
+                if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage(event.data, "*");
                 }
             }
 
-            // Set onload BEFORE setting src (so it fires when iframe loads)
-            iframe.onload = function() {
-                hideNavigation();
-                setTimeout(hideNavigation, 300);
-                setTimeout(hideNavigation, 1000);
-                setTimeout(hideNavigation, 2000);
-            };
-
-            // Forward navigation messages from parent (ActivityEmbed) to inner iframe (player.php)
-            window.addEventListener("message", function(event) {
-                console.log("[Embed Renderer] Message received:", event.data?.type, event.origin);
-
-                // Forward SCORM navigation requests to inner iframe
-                if (event.data && event.data.type === "scorm-navigate-to-slide") {
-                    console.log("[Embed Renderer] Forwarding navigation to player.php iframe");
-                    if (iframe && iframe.contentWindow) {
-                        iframe.contentWindow.postMessage(event.data, "*");
-                    }
+            // Also forward any messages from player.php back to parent
+            if (event.source === iframe.contentWindow && event.data) {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(event.data, "*");
                 }
-
-                // Also forward any messages from player.php back to parent
-                if (event.source === iframe.contentWindow && event.data) {
-                    if (window.parent && window.parent !== window) {
-                        window.parent.postMessage(event.data, "*");
-                    }
-                }
-            }, false);
-
-            // Now set the src and append to DOM
-            iframe.src = "' . addslashes($playerUrl) . '";
-            document.body.appendChild(iframe);
-        }, 0);
+            }
+        }, false);
     })();
     </script>
 </body>
