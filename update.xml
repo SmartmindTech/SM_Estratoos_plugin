@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012846</version>
+        <version>2025012847</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.46</release>
+        <release>2.0.47</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,40 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.46/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.47/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.46</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.47</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.46 - Cross-Origin Progress Preservation</h3>
+            <h3>Version 2.0.47 - Fix Race Condition on Rapid Click Navigation</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixed: Progress showing 0% or wrong value during tag navigation</li>
-                <li>SessionStorage is origin-specific - frontend and Moodle iframe can't share it</li>
-                <li>Frontend now passes furthest via embed URL parameter</li>
+                <li>Fixed: Wrong slide displayed when clicking rapidly between tag and go-back</li>
+                <li>Old iframe's intercept would continue modifying writes after new navigation started</li>
+                <li>Added navigation ID system to detect superseded navigations</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Added 'furthest' parameter to embed.php</li>
-                <li>embed_renderer passes furthest in navigation data (version 4)</li>
-                <li>lib.php initializes furthestSlide from navigation data</li>
-                <li>Progress bar shows correct value during intercept window</li>
-            </ul>
-
-            <h4>Frontend Change Required</h4>
-            <ul>
-                <li>Add 'furthest' parameter to embed URL when navigating via tag</li>
-                <li>Example: embed.php?cmid=2&slide=13&furthest=5</li>
+                <li>Each navigation now has a unique ID (timestamp + random)</li>
+                <li>Added 'scorm_current_navigation_{cmid}' sessionStorage key</li>
+                <li>Before each intercept, JS checks if its navigation is still active</li>
+                <li>If a newer navigation exists, old iframe stops intercepting</li>
+                <li>Applied to both SCORM 1.2 and SCORM 2004 APIs</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.45: Sync lesson_location with suspend_data</li>
+                <li>v2.0.46: Cross-origin progress preservation via furthest parameter</li>
             </ul>
             ]]>
         </releasenotes>

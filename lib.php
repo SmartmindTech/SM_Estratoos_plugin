@@ -1125,6 +1125,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     var INTERCEPT_WINDOW_MS = 10000; // Intercept for 10 seconds to cover slow SCORM init
     var directNavigationTarget = null; // Store target for direct navigation fallback
     var directNavigationAttempted = false; // Track if we've tried direct navigation
+    var ourNavigationId = null; // Unique ID for this navigation session (to detect superseded navigations)
     try {
         var navData = sessionStorage.getItem('scorm_pending_navigation_' + cmid);
         if (navData) {
@@ -1135,7 +1136,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             // Start the intercept timer immediately when navigation is detected
             // This is critical because Storyline WRITES before it READS
             interceptStartTime = Date.now();
-            console.log('[SCORM Navigation] Found pending navigation:', pendingSlideNavigation);
+            // Generate unique navigation ID using timestamp + random to handle rapid clicks
+            ourNavigationId = interceptStartTime + '_' + Math.random().toString(36).substr(2, 9);
+            console.log('[SCORM Navigation] Found pending navigation:', pendingSlideNavigation, 'navId:', ourNavigationId);
 
             // CRITICAL: Initialize furthestSlide from the passed value
             // SessionStorage is origin-specific, so the frontend passes furthest via the embed URL
@@ -1148,13 +1151,45 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 }
             }
 
-            // Clear immediately to prevent re-use on subsequent reloads
+            // Clear the pending navigation to prevent re-use on subsequent reloads
             sessionStorage.removeItem('scorm_pending_navigation_' + cmid);
             // Also clear any previous fallback reload marker - new navigation means fresh start
             sessionStorage.removeItem('scorm_fallback_reload_' + cmid);
+
+            // Set this as the CURRENT active navigation
+            // Other iframes from previous navigations will check this before intercepting
+            // If they see a different navId, they'll stop intercepting (navigation superseded)
+            sessionStorage.setItem('scorm_current_navigation_' + cmid, JSON.stringify({
+                slide: pendingSlideNavigation.slide,
+                navId: ourNavigationId,
+                timestamp: interceptStartTime
+            }));
+            console.log('[SCORM Navigation] Set as current active navigation');
         }
     } catch (e) {
         console.log('[SCORM Navigation] Error reading pending navigation:', e.message);
+    }
+
+    /**
+     * Check if our navigation is still the active one.
+     * If a newer navigation has started (user clicked something else), we should stop intercepting.
+     * This prevents race conditions when user clicks rapidly between different slides.
+     */
+    function isOurNavigationStillActive() {
+        if (!ourNavigationId) return true; // No navigation, no check needed
+        try {
+            var currentNav = sessionStorage.getItem('scorm_current_navigation_' + cmid);
+            if (currentNav) {
+                var parsed = JSON.parse(currentNav);
+                if (parsed.navId && parsed.navId !== ourNavigationId) {
+                    console.log('[SCORM Navigation] Our navigation SUPERSEDED - newer navigation active:', parsed.navId, '(ours:', ourNavigationId, ')');
+                    return false;
+                }
+            }
+        } catch (e) {
+            console.log('[SCORM Navigation] Error checking active navigation:', e.message);
+        }
+        return true;
     }
 
     /**
@@ -1263,7 +1298,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     // If we only modify suspend_data, Storyline ignores it and uses the DB value
                     // The poll also reads lesson_location - it must return our target, not the DB value
                     // We keep intercepting for the entire SCORM session (until iframe unloads)
+                    // BUT: Check if our navigation is still active (user may have clicked elsewhere)
                     if (element === 'cmi.core.lesson_location' && pendingSlideNavigation) {
+                        if (!isOurNavigationStillActive()) {
+                            console.log('[SCORM 1.2] lesson_location: navigation superseded, returning original:', result);
+                            return result;
+                        }
                         console.log('[SCORM 1.2] Intercepting lesson_location, returning:', pendingSlideNavigation.slide);
                         return String(pendingSlideNavigation.slide);
                     }
@@ -1271,6 +1311,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     // Intercept suspend_data reads within the time/count window
                     // Storyline calls LMSGetValue multiple times during initialization
                     if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
+                        // CRITICAL: Check if our navigation is still active
+                        if (!isOurNavigationStillActive()) {
+                            console.log('[SCORM 1.2] suspend_data read: navigation superseded, returning original');
+                            return result;
+                        }
+
                         // Start timer on first intercept
                         if (interceptStartTime === null) {
                             interceptStartTime = Date.now();
@@ -1310,16 +1356,24 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // This prevents Storyline from writing back its cached old position (e.g., slide 23)
                 // when we're trying to navigate to a different slide (e.g., slide 13).
                 if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
-                    // Only intercept within the time/count window
-                    var withinWindow = interceptStartTime !== null && (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
-                    var underLimit = suspendDataInterceptCount <= MAX_INTERCEPTS;
+                    // CRITICAL: Check if our navigation is still active
+                    // If user clicked rapidly to a different slide, a newer navigation has taken over
+                    // We should NOT intercept - let the write pass through unchanged
+                    if (!isOurNavigationStillActive()) {
+                        console.log('[SCORM 1.2] LMSSetValue: navigation superseded, NOT intercepting write');
+                        // Don't modify - let original value through
+                    } else {
+                        // Only intercept within the time/count window
+                        var withinWindow = interceptStartTime !== null && (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                        var underLimit = suspendDataInterceptCount <= MAX_INTERCEPTS;
 
-                    if (withinWindow && underLimit) {
-                        console.log('[SCORM 1.2] LMSSetValue intercepting suspend_data write for slide:', pendingSlideNavigation.slide);
-                        var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
-                        if (modifiedValue !== value) {
-                            console.log('[SCORM 1.2] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
-                            valueToWrite = modifiedValue;
+                        if (withinWindow && underLimit) {
+                            console.log('[SCORM 1.2] LMSSetValue intercepting suspend_data write for slide:', pendingSlideNavigation.slide);
+                            var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
+                            if (modifiedValue !== value) {
+                                console.log('[SCORM 1.2] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
+                                valueToWrite = modifiedValue;
+                            }
                         }
                     }
                 }
@@ -1430,7 +1484,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     // If we only modify suspend_data, Storyline ignores it and uses the DB value
                     // The poll also reads location - it must return our target, not the DB value
                     // We keep intercepting for the entire SCORM session (until iframe unloads)
+                    // BUT: Check if our navigation is still active (user may have clicked elsewhere)
                     if (element === 'cmi.location' && pendingSlideNavigation) {
+                        if (!isOurNavigationStillActive()) {
+                            console.log('[SCORM 2004] location: navigation superseded, returning original:', result);
+                            return result;
+                        }
                         console.log('[SCORM 2004] Intercepting location, returning:', pendingSlideNavigation.slide);
                         return String(pendingSlideNavigation.slide);
                     }
@@ -1438,6 +1497,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     // Intercept suspend_data reads within the time/count window
                     // Storyline calls GetValue multiple times during initialization
                     if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
+                        // CRITICAL: Check if our navigation is still active
+                        if (!isOurNavigationStillActive()) {
+                            console.log('[SCORM 2004] suspend_data read: navigation superseded, returning original');
+                            return result;
+                        }
+
                         // Start timer on first intercept
                         if (interceptStartTime === null) {
                             interceptStartTime = Date.now();
@@ -1477,16 +1542,24 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // This prevents Storyline from writing back its cached old position (e.g., slide 23)
                 // when we're trying to navigate to a different slide (e.g., slide 13).
                 if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
-                    // Only intercept within the time/count window
-                    var withinWindow = interceptStartTime !== null && (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
-                    var underLimit = suspendDataInterceptCount <= MAX_INTERCEPTS;
+                    // CRITICAL: Check if our navigation is still active
+                    // If user clicked rapidly to a different slide, a newer navigation has taken over
+                    // We should NOT intercept - let the write pass through unchanged
+                    if (!isOurNavigationStillActive()) {
+                        console.log('[SCORM 2004] SetValue: navigation superseded, NOT intercepting write');
+                        // Don't modify - let original value through
+                    } else {
+                        // Only intercept within the time/count window
+                        var withinWindow = interceptStartTime !== null && (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                        var underLimit = suspendDataInterceptCount <= MAX_INTERCEPTS;
 
-                    if (withinWindow && underLimit) {
-                        console.log('[SCORM 2004] SetValue intercepting suspend_data write for slide:', pendingSlideNavigation.slide);
-                        var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
-                        if (modifiedValue !== value) {
-                            console.log('[SCORM 2004] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
-                            valueToWrite = modifiedValue;
+                        if (withinWindow && underLimit) {
+                            console.log('[SCORM 2004] SetValue intercepting suspend_data write for slide:', pendingSlideNavigation.slide);
+                            var modifiedValue = modifySuspendDataForSlide(value, pendingSlideNavigation.slide);
+                            if (modifiedValue !== value) {
+                                console.log('[SCORM 2004] Writing modified suspend_data to maintain slide:', pendingSlideNavigation.slide);
+                                valueToWrite = modifiedValue;
+                            }
                         }
                     }
                 }
