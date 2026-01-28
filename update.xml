@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012856</version>
+        <version>2025012857</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.56</release>
+        <release>2.0.57</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.56/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.57/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.56</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.57</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.56 - Read+Write Interceptors for Resume Correction</h3>
+            <h3>Version 2.0.57 - Persist Furthest Progress in Moodle Score</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixes resume still loading at slide 13 instead of furthest (16) after page refresh</li>
-                <li>Root cause: backing store modification alone is insufficient - Storyline reads from its internal cmi object before our modification takes effect</li>
+                <li>Furthest slide progress is now properly registered in Moodle's SCORM score</li>
+                <li>Score no longer regresses when navigating backwards or jumping via tags</li>
+                <li>Progress shows correctly on page refresh</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Added read interceptors for resume correction: returns corrected suspend_data and lesson_location during Storyline init (up to 5 reads)</li>
-                <li>Added write interceptors for resume correction: forces furthest slide when Storyline writes back a lower position</li>
-                <li>Added scheduled post-init write to ensure DB has furthest slide after init settles</li>
-                <li>Expanded defineProperty traps to activate for resume correction (not just tag navigation)</li>
+                <li>Score write interception: cmi.core.score.raw (1.2) and cmi.score.raw (2004) never written below furthest-based score</li>
+                <li>Scheduled post-init writes now also correct score in Moodle DB</li>
+                <li>Initial progress message sends furthestSlide on page load for immediate correct display</li>
                 <li>All changes applied to both SCORM 1.2 and SCORM 2004</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.55: Backing store correction on resume (insufficient alone)</li>
+                <li>v2.0.56: Read+write interceptors for resume correction</li>
             </ul>
             ]]>
         </releasenotes>

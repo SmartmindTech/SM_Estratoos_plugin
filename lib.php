@@ -1521,6 +1521,21 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
 
+                // v2.0.57: Score write interception - ensure score always reflects furthest progress.
+                // Storyline writes score based on current position, which decreases when
+                // navigating backwards or jumping via tag. Moodle uses this for gradebook/progress.
+                if (element === 'cmi.core.score.raw' && furthestSlide !== null && slidescount > 0) {
+                    var writtenScore = parseFloat(value);
+                    if (!isNaN(writtenScore)) {
+                        var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                        if (writtenScore < furthestScore) {
+                            console.log('[SCORM 1.2] Score corrected from', writtenScore, 'to', furthestScore,
+                                '(furthest slide:', furthestSlide, '/', slidescount, ')');
+                            valueToWrite = String(furthestScore);
+                        }
+                    }
+                }
+
                 var result = originalSetValue.call(window.API, element, valueToWrite);
 
                 // DEBUG: Log all SCORM API calls to understand what the content sends.
@@ -1633,11 +1648,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 if (fixed !== sd) {
                                     origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
                                     origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
-                                    window.API.LMSCommit('');
                                     console.log('[SCORM 1.2] Post-intercept: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
                                 }
                             }
                         }
+                        // v2.0.57: Also correct score to reflect furthest progress.
+                        if (slidescount > 0) {
+                            var currentScore = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
+                            var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                            if (!currentScore || parseFloat(currentScore) < furthestScore) {
+                                origLMSSetValue12.call(window.API, 'cmi.core.score.raw', String(furthestScore));
+                                console.log('[SCORM 1.2] Post-intercept: corrected score to', furthestScore);
+                            }
+                        }
+                        window.API.LMSCommit('');
                     } catch (e) {
                         console.log('[SCORM 1.2] Post-intercept write error:', e.message);
                     }
@@ -1658,11 +1682,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 if (fixed !== sd) {
                                     origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
                                     origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
-                                    window.API.LMSCommit('');
                                     console.log('[SCORM 1.2] Resume post-init: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
                                 }
                             }
                         }
+                        // v2.0.57: Also correct score to reflect furthest progress.
+                        if (slidescount > 0) {
+                            var currentScore = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
+                            var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                            if (!currentScore || parseFloat(currentScore) < furthestScore) {
+                                origLMSSetValue12.call(window.API, 'cmi.core.score.raw', String(furthestScore));
+                                console.log('[SCORM 1.2] Resume post-init: corrected score to', furthestScore);
+                            }
+                        }
+                        window.API.LMSCommit('');
                     } catch (e) {
                         console.log('[SCORM 1.2] Resume post-init write error:', e.message);
                     }
@@ -1859,6 +1892,19 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
 
+                // v2.0.57: Score write interception - ensure score always reflects furthest progress.
+                if (element === 'cmi.score.raw' && furthestSlide !== null && slidescount > 0) {
+                    var writtenScore = parseFloat(value);
+                    if (!isNaN(writtenScore)) {
+                        var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                        if (writtenScore < furthestScore) {
+                            console.log('[SCORM 2004] Score corrected from', writtenScore, 'to', furthestScore,
+                                '(furthest slide:', furthestSlide, '/', slidescount, ')');
+                            valueToWrite = String(furthestScore);
+                        }
+                    }
+                }
+
                 var result = originalSetValue2004.call(window.API_1484_11, element, valueToWrite);
 
                 // DEBUG: Log all SCORM API calls to understand what the content sends.
@@ -1970,11 +2016,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 if (fixed !== sd) {
                                     origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
                                     origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
-                                    window.API_1484_11.Commit('');
                                     console.log('[SCORM 2004] Post-intercept: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
                                 }
                             }
                         }
+                        // v2.0.57: Also correct score to reflect furthest progress.
+                        if (slidescount > 0) {
+                            var currentScore = origGetValue2004.call(window.API_1484_11, 'cmi.score.raw');
+                            var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                            if (!currentScore || parseFloat(currentScore) < furthestScore) {
+                                origSetValue2004ref.call(window.API_1484_11, 'cmi.score.raw', String(furthestScore));
+                                console.log('[SCORM 2004] Post-intercept: corrected score to', furthestScore);
+                            }
+                        }
+                        window.API_1484_11.Commit('');
                     } catch (e) {
                         console.log('[SCORM 2004] Post-intercept write error:', e.message);
                     }
@@ -1994,11 +2049,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 if (fixed !== sd) {
                                     origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
                                     origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
-                                    window.API_1484_11.Commit('');
                                     console.log('[SCORM 2004] Resume post-init: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
                                 }
                             }
                         }
+                        // v2.0.57: Also correct score to reflect furthest progress.
+                        if (slidescount > 0) {
+                            var currentScore = origGetValue2004.call(window.API_1484_11, 'cmi.score.raw');
+                            var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                            if (!currentScore || parseFloat(currentScore) < furthestScore) {
+                                origSetValue2004ref.call(window.API_1484_11, 'cmi.score.raw', String(furthestScore));
+                                console.log('[SCORM 2004] Resume post-init: corrected score to', furthestScore);
+                            }
+                        }
+                        window.API_1484_11.Commit('');
                     } catch (e) {
                         console.log('[SCORM 2004] Resume post-init write error:', e.message);
                     }
@@ -2087,8 +2151,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     }
 
     // Send initial progress message when page loads.
+    // v2.0.57: If furthestSlide is known from sessionStorage, send it as the current
+    // position so SmartLearning shows the correct progress immediately on refresh.
     setTimeout(function() {
-        sendProgressUpdate(null, null, null, null);
+        if (furthestSlide !== null) {
+            sendProgressUpdate(null, null, null, furthestSlide);
+            console.log('[SCORM Plugin] Initial progress sent with furthest slide:', furthestSlide);
+        } else {
+            sendProgressUpdate(null, null, null, null);
+        }
     }, 1000);
 
     // Fallback: Poll the SCORM API for current position every 2 seconds.
