@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012858</version>
+        <version>2025012859</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.58</release>
+        <release>2.0.59</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,32 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.58/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.59/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.58</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.59</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.58 - On-the-fly Resume Correction</h3>
+            <h3>Version 2.0.59 - Fix Position Bar Dip During Resume</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixes resume still showing slide 13 instead of 16 after page refresh</li>
-                <li>Root cause: defineProperty trap fires before cmi data is populated, so pre-computed resume correction gets empty data and doesn't install interceptors</li>
+                <li>Fixes position bar briefly dipping (e.g. 16 → 13 → 16) during resume initialization</li>
+                <li>Root cause: poll reads stale lesson_location after resume intercept window expires, causing lastSlide to decrease temporarily</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Read interceptors now compute corrections ON-THE-FLY when reads happen (data is available at that point), instead of pre-computing at trap time (when data may be empty)</li>
-                <li>Read interceptor installed whenever furthestSlide is known, not just when pre-computed correction succeeded</li>
-                <li>Write interceptor for suspend_data always active when furthestSlide is known (prevents ANY backwards regression in DB)</li>
-                <li>Scheduled post-init write always runs when furthestSlide is known</li>
-                <li>Time-based window (10s) for resume read intercepts to avoid interfering with natural navigation</li>
-                <li>All changes applied to both SCORM 1.2 and SCORM 2004</li>
+                <li>sendProgressUpdate now only allows directSlide (from suspend_data) to decrease lastSlide</li>
+                <li>Poll-based lesson_location updates can only increase lastSlide, not decrease it</li>
+                <li>Stale backward movements from polls are suppressed with a log message</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.57: Score write interception, persist furthest in Moodle DB</li>
+                <li>v2.0.58: On-the-fly resume correction (fixes defineProperty trap timing issue)</li>
             </ul>
             ]]>
         </releasenotes>

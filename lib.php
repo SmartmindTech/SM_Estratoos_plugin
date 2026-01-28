@@ -1075,8 +1075,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
         // Update lastSlide if we have a new value.
         if (currentSlide !== null && currentSlide !== lastSlide) {
-            console.log('[SCORM Progress] Slide updated:', lastSlide, '->', currentSlide, '(source:', slideSource || 'unknown', ')');
-            lastSlide = currentSlide;
+            // v2.0.59: Only allow lastSlide to decrease from directSlide (suspend_data).
+            // Lesson_location (poll-based) can be stale during resume init, causing a brief dip.
+            if (directSlide !== null || lastSlide === null || currentSlide > lastSlide) {
+                console.log('[SCORM Progress] Slide updated:', lastSlide, '->', currentSlide, '(source:', directSlide ? 'directSlide' : (slideSource || 'unknown'), ')');
+                lastSlide = currentSlide;
+            } else {
+                console.log('[SCORM Progress] Suppressed backward movement from poll:', currentSlide, '(keeping:', lastSlide, ')');
+                currentSlide = lastSlide;
+            }
         }
 
         // Build message object.
@@ -2177,12 +2184,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     // Send initial progress message when page loads.
     // v2.0.57: If furthestSlide is known from sessionStorage, send it as the current
     // position so SmartLearning shows the correct progress immediately on refresh.
+    // v2.0.59: Default to slide 1 when no progress data exists, so the position bar
+    // resets properly when switching between different SCORM modules.
     setTimeout(function() {
         if (furthestSlide !== null) {
             sendProgressUpdate(null, null, null, furthestSlide);
             console.log('[SCORM Plugin] Initial progress sent with furthest slide:', furthestSlide);
         } else {
-            sendProgressUpdate(null, null, null, null);
+            sendProgressUpdate(null, null, null, 1);
+            console.log('[SCORM Plugin] Initial progress sent with default slide 1');
         }
     }, 1000);
 
