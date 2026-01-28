@@ -1571,7 +1571,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     // Use setTimeout to let SCORM content fully initialize
                     setTimeout(function() {
                         if (typeof navigateToSlide === 'function') {
-                            var success = navigateToSlide(directNavigationTarget);
+                            // Pass skipReload=true to avoid triggering another reload cycle
+                            var success = navigateToSlide(directNavigationTarget, true);
                             console.log('[SCORM Poll] Direct navigation result:', success ? 'success' : 'failed');
                         } else {
                             console.log('[SCORM Poll] navigateToSlide function not available yet');
@@ -2658,8 +2659,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
      * @param {number} targetSlide - The 1-based slide number to navigate to.
      * @returns {boolean} True if navigation was attempted.
      */
-    function navigateToSlide(targetSlide) {
-        console.log('[SCORM Navigation] Attempting to navigate to slide:', targetSlide);
+    function navigateToSlide(targetSlide, skipReload) {
+        console.log('[SCORM Navigation] Attempting to navigate to slide:', targetSlide, skipReload ? '(skip reload)' : '');
 
         // Try Articulate Storyline
         var storylinePlayer = findStorylinePlayer();
@@ -3071,6 +3072,28 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         // SUSPEND_DATA MODIFICATION: Last resort for SCORM that tracks via suspend_data
         // Modify the resume position and reload the SCORM content
         // ==========================================================================
+
+        // Skip reload-based navigation if called from Poll fallback (already reloaded once)
+        if (skipReload) {
+            console.log('[SCORM Navigation] Skipping suspend_data reload (already in navigation cycle)');
+            // Just modify suspend_data via SCORM API without reloading
+            try {
+                if (window.API && window.API.LMSGetValue && window.API.LMSSetValue) {
+                    var currentData = window.API.LMSGetValue('cmi.suspend_data');
+                    if (currentData) {
+                        var modifiedData = modifySuspendDataForSlide(currentData, targetSlide);
+                        if (modifiedData !== currentData) {
+                            window.API.LMSSetValue('cmi.suspend_data', modifiedData);
+                            window.API.LMSCommit('');
+                            console.log('[SCORM Navigation] suspend_data modified via API (no reload)');
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('[SCORM Navigation] API modification error:', e.message);
+            }
+            return false; // Don't claim success - let the content naturally update
+        }
 
         console.log('[SCORM Navigation] Trying suspend_data modification approach...');
 
