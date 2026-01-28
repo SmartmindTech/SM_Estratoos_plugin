@@ -1228,16 +1228,14 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 window.API.LMSGetValue = function(element) {
                     var result = originalGetValue.call(window.API, element);
 
-                    // CRITICAL: Intercept lesson_location reads FIRST
+                    // CRITICAL: Intercept lesson_location reads - NO TIME LIMIT
                     // Storyline uses lesson_location for initial slide position, not suspend_data
                     // If we only modify suspend_data, Storyline ignores it and uses the DB value
+                    // The poll also reads lesson_location - it must return our target, not the DB value
+                    // We keep intercepting for the entire SCORM session (until iframe unloads)
                     if (element === 'cmi.core.lesson_location' && pendingSlideNavigation) {
-                        var withinWindow = interceptStartTime !== null &&
-                            (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
-                        if (withinWindow) {
-                            console.log('[SCORM 1.2] Intercepting lesson_location, returning:', pendingSlideNavigation.slide);
-                            return String(pendingSlideNavigation.slide);
-                        }
+                        console.log('[SCORM 1.2] Intercepting lesson_location, returning:', pendingSlideNavigation.slide);
+                        return String(pendingSlideNavigation.slide);
                     }
 
                     // Intercept suspend_data reads within the time/count window
@@ -1260,10 +1258,11 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 console.log('[SCORM 1.2] Returning modified suspend_data');
                                 return modifiedData;
                             }
-                        } else if (suspendDataInterceptCount > 0 && pendingSlideNavigation) {
-                            // Window closed - stop intercepting
-                            console.log('[SCORM 1.2] Intercept window closed after ' + suspendDataInterceptCount + ' intercepts');
-                            pendingSlideNavigation = null; // Clear to stop future intercepts
+                        } else if (suspendDataInterceptCount > 0) {
+                            // Window closed for suspend_data, but keep pendingSlideNavigation for lesson_location
+                            // lesson_location intercept must continue for the entire session (polling needs it)
+                            console.log('[SCORM 1.2] suspend_data intercept window closed after ' + suspendDataInterceptCount + ' intercepts');
+                            // DO NOT null pendingSlideNavigation - lesson_location intercept still needs it
                         }
                     }
 
@@ -1383,16 +1382,14 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 window.API_1484_11.GetValue = function(element) {
                     var result = originalGetValue2004.call(window.API_1484_11, element);
 
-                    // CRITICAL: Intercept location reads FIRST
+                    // CRITICAL: Intercept location reads - NO TIME LIMIT
                     // Storyline uses cmi.location for initial slide position, not suspend_data
                     // If we only modify suspend_data, Storyline ignores it and uses the DB value
+                    // The poll also reads location - it must return our target, not the DB value
+                    // We keep intercepting for the entire SCORM session (until iframe unloads)
                     if (element === 'cmi.location' && pendingSlideNavigation) {
-                        var withinWindow = interceptStartTime !== null &&
-                            (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
-                        if (withinWindow) {
-                            console.log('[SCORM 2004] Intercepting location, returning:', pendingSlideNavigation.slide);
-                            return String(pendingSlideNavigation.slide);
-                        }
+                        console.log('[SCORM 2004] Intercepting location, returning:', pendingSlideNavigation.slide);
+                        return String(pendingSlideNavigation.slide);
                     }
 
                     // Intercept suspend_data reads within the time/count window
@@ -1415,10 +1412,11 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 console.log('[SCORM 2004] Returning modified suspend_data');
                                 return modifiedData;
                             }
-                        } else if (suspendDataInterceptCount > 0 && pendingSlideNavigation) {
-                            // Window closed - stop intercepting
-                            console.log('[SCORM 2004] Intercept window closed after ' + suspendDataInterceptCount + ' intercepts');
-                            pendingSlideNavigation = null; // Clear to stop future intercepts
+                        } else if (suspendDataInterceptCount > 0) {
+                            // Window closed for suspend_data, but keep pendingSlideNavigation for location
+                            // location intercept must continue for the entire session (polling needs it)
+                            console.log('[SCORM 2004] suspend_data intercept window closed after ' + suspendDataInterceptCount + ' intercepts');
+                            // DO NOT null pendingSlideNavigation - location intercept still needs it
                         }
                     }
 

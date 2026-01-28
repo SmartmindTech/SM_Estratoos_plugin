@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012840</version>
+        <version>2025012841</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.40</release>
+        <release>2.0.41</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.40/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.41/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.40</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.41</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.40 - Intercept lesson_location Reads</h3>
+            <h3>Version 2.0.41 - Persistent lesson_location Interception</h3>
 
-            <h4>New Feature</h4>
+            <h4>Changes</h4>
             <ul>
-                <li>Intercept cmi.core.lesson_location reads (SCORM 1.2)</li>
-                <li>Intercept cmi.location reads (SCORM 2004)</li>
-                <li>Storyline uses lesson_location for initial slide position</li>
-                <li>Returns pending slide during intercept window</li>
+                <li>lesson_location intercept now has NO time limit</li>
+                <li>Interception continues for entire SCORM session</li>
+                <li>Poll reads lesson_location - must return target slide</li>
+                <li>pendingSlideNavigation preserved after suspend_data window closes</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>lesson_location interception during INTERCEPT_WINDOW_MS</li>
-                <li>Returns String(pendingSlideNavigation.slide) when intercepted</li>
-                <li>Logs intercept actions for debugging</li>
-                <li>Works alongside existing suspend_data interception</li>
+                <li>Removed time window check from lesson_location/location intercept</li>
+                <li>suspend_data still uses time-limited window</li>
+                <li>pendingSlideNavigation no longer nulled when suspend_data window closes</li>
+                <li>Ensures consistent slide position for entire session</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.39: Reverted to v2.0.34 stable behavior</li>
+                <li>v2.0.40: Added lesson_location interception (time-limited)</li>
             </ul>
             ]]>
         </releasenotes>
