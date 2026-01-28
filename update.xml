@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012848</version>
+        <version>2025012849</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.48</release>
+        <release>2.0.49</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,42 +29,42 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.48/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.49/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.48</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.49</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.48 - Fix Tag Navigation Resume Position</h3>
+            <h3>Version 2.0.49 - Fix Intermittent Wrong Slide Navigation</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixed: SCORM resuming at slide 1 instead of tag target after tag navigation</li>
-                <li>Storyline's internal state (slide 0) was being written to DB after intercept window</li>
-                <li>suspend_data write intercepts now continue for entire tag navigation session</li>
+                <li>Fixed: Sometimes navigation went to wrong slide during rapid clicks</li>
+                <li>OLD iframe was writing suspend_data BEFORE NEW navigation ID was set</li>
+                <li>embed_renderer now sets scorm_current_navigation IMMEDIATELY</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>Removed 10-second time limit for suspend_data WRITE intercepts</li>
-                <li>Write intercepts continue as long as tag navigation is active</li>
-                <li>READ intercepts still have time limit (only needed during initialization)</li>
-                <li>Intercepts stop when navigation is superseded (user clicks elsewhere)</li>
+                <li>navId now generated in embed_renderer.php (not player.php)</li>
+                <li>scorm_current_navigation_ set IMMEDIATELY when embed.php loads</li>
+                <li>OLD iframes see new navId instantly, stop intercepting</li>
+                <li>Navigation data version bumped to v5</li>
             </ul>
 
             <h4>Root Cause</h4>
             <ul>
-                <li>lesson_location intercept shows slide 13 correctly (no time limit)</li>
-                <li>But Storyline internally starts at slide 0</li>
-                <li>After 10s, Storyline writes suspend_data with slide 0 (unchanged)</li>
-                <li>Fix: keep modifying writes to maintain tag target slide</li>
+                <li>OLD iframe checks isOurNavigationStillActive() before writing</li>
+                <li>But scorm_current_navigation_ was only set by player.php</li>
+                <li>If OLD iframe writes before player.php loads, check passes incorrectly</li>
+                <li>Fix: set scorm_current_navigation_ in embed_renderer.php first</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.47: Navigation ID system for rapid click detection</li>
+                <li>v2.0.48: Remove time limit for suspend_data write intercepts</li>
             </ul>
             ]]>
         </releasenotes>

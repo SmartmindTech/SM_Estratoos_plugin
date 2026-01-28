@@ -608,16 +608,31 @@ class embed_renderer {
             $furthestJs = $this->furthestSlide !== null ? (int)$this->furthestSlide : 'null';
             $slideSetupScript .= "
     // Set up sessionStorage for direct slide navigation BEFORE iframe loads
+    // CRITICAL: Set BOTH pending and current navigation immediately!
+    // This ensures OLD iframes see the new navId ASAP and stop intercepting.
+    // Previously, only pending was set here, and current was set by player.php.
+    // This caused a race condition where OLD iframe would write before NEW current was set.
     (function() {
+        var timestamp = Date.now();
+        var navId = timestamp + '_' + Math.random().toString(36).substr(2, 9);
         var navData = {
             slide: {$slide},
             cmid: {$cmid},
             furthest: {$furthestJs},
-            timestamp: Date.now(),
-            version: 4  // v4: includes furthest for cross-origin progress preservation
+            timestamp: timestamp,
+            navId: navId,
+            version: 5  // v5: navId generated in embed_renderer to prevent race condition
         };
+        // Set pending navigation (for player.php to read)
         sessionStorage.setItem('scorm_pending_navigation_{$cmid}', JSON.stringify(navData));
+        // IMMEDIATELY set current navigation (so OLD iframes see it and stop intercepting)
+        sessionStorage.setItem('scorm_current_navigation_{$cmid}', JSON.stringify({
+            slide: {$slide},
+            navId: navId,
+            timestamp: timestamp
+        }));
         console.log('[Embed Renderer] Set pending navigation:', navData);
+        console.log('[Embed Renderer] Set current navigation (superseding old iframes):', navId);
     })();
 ";
         }

@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012848;  // YYYYMMDDXX format.
+$plugin->version = 2025012849;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.48';  // Keep intercepting suspend_data writes for entire tag navigation session.
+$plugin->release = '2.0.49';  // Fix race condition: set scorm_current_navigation IMMEDIATELY in embed_renderer.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
