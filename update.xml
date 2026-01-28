@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012831</version>
+        <version>2025012832</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.31</release>
+        <release>2.0.32</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.31/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.32/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.31</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.32</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.31 - Prevent Navigation Reload Loops</h3>
+            <h3>Version 2.0.32 - Anti-Reload-Loop with Separate Tracking Key</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Add skipReload parameter to navigateToSlide() function</li>
-                <li>Poll fallback passes skipReload=true to prevent reload loops</li>
-                <li>When skipping reload, modify suspend_data via SCORM API directly</li>
-                <li>Prevents infinite reload cycles from Poll-triggered navigation</li>
+                <li>New scorm_fallback_reload_ sessionStorage key for tracking reload attempts</li>
+                <li>Blocks reload if same slide attempted within 15 seconds</li>
+                <li>Poll fallback now allows reload (anti-loop protection in place)</li>
+                <li>Clear markers on success for future navigations</li>
             </ul>
 
             <h4>Technical Details</h4>
             <ul>
-                <li>navigateToSlide(targetSlide, skipReload) - new signature</li>
-                <li>skipReload mode uses LMSGetValue/LMSSetValue/LMSCommit</li>
-                <li>Returns false to let content naturally update position</li>
-                <li>Fixes reload loop when Poll detects position mismatch</li>
+                <li>Separate key from scorm_pending_navigation_ (that one gets cleared on read)</li>
+                <li>modifySuspendDataAndReload checks fallback status before reload</li>
+                <li>Clear fallback marker when position matches target</li>
+                <li>Clear fallback marker when new navigation starts</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.31: Add skipReload param to navigateToSlide</li>
                 <li>v2.0.30: Re-enable direct navigation fallback</li>
                 <li>v2.0.29: Comprehensive suspend_data field modification</li>
                 <li>v2.0.28: PHP-level suspend_data modification</li>
-                <li>v2.0.27: Correct suspend_data interpretation (Poll is truth)</li>
             </ul>
             ]]>
         </releasenotes>

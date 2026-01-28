@@ -1120,6 +1120,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             console.log('[SCORM Navigation] Found pending navigation:', pendingSlideNavigation);
             // Clear immediately to prevent re-use on subsequent reloads
             sessionStorage.removeItem('scorm_pending_navigation_' + cmid);
+            // Also clear any previous fallback reload marker - new navigation means fresh start
+            sessionStorage.removeItem('scorm_fallback_reload_' + cmid);
         }
     } catch (e) {
         console.log('[SCORM Navigation] Error reading pending navigation:', e.message);
@@ -1571,8 +1573,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     // Use setTimeout to let SCORM content fully initialize
                     setTimeout(function() {
                         if (typeof navigateToSlide === 'function') {
-                            // Pass skipReload=true to avoid triggering another reload cycle
-                            var success = navigateToSlide(directNavigationTarget, true);
+                            // Don't use skipReload - let it attempt reload if needed
+                            // The modifySuspendDataAndReload function has anti-loop protection
+                            var success = navigateToSlide(directNavigationTarget, false);
                             console.log('[SCORM Poll] Direct navigation result:', success ? 'success' : 'failed');
                         } else {
                             console.log('[SCORM Poll] navigateToSlide function not available yet');
@@ -1582,6 +1585,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     // Position matches target, clear the fallback
                     console.log('[SCORM Poll] Position matches target, navigation successful');
                     directNavigationTarget = null;
+                    // Clear the fallback reload marker so future navigations can work
+                    try {
+                        sessionStorage.removeItem('scorm_fallback_reload_' + cmid);
+                    } catch (e) {}
                 }
             }
         }
@@ -3116,6 +3123,36 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
      */
     function modifySuspendDataAndReload(targetSlide) {
         console.log('[SCORM suspend_data] Setting up pending navigation to slide:', targetSlide);
+
+        // ANTI-RELOAD-LOOP: Check if we've already attempted a fallback reload for this slide
+        // This uses a separate key from 'scorm_pending_navigation_' because that one gets cleared on read
+        // This prevents cascading reloads when Poll fallback triggers multiple times
+        var fallbackKey = 'scorm_fallback_reload_' + cmid;
+        try {
+            var existingFallback = sessionStorage.getItem(fallbackKey);
+            if (existingFallback) {
+                var fallbackData = JSON.parse(existingFallback);
+                // If same slide and recent (within 15 seconds), don't trigger another reload
+                if (fallbackData.slide === targetSlide && (Date.now() - fallbackData.timestamp) < 15000) {
+                    console.log('[SCORM suspend_data] Reload BLOCKED - fallback already attempted for slide:', targetSlide);
+                    console.log('[SCORM suspend_data] Fallback timestamp:', fallbackData.timestamp, 'Age:', Date.now() - fallbackData.timestamp, 'ms');
+                    return false;
+                }
+            }
+        } catch (e) {
+            // Continue with normal flow if parsing fails
+            console.log('[SCORM suspend_data] Could not check fallback status:', e.message);
+        }
+
+        // Mark that we're attempting a fallback reload for this slide
+        try {
+            sessionStorage.setItem(fallbackKey, JSON.stringify({
+                slide: targetSlide,
+                timestamp: Date.now()
+            }));
+        } catch (e) {
+            console.log('[SCORM suspend_data] Could not store fallback status:', e.message);
+        }
 
         // Store navigation target in sessionStorage
         // This will be read by the LMSGetValue interceptor on the next page load
