@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012839;  // YYYYMMDDXX format.
+$plugin->version = 2025012840;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.39';  // Revert to v2.0.34 behavior (disable direct navigation fallback).
+$plugin->release = '2.0.40';  // Intercept lesson_location reads for initial slide position.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

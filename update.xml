@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012839</version>
+        <version>2025012840</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.39</release>
+        <release>2.0.40</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,38 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.39/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.40/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.39</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.40</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.39 - Revert to v2.0.34 Behavior</h3>
+            <h3>Version 2.0.40 - Intercept lesson_location Reads</h3>
 
-            <h4>Revert</h4>
+            <h4>New Feature</h4>
             <ul>
-                <li>Reverted to v2.0.34 codebase</li>
-                <li>Removed changes from v2.0.35-v2.0.38 (caused issues)</li>
-                <li>Direct navigation fallback disabled</li>
-                <li>JS intercepts work correctly without extra complexity</li>
+                <li>Intercept cmi.core.lesson_location reads (SCORM 1.2)</li>
+                <li>Intercept cmi.location reads (SCORM 2004)</li>
+                <li>Storyline uses lesson_location for initial slide position</li>
+                <li>Returns pending slide during intercept window</li>
             </ul>
 
-            <h4>Stable Behavior</h4>
+            <h4>Technical Details</h4>
             <ul>
-                <li>Disabled direct navigation fallback</li>
-                <li>Fallback was causing unnecessary double-loads</li>
-                <li>cmi.core.lesson_location updates slower than visual display</li>
-                <li>Simplifies code and prevents reload loops</li>
+                <li>lesson_location interception during INTERCEPT_WINDOW_MS</li>
+                <li>Returns String(pendingSlideNavigation.slide) when intercepted</li>
+                <li>Logs intercept actions for debugging</li>
+                <li>Works alongside existing suspend_data interception</li>
             </ul>
 
-            <h4>Previous Versions</h4>
+            <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.38: Fast polling (reverted)</li>
-                <li>v2.0.37: setTimeout defer (reverted)</li>
-                <li>v2.0.36: URL escaping fix (reverted)</li>
-                <li>v2.0.35: Race condition fix (reverted)</li>
+                <li>v2.0.39: Reverted to v2.0.34 stable behavior</li>
             </ul>
             ]]>
         </releasenotes>

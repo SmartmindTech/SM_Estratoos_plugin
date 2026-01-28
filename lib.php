@@ -1228,6 +1228,18 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 window.API.LMSGetValue = function(element) {
                     var result = originalGetValue.call(window.API, element);
 
+                    // CRITICAL: Intercept lesson_location reads FIRST
+                    // Storyline uses lesson_location for initial slide position, not suspend_data
+                    // If we only modify suspend_data, Storyline ignores it and uses the DB value
+                    if (element === 'cmi.core.lesson_location' && pendingSlideNavigation) {
+                        var withinWindow = interceptStartTime !== null &&
+                            (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                        if (withinWindow) {
+                            console.log('[SCORM 1.2] Intercepting lesson_location, returning:', pendingSlideNavigation.slide);
+                            return String(pendingSlideNavigation.slide);
+                        }
+                    }
+
                     // Intercept suspend_data reads within the time/count window
                     // Storyline calls LMSGetValue multiple times during initialization
                     if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
@@ -1370,6 +1382,18 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 var originalGetValue2004 = window.API_1484_11.GetValue;
                 window.API_1484_11.GetValue = function(element) {
                     var result = originalGetValue2004.call(window.API_1484_11, element);
+
+                    // CRITICAL: Intercept location reads FIRST
+                    // Storyline uses cmi.location for initial slide position, not suspend_data
+                    // If we only modify suspend_data, Storyline ignores it and uses the DB value
+                    if (element === 'cmi.location' && pendingSlideNavigation) {
+                        var withinWindow = interceptStartTime !== null &&
+                            (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
+                        if (withinWindow) {
+                            console.log('[SCORM 2004] Intercepting location, returning:', pendingSlideNavigation.slide);
+                            return String(pendingSlideNavigation.slide);
+                        }
+                    }
 
                     // Intercept suspend_data reads within the time/count window
                     // Storyline calls GetValue multiple times during initialization
