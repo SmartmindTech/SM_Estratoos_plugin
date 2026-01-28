@@ -369,7 +369,7 @@ class embed_renderer {
         // Create iframe AFTER sessionStorage is set (fixes race condition when console is closed)
         var iframe = document.createElement("iframe");
         iframe.id = "scorm-frame";
-        iframe.src = "' . s($playerUrl) . '";
+        iframe.src = "' . addslashes($playerUrl) . '";
         iframe.allowFullscreen = true;
         document.body.appendChild(iframe);
     })();
