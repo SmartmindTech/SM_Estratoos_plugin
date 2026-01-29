@@ -1715,6 +1715,14 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
 
+                // v2.0.78: Pre-set lastSuspendData BEFORE the DB write to prevent re-entrant tracking.
+                // When originalSetValue writes modified suspend_data, Moodle's runtime may trigger
+                // a re-entrant call back into this interceptor with the modified value. By pre-setting
+                // lastSuspendData, the re-entrant call's value will match and be skipped.
+                if (element === 'cmi.suspend_data') {
+                    lastSuspendData = valueToWrite;
+                }
+
                 var result = originalSetValue.call(window.API, element, dbWriteValue);
 
                 // DEBUG: Log all SCORM API calls to understand what the content sends.
@@ -1799,7 +1807,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // Use the ORIGINAL value (before write interception) for actual position.
                 // The modified valueToWrite preserves the tag target in DB, but the
                 // original value reflects Storyline's actual current slide.
-                if (element === 'cmi.suspend_data' && value !== lastSuspendDataOriginal) {
+                // v2.0.78: Also skip if value === lastSuspendData (re-entrant call from Moodle runtime
+                // echoing the modified DB value back through our interceptor).
+                if (element === 'cmi.suspend_data' && value !== lastSuspendDataOriginal && value !== lastSuspendData) {
                     var inInterceptWindow = pendingSlideNavigation && interceptStartTime !== null &&
                         (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
 
@@ -2184,6 +2194,14 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
 
+                // v2.0.78: Pre-set lastSuspendData BEFORE the DB write to prevent re-entrant tracking.
+                // When originalSetValue2004 writes modified suspend_data, Moodle's runtime may trigger
+                // a re-entrant call back into this interceptor with the modified value. By pre-setting
+                // lastSuspendData, the re-entrant call's value will match and be skipped.
+                if (element === 'cmi.suspend_data') {
+                    lastSuspendData = valueToWrite;
+                }
+
                 var result = originalSetValue2004.call(window.API_1484_11, element, dbWriteValue2004);
 
                 // DEBUG: Log all SCORM API calls to understand what the content sends.
@@ -2268,7 +2286,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // Use the ORIGINAL value (before write interception) for actual position.
                 // The modified valueToWrite preserves the tag target in DB, but the
                 // original value reflects Storyline's actual current slide.
-                if (element === 'cmi.suspend_data' && value !== lastSuspendDataOriginal) {
+                // v2.0.78: Also skip if value === lastSuspendData (re-entrant call from Moodle runtime
+                // echoing the modified DB value back through our interceptor).
+                if (element === 'cmi.suspend_data' && value !== lastSuspendDataOriginal && value !== lastSuspendData) {
                     var inInterceptWindow = pendingSlideNavigation && interceptStartTime !== null &&
                         (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
 
