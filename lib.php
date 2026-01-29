@@ -1512,6 +1512,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                         var fixed = modifySuspendDataForSlide(sd, furthestSlide);
                                         if (fixed !== sd) {
                                             origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
+                                            lastSuspendData = fixed; // v2.0.79: Prevent DOM observer from treating boosted DB value as navigation
                                         }
                                     }
                                     try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
@@ -1856,6 +1857,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 var fixed = modifySuspendDataForSlide(sd, furthestSlide);
                                 if (fixed !== sd) {
                                     origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
+                                    lastSuspendData = fixed; // v2.0.79: Prevent DOM observer from treating boosted DB value as navigation
                                     origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
                                     console.log('[SCORM 1.2] Post-intercept: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
                                 }
@@ -1891,6 +1893,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 var fixed = modifySuspendDataForSlide(sd, furthestSlide);
                                 if (fixed !== sd) {
                                     origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
+                                    lastSuspendData = fixed; // v2.0.79: Prevent DOM observer from treating boosted DB value as navigation
                                     origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
                                     console.log('[SCORM 1.2] Resume post-init: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
                                 }
@@ -2001,6 +2004,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                         var fixed = modifySuspendDataForSlide(sd, furthestSlide);
                                         if (fixed !== sd) {
                                             origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
+                                            lastSuspendData = fixed; // v2.0.79: Prevent DOM observer from treating boosted DB value as navigation
                                         }
                                     }
                                     try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
@@ -2334,6 +2338,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 var fixed = modifySuspendDataForSlide(sd, furthestSlide);
                                 if (fixed !== sd) {
                                     origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
+                                    lastSuspendData = fixed; // v2.0.79: Prevent DOM observer from treating boosted DB value as navigation
                                     origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
                                     console.log('[SCORM 2004] Post-intercept: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
                                 }
@@ -2368,6 +2373,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 var fixed = modifySuspendDataForSlide(sd, furthestSlide);
                                 if (fixed !== sd) {
                                     origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
+                                    lastSuspendData = fixed; // v2.0.79: Prevent DOM observer from treating boosted DB value as navigation
                                     origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
                                     console.log('[SCORM 2004] Resume post-init: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
                                 }

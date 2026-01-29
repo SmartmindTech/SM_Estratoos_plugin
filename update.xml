@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012878</version>
+        <version>2025012879</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.78</release>
+        <release>2.0.79</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.78/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.79/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.78</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.79</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.78 - Fix Position Bar Not Updating (Re-entrant LMSSetValue)</h3>
+            <h3>Version 2.0.79 - Fix Position Bar Jumping to Furthest After Post-Intercept Write</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix position bar not updating after navigation (stuck on wrong slide)</li>
-                <li>Prevent re-entrant LMSSetValue calls from processing modified suspend_data as real navigation</li>
+                <li>Fix position bar jumping to furthest slide when post-intercept writes boosted suspend_data to DB</li>
+                <li>DOM MutationObserver no longer picks up boosted DB values as real navigation events</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Pre-set lastSuspendData before DB write so re-entrant calls are detected and skipped</li>
-                <li>Add value !== lastSuspendData guard to suspend_data tracking condition</li>
-                <li>Same fix applied for both SCORM 1.2 and SCORM 2004 handlers</li>
+                <li>Update lastSuspendData after all direct suspend_data writes that bypass the LMSSetValue interceptor</li>
+                <li>Covers init backing store, post-intercept tag, and post-intercept non-tag writes</li>
+                <li>Same fix applied for both SCORM 1.2 and SCORM 2004 handlers (6 locations total)</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.78: Fix re-entrant LMSSetValue processing modified suspend_data as navigation</li>
                 <li>v2.0.77: Fix position bar jumping to furthest (poll reading boosted lesson_location from DB)</li>
                 <li>v2.0.76: Captivate SCORM real-time position tracking via content variables</li>
-                <li>v2.0.75: Fix position bar jumping to furthest during tag navigation</li>
             </ul>
             ]]>
         </releasenotes>
