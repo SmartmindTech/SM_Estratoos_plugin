@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012861;  // YYYYMMDDXX format.
+$plugin->version = 2025012862;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.61';  // Generic SCORM: detect total slides, fix 0-indexed position, reset on switch.
+$plugin->release = '2.0.62';  // DOM-based total slides detection, suppress false 100%, fix initial dip.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

@@ -1103,14 +1103,19 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
         // Calculate progress percentage based on FURTHEST progress, not current position.
         // This ensures the progress bar shows the maximum achieved, not the current view.
+        // v2.0.62: Cap at 100% to avoid misleading values.
         var progressSlide = furthestSlide || currentSlide;
-        if (progressSlide !== null && slidescount > 0) {
-            message.progressPercent = Math.round((progressSlide / slidescount) * 100);
+        if (progressSlide !== null && slidescount > 1) {
+            message.progressPercent = Math.min(100, Math.round((progressSlide / slidescount) * 100));
+        } else if (slidescount <= 1 && progressSlide !== null) {
+            // slidescount is 1 or unknown: don't calculate progress (would always be 100%).
+            // Leave progressPercent undefined so SmartLearning doesn't show misleading 100%.
+            message.progressPercent = null;
         }
 
         // Also include current position percentage for the position indicator.
-        if (currentSlide !== null && slidescount > 0) {
-            message.currentPercent = Math.round((currentSlide / slidescount) * 100);
+        if (currentSlide !== null && slidescount > 1) {
+            message.currentPercent = Math.min(100, Math.round((currentSlide / slidescount) * 100));
         }
 
         // Send to parent (SmartLearning app).
@@ -2184,15 +2189,21 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     // Send initial progress message when page loads.
     // v2.0.57: If furthestSlide is known from sessionStorage, send it as the current
     // position so SmartLearning shows the correct progress immediately on refresh.
-    // v2.0.59: Default to slide 1 when no progress data exists, so the position bar
-    // resets properly when switching between different SCORM modules.
+    // v2.0.62: Only default to slide 1 for SCORMs with slidescount <= 1 (simple/unknown).
+    // For multi-slide SCORMs (slidescount > 1), let the SCORM API provide the correct
+    // position to avoid a brief wrong display (e.g. 1/139 before correcting to 16/139).
     setTimeout(function() {
         if (furthestSlide !== null) {
             sendProgressUpdate(null, null, null, furthestSlide);
             console.log('[SCORM Plugin] Initial progress sent with furthest slide:', furthestSlide);
-        } else {
+        } else if (slidescount <= 1) {
+            // Small/unknown SCORM: send default 1 as a reset signal.
             sendProgressUpdate(null, null, null, 1);
-            console.log('[SCORM Plugin] Initial progress sent with default slide 1');
+            console.log('[SCORM Plugin] Initial progress sent with default slide 1 (slidescount:', slidescount, ')');
+        } else {
+            // Multi-slide SCORM without sessionStorage data: let the SCORM API handle it.
+            // Don't send a wrong default that would briefly show 1/139.
+            console.log('[SCORM Plugin] No initial progress (waiting for SCORM API, slidescount:', slidescount, ')');
         }
     }, 1000);
 
@@ -3154,15 +3165,45 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
         try {
             var win = playerInfo.window;
+
+            // Method 1: Check for common total-slides JavaScript variables.
             var totalVarNames = ['totalSlides', 'totalPages', 'slideCount', 'pageCount',
                 'numSlides', 'numPages', 'numberOfSlides', 'numberOfPages',
-                'maxSlides', 'maxPages', 'slideTotal', 'pageTotal', 'total_slides'];
+                'maxSlides', 'maxPages', 'slideTotal', 'pageTotal', 'total_slides',
+                'TOTAL_SLIDES', 'SLIDE_COUNT', 'NUM_SLIDES', 'MAX_SLIDES'];
             for (var i = 0; i < totalVarNames.length; i++) {
                 if (typeof win[totalVarNames[i]] !== 'undefined' && !isNaN(win[totalVarNames[i]])) {
                     var total = parseInt(win[totalVarNames[i]], 10);
-                    if (total > 0) {
+                    if (total > 1) {
+                        console.log('[Generic] Total from variable ' + totalVarNames[i] + ':', total);
                         return total;
                     }
+                }
+            }
+
+            // Method 2: Count DOM elements (slide/page containers).
+            var doc = playerInfo.document;
+            if (doc) {
+                // Try specific selectors in order of reliability.
+                var countSelectors = ['.slide', '.page', '[data-slide]', '[data-page]'];
+                for (var i = 0; i < countSelectors.length; i++) {
+                    var elements = doc.querySelectorAll(countSelectors[i]);
+                    if (elements.length > 1) {
+                        console.log('[Generic] Total from DOM count (' + countSelectors[i] + '):', elements.length);
+                        return elements.length;
+                    }
+                }
+
+                // Try finding max value in data-slide or data-page attributes.
+                var dataElements = doc.querySelectorAll('[data-slide], [data-page]');
+                var maxVal = 0;
+                for (var i = 0; i < dataElements.length; i++) {
+                    var val = parseInt(dataElements[i].getAttribute('data-slide') || dataElements[i].getAttribute('data-page'), 10);
+                    if (!isNaN(val) && val > maxVal) maxVal = val;
+                }
+                if (maxVal > 1) {
+                    console.log('[Generic] Total from max data attribute:', maxVal);
+                    return maxVal;
                 }
             }
         } catch (e) {

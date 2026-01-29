@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012861</version>
+        <version>2025012862</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.61</release>
+        <release>2.0.62</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,36 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.61/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.62/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.61</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.62</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.61 - Generic SCORM: Total Slides Detection &amp; 0-Indexed Fix</h3>
+            <h3>Version 2.0.62 - DOM-Based Total Slides &amp; False 100% Fix</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
                 <li>Fixes position bar showing 1/1 (100% complete) for non-Storyline SCORMs</li>
-                <li>Fixes 0-indexed SCORM positions being filtered out (e.g. currentSlide=0 for first slide)</li>
-                <li>Fixes position bar not resetting when switching between SCORM modules</li>
+                <li>Fixes Liderazgo briefly showing 1/139 (1%) before correcting to 16/139</li>
+                <li>Suppresses misleading 100% progress when total slides can't be detected</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>New getGenericTotalSlides() detects total slides from JS variables (totalSlides, slideCount, etc.)</li>
-                <li>slidescount updated dynamically when generic detection finds a total</li>
-                <li>0-indexed positions (currentSlide=0) now converted to 1-indexed for display</li>
-                <li>Initial progress defaults to slide 1 when no progress data exists</li>
+                <li>getGenericTotalSlides() now counts DOM elements (.slide, .page, [data-slide], etc.) as fallback</li>
+                <li>Also checks max data-slide/data-page attribute values for total</li>
+                <li>progressPercent set to null when slidescount &lt;= 1 (avoids false 100%)</li>
+                <li>Initial default slide 1 only sent for slidescount &lt;= 1 SCORMs (reset signal)</li>
+                <li>Multi-slide SCORMs wait for SCORM API instead of defaulting to 1</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v2.0.60: Reset position bar when switching SCORM modules</li>
-                <li>v2.0.59: Fix position bar dip during resume</li>
+                <li>v2.0.61: Generic SCORM 0-indexed fix, JS variable total detection</li>
+                <li>v2.0.59-60: Position bar dip fix, module switch reset</li>
             </ul>
             ]]>
         </releasenotes>
