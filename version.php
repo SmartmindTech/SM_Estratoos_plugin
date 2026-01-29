@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012864;  // YYYYMMDDXX format.
+$plugin->version = 2025012865;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.64';  // Fix backward nav, faster generic detection, fix tag navigation.
+$plugin->release = '2.0.65';  // Fix interceptor stale reads, track furthestSlide for Basic SCORM resume.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

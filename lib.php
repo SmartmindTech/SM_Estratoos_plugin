@@ -1086,6 +1086,22 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
         }
 
+        // v2.0.65: Track furthestSlide from forward navigation.
+        // For SCORMs without score.raw (like Basic SCORM), this is the only way to track progress.
+        // Don't update during tag navigation confirmation (within intercept window matching target).
+        if (currentSlide !== null && (furthestSlide === null || currentSlide > furthestSlide)) {
+            var isTagConfirmation = pendingSlideNavigation && interceptStartTime &&
+                (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS &&
+                currentSlide === pendingSlideNavigation.slide;
+            if (!isTagConfirmation) {
+                furthestSlide = currentSlide;
+                try {
+                    sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                } catch (e) {}
+                console.log('[SCORM] Furthest slide updated:', furthestSlide);
+            }
+        }
+
         // Build message object.
         // v2.0.63: Send totalSlides=0 when slidescount<=1 to signal "unknown total"
         // and prevent SmartLearning from calculating a misleading 1/1=100%.
@@ -1140,6 +1156,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     var INTERCEPT_WINDOW_MS = 10000; // Intercept for 10 seconds to cover slow SCORM init
     var directNavigationTarget = null; // Store target for direct navigation fallback
     var directNavigationAttempted = false; // Track if we've tried direct navigation
+    var locationInterceptDisabled = false; // v2.0.65: Disable lesson_location intercept after user navigates away from tag target
     var ourNavigationId = null; // Unique ID for this navigation session (to detect superseded navigations)
     try {
         var navData = sessionStorage.getItem('scorm_pending_navigation_' + cmid);
@@ -1412,6 +1429,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     // During initialization, Storyline uses lesson_location for its resume position.
                     // After the window, stop intercepting so the position bar tracks natural navigation.
                     if (element === 'cmi.core.lesson_location' && pendingSlideNavigation) {
+                        // v2.0.65: Stop intercepting if user naturally navigated away from tag target
+                        if (locationInterceptDisabled) {
+                            return result;
+                        }
                         var withinWindow = interceptStartTime !== null &&
                             (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
                         if (!withinWindow) {
@@ -1575,6 +1596,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     lastLocation = valueToWrite;
                     var parsedSlide = parseInt(valueToWrite, 10);
                     sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);
+                    // v2.0.65: If user naturally navigated away from tag target, disable the
+                    // lesson_location read interceptor. Otherwise the poll picks up the stale
+                    // intercepted value and pushes position back up.
+                    if (pendingSlideNavigation && !locationInterceptDisabled &&
+                        String(valueToWrite) !== String(pendingSlideNavigation.slide)) {
+                        locationInterceptDisabled = true;
+                        console.log('[SCORM 1.2] User navigated away from tag target',
+                            pendingSlideNavigation.slide, '-> location interceptor disabled');
+                    }
                 }
                 // Track lesson_status changes.
                 if (element === 'cmi.core.lesson_status') {
@@ -1803,6 +1833,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     // During initialization, Storyline uses cmi.location for its resume position.
                     // After the window, stop intercepting so the position bar tracks natural navigation.
                     if (element === 'cmi.location' && pendingSlideNavigation) {
+                        // v2.0.65: Stop intercepting if user naturally navigated away from tag target
+                        if (locationInterceptDisabled) {
+                            return result;
+                        }
                         var withinWindow = interceptStartTime !== null &&
                             (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
                         if (!withinWindow) {
@@ -1958,6 +1992,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     lastLocation = valueToWrite;
                     var parsedSlide = parseInt(valueToWrite, 10);
                     sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);
+                    // v2.0.65: If user naturally navigated away from tag target, disable the
+                    // location read interceptor. Otherwise the poll picks up the stale
+                    // intercepted value and pushes position back up.
+                    if (pendingSlideNavigation && !locationInterceptDisabled &&
+                        String(valueToWrite) !== String(pendingSlideNavigation.slide)) {
+                        locationInterceptDisabled = true;
+                        console.log('[SCORM 2004] User navigated away from tag target',
+                            pendingSlideNavigation.slide, '-> location interceptor disabled');
+                    }
                 }
                 // Track completion_status changes.
                 if (element === 'cmi.completion_status') {
@@ -2204,7 +2247,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (furthestSlide !== null) {
             sendProgressUpdate(null, null, null, furthestSlide);
             console.log('[SCORM Plugin] Initial progress sent with furthest slide:', furthestSlide);
-        } else if (slidescount <= 1) {
+        } else if (slidescount <= 1 && !pendingSlideNavigation) {
+            // v2.0.65: Skip default if tag navigation pending (tag will set correct position).
             // Small/unknown SCORM: send default 1 as a reset signal.
             sendProgressUpdate(null, null, null, 1);
             console.log('[SCORM Plugin] Initial progress sent with default slide 1 (slidescount:', slidescount, ')');
