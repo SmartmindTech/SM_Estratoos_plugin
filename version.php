@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012859;  // YYYYMMDDXX format.
+$plugin->version = 2025012860;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.59';  // Fix position bar dip during resume (suppress stale poll-based backward movement).
+$plugin->release = '2.0.60';  // Reset position bar when switching SCORM modules (send default slide 1).
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

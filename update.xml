@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012859</version>
+        <version>2025012860</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.59</release>
+        <release>2.0.60</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,32 +29,31 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.59/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.60/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.59</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.60</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.59 - Fix Position Bar Dip During Resume</h3>
+            <h3>Version 2.0.60 - Reset Position Bar When Switching SCORMs</h3>
 
             <h4>Bug Fix</h4>
             <ul>
-                <li>Fixes position bar briefly dipping (e.g. 16 → 13 → 16) during resume initialization</li>
-                <li>Root cause: poll reads stale lesson_location after resume intercept window expires, causing lastSlide to decrease temporarily</li>
+                <li>Fixes position bar not resetting when switching between different SCORM modules</li>
+                <li>Root cause: initial progress message sent currentSlide=null when no furthestSlide was known, so SmartLearning kept showing the previous SCORM's position</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>sendProgressUpdate now only allows directSlide (from suspend_data) to decrease lastSlide</li>
-                <li>Poll-based lesson_location updates can only increase lastSlide, not decrease it</li>
-                <li>Stale backward movements from polls are suppressed with a log message</li>
+                <li>Initial progress message now defaults to slide 1 when no progress data exists (instead of null)</li>
+                <li>Ensures position bar resets to 1/N when opening a new SCORM module</li>
             </ul>
 
             <h4>Previous Version</h4>
             <ul>
-                <li>v2.0.58: On-the-fly resume correction (fixes defineProperty trap timing issue)</li>
+                <li>v2.0.59: Fix position bar dip during resume (suppress stale poll backward movement)</li>
             </ul>
             ]]>
         </releasenotes>
