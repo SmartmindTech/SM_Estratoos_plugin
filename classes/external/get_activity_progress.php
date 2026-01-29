@@ -154,13 +154,17 @@ class get_activity_progress extends external_api {
             }
 
             // Calculate progress percentage.
-            if (isset($progress['totalitems']) && $progress['totalitems'] > 0) {
-                $progress['progresspercent'] = round(
-                    ($progress['completeditems'] / $progress['totalitems']) * 100,
-                    1
-                );
-            } else {
-                $progress['progresspercent'] = 0;
+            // Skip if already set by type-specific function (e.g., SCORM uses score-based progress
+            // which is more accurate than completeditems/totalitems when totalitems = SCO count).
+            if (!isset($progress['progresspercent']) || $progress['progresspercent'] <= 0) {
+                if (isset($progress['totalitems']) && $progress['totalitems'] > 0) {
+                    $progress['progresspercent'] = round(
+                        ($progress['completeditems'] / $progress['totalitems']) * 100,
+                        1
+                    );
+                } else {
+                    $progress['progresspercent'] = 0;
+                }
             }
 
             $results[] = $progress;

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012868</version>
+        <version>2025012869</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.68</release>
+        <release>2.0.69</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,37 +29,33 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.68/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.69/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.68</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.69</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.68 - Fix Progress 0% on Resume &amp; False Completion</h3>
+            <h3>Version 2.0.69 - Preserve SCORM Score-Based Progress in API</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix progress stuck at 0% on resume: generic detection was skipped when SCORM API had position (lastSlide &gt; 1), preventing TOTAL_SLIDES discovery</li>
-                <li>Fix furthestSlide lost on new tab/browser restart: read from Moodle lesson_location as fallback when sessionStorage is empty</li>
-                <li>Fix score exceeding 100% on resume when slide count not yet detected (e.g. 3/1 * 100 = 300%)</li>
-                <li>Fix false activity completion triggered by inflated scores on page refresh</li>
+                <li>Fix activity progress API overwriting SCORM score-based progress with generic completeditems/totalitems calculation</li>
+                <li>SCORM progress now correctly reflects furthest slide reached (from score.raw) instead of SCO completion state</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Generic detection now always discovers TOTAL_SLIDES even when SCORM API position tracking is active</li>
-                <li>Re-sends progress with correct totalSlides when total is first detected</li>
-                <li>Guard all score calculations with slidescount &gt; 1 and cap at 100%</li>
-                <li>Both SCORM 1.2 and SCORM 2004 code paths fixed</li>
+                <li>get_activity_progress API now preserves progresspercent when already set by type-specific handlers</li>
+                <li>Prevents false 0% or 100% progress when SCORM has accurate score-based progress</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.68: Fix progress 0% on resume, score &gt;100%, false completion</li>
                 <li>v2.0.66: Auto-grade Basic SCORM from furthest slide progress</li>
                 <li>v2.0.65: Fix stale interceptor reads, furthestSlide for Basic SCORM</li>
-                <li>v2.0.64: Fix backward nav, faster generic detection</li>
             </ul>
             ]]>
         </releasenotes>
