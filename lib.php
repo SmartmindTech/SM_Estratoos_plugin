@@ -3148,6 +3148,29 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         return null;
     }
 
+    // Function to get total slide count from generic SCORM content.
+    function getGenericTotalSlides(playerInfo) {
+        if (!playerInfo || !playerInfo.window) return null;
+
+        try {
+            var win = playerInfo.window;
+            var totalVarNames = ['totalSlides', 'totalPages', 'slideCount', 'pageCount',
+                'numSlides', 'numPages', 'numberOfSlides', 'numberOfPages',
+                'maxSlides', 'maxPages', 'slideTotal', 'pageTotal', 'total_slides'];
+            for (var i = 0; i < totalVarNames.length; i++) {
+                if (typeof win[totalVarNames[i]] !== 'undefined' && !isNaN(win[totalVarNames[i]])) {
+                    var total = parseInt(win[totalVarNames[i]], 10);
+                    if (total > 0) {
+                        return total;
+                    }
+                }
+            }
+        } catch (e) {
+            // Cross-origin or error, skip.
+        }
+        return null;
+    }
+
     // Function to get current position from generic SCORM content.
     function getGenericCurrentPosition(playerInfo) {
         if (!playerInfo || !playerInfo.document) return null;
@@ -3160,8 +3183,16 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             var varNames = ['currentSlide', 'currentPage', 'slideIndex', 'pageIndex', 'slideNum', 'pageNum', 'currentIndex'];
             for (var i = 0; i < varNames.length; i++) {
                 if (typeof win[varNames[i]] !== 'undefined' && !isNaN(win[varNames[i]])) {
-                    console.log('[Generic] Variable ' + varNames[i] + ':', win[varNames[i]]);
-                    return parseInt(win[varNames[i]], 10);
+                    var rawVal = parseInt(win[varNames[i]], 10);
+                    console.log('[Generic] Variable ' + varNames[i] + ':', rawVal);
+                    // Convert 0-indexed to 1-indexed for display.
+                    // Variables ending in "Index" are always 0-indexed.
+                    // For others (currentSlide, currentPage, slideNum, pageNum),
+                    // if value is 0, it's likely 0-indexed (slide 0 = first slide).
+                    if (varNames[i].indexOf('Index') !== -1 || rawVal === 0) {
+                        return rawVal + 1;
+                    }
+                    return rawVal;
                 }
             }
 
@@ -3254,15 +3285,21 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
             var content = findGenericScormContent();
             if (content) {
+                // v2.0.61: Also detect total slide count and update slidescount.
+                var detectedTotal = getGenericTotalSlides(content);
+                if (detectedTotal !== null && detectedTotal > slidescount) {
+                    console.log('[Generic] Total slides detected:', detectedTotal, '(was:', slidescount, ')');
+                    slidescount = detectedTotal;
+                }
+
                 var currentPosition = getGenericCurrentPosition(content);
                 // Only report if:
-                // 1. We got a valid position
+                // 1. We got a valid position (>= 1 after 0-index conversion)
                 // 2. It's different from what we had
-                // 3. It's greater than 1 (to avoid common false positives)
-                // 4. It's within reasonable bounds (not more than slidescount if known)
+                // 3. It's within reasonable bounds (not more than slidescount if known)
                 if (currentPosition !== null &&
+                    currentPosition >= 1 &&
                     currentPosition !== genericSlideIndex &&
-                    currentPosition > 1 &&
                     (slidescount === 0 || currentPosition <= slidescount)) {
                     genericSlideIndex = currentPosition;
                     if (currentPosition !== lastSlide) {
