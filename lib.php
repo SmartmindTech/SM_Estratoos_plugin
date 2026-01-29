@@ -1110,7 +1110,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // v2.0.66: Write grade to Moodle for SCORMs that don't manage their own scores.
                 // Uses the same furthest-slide-based percentage strategy as Storyline score correction.
                 if (!contentWritesScore && originalScormSetValue && slidescount > 1) {
-                    var gradePercent = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                    var gradePercent = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                     if (scormApiVersion === '2004') {
                         originalScormSetValue('cmi.score.raw', String(gradePercent));
                         originalScormSetValue('cmi.score.min', '0');
@@ -1607,10 +1607,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // v2.0.57: Score write interception - ensure score always reflects furthest progress.
                 // Storyline writes score based on current position, which decreases when
                 // navigating backwards or jumping via tag. Moodle uses this for gradebook/progress.
-                if (element === 'cmi.core.score.raw' && furthestSlide !== null && slidescount > 0) {
+                if (element === 'cmi.core.score.raw' && furthestSlide !== null && slidescount > 1) {
                     var writtenScore = parseFloat(value);
                     if (!isNaN(writtenScore)) {
-                        var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                        var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                         if (writtenScore < furthestScore) {
                             console.log('[SCORM 1.2] Score corrected from', writtenScore, 'to', furthestScore,
                                 '(furthest slide:', furthestSlide, '/', slidescount, ')');
@@ -1749,9 +1749,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             }
                         }
                         // v2.0.57: Also correct score to reflect furthest progress.
-                        if (slidescount > 0) {
+                        // v2.0.67: Guard with slidescount > 1 (default is 1 before detection) and cap at 100.
+                        if (slidescount > 1) {
                             var currentScore = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
-                            var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                            var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                             if (!currentScore || parseFloat(currentScore) < furthestScore) {
                                 origLMSSetValue12.call(window.API, 'cmi.core.score.raw', String(furthestScore));
                                 console.log('[SCORM 1.2] Post-intercept: corrected score to', furthestScore);
@@ -1783,9 +1784,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             }
                         }
                         // v2.0.57: Also correct score to reflect furthest progress.
-                        if (slidescount > 0) {
+                        // v2.0.67: Guard with slidescount > 1 (default is 1 before detection) and cap at 100.
+                        if (slidescount > 1) {
                             var currentScore = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
-                            var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                            var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                             if (!currentScore || parseFloat(currentScore) < furthestScore) {
                                 origLMSSetValue12.call(window.API, 'cmi.core.score.raw', String(furthestScore));
                                 console.log('[SCORM 1.2] Resume post-init: corrected score to', furthestScore);
@@ -2013,10 +2015,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 }
 
                 // v2.0.57: Score write interception - ensure score always reflects furthest progress.
-                if (element === 'cmi.score.raw' && furthestSlide !== null && slidescount > 0) {
+                if (element === 'cmi.score.raw' && furthestSlide !== null && slidescount > 1) {
                     var writtenScore = parseFloat(value);
                     if (!isNaN(writtenScore)) {
-                        var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                        var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                         if (writtenScore < furthestScore) {
                             console.log('[SCORM 2004] Score corrected from', writtenScore, 'to', furthestScore,
                                 '(furthest slide:', furthestSlide, '/', slidescount, ')');
@@ -2154,9 +2156,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             }
                         }
                         // v2.0.57: Also correct score to reflect furthest progress.
-                        if (slidescount > 0) {
+                        // v2.0.67: Guard with slidescount > 1 (default is 1 before detection) and cap at 100.
+                        if (slidescount > 1) {
                             var currentScore = origGetValue2004.call(window.API_1484_11, 'cmi.score.raw');
-                            var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                            var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                             if (!currentScore || parseFloat(currentScore) < furthestScore) {
                                 origSetValue2004ref.call(window.API_1484_11, 'cmi.score.raw', String(furthestScore));
                                 console.log('[SCORM 2004] Post-intercept: corrected score to', furthestScore);
@@ -2187,9 +2190,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             }
                         }
                         // v2.0.57: Also correct score to reflect furthest progress.
-                        if (slidescount > 0) {
+                        // v2.0.67: Guard with slidescount > 1 (default is 1 before detection) and cap at 100.
+                        if (slidescount > 1) {
                             var currentScore = origGetValue2004.call(window.API_1484_11, 'cmi.score.raw');
-                            var furthestScore = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                            var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                             if (!currentScore || parseFloat(currentScore) < furthestScore) {
                                 origSetValue2004ref.call(window.API_1484_11, 'cmi.score.raw', String(furthestScore));
                                 console.log('[SCORM 2004] Resume post-init: corrected score to', furthestScore);
@@ -2289,7 +2293,28 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     // v2.0.62: Only default to slide 1 for SCORMs with slidescount <= 1 (simple/unknown).
     // For multi-slide SCORMs (slidescount > 1), let the SCORM API provide the correct
     // position to avoid a brief wrong display (e.g. 1/139 before correcting to 16/139).
+    // v2.0.67: When sessionStorage is empty, read lesson_location from Moodle as fallback
+    // for furthestSlide. SessionStorage is tab-scoped and lost on new tabs/browser restart.
     setTimeout(function() {
+        // v2.0.67: If furthestSlide is still null, try reading from Moodle's lesson_location.
+        if (furthestSlide === null && !pendingSlideNavigation) {
+            var moodleLocation = null;
+            try {
+                if (window.API && window.API.LMSGetValue) {
+                    moodleLocation = window.API.LMSGetValue.call(window.API, 'cmi.core.lesson_location');
+                } else if (window.API_1484_11 && window.API_1484_11.GetValue) {
+                    moodleLocation = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.location');
+                }
+            } catch (e) {}
+            if (moodleLocation) {
+                var parsedLocation = parseInt(moodleLocation, 10);
+                if (!isNaN(parsedLocation) && parsedLocation >= 1) {
+                    furthestSlide = parsedLocation;
+                    console.log('[SCORM Plugin] Restored furthest slide from Moodle lesson_location:', furthestSlide);
+                }
+            }
+        }
+
         if (furthestSlide !== null) {
             sendProgressUpdate(null, null, null, furthestSlide);
             console.log('[SCORM Plugin] Initial progress sent with furthest slide:', furthestSlide);
@@ -3404,7 +3429,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     }
 
     // Start generic SCORM monitoring (lower priority, longer delay).
-    // IMPORTANT: This is a fallback only when SCORM API tracking is not working.
+    // Detects total slide count (TOTAL_SLIDES variable) and current position from DOM.
+    // v2.0.67: Always detect total slides even when SCORM API position tracking is active.
     setTimeout(function() {
         genericCheckInterval = setInterval(function() {
             // Only run generic detection if no other tool detected anything
@@ -3414,13 +3440,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 return; // Another detector is working
             }
 
-            // IMPORTANT: If SCORM API tracking has already given us a valid slide number,
-            // don't override it with generic detection. The SCORM API (score.raw, suspend_data)
-            // is more reliable than DOM-based detection which can find false positives.
-            if (lastSlide !== null && lastSlide > 1) {
-                // SCORM API tracking is working, skip generic detection
-                return;
-            }
+            // v2.0.67: Determine if SCORM API tracking has position (but may lack total).
+            // When lastSlide > 1, the API is tracking position — skip DOM position detection
+            // but still detect TOTAL_SLIDES so progress percentage can be calculated.
+            var apiHasPosition = lastSlide !== null && lastSlide > 1;
 
             var content = findGenericScormContent();
             if (content) {
@@ -3431,6 +3454,19 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     console.log('[Generic] Total slides detected:', detectedTotal, '(was:', slidescount, ')');
                     slidescount = detectedTotal;
                     totalJustUpdated = true;
+                }
+
+                // v2.0.67: If total just updated but API has position, re-send current position
+                // with the new total so SmartLearning receives correct totalSlides and progress.
+                if (totalJustUpdated && apiHasPosition) {
+                    console.log('[Generic] Total updated, re-sending API position:', lastSlide, '/', slidescount);
+                    sendProgressUpdate(null, null, null, lastSlide);
+                    return;
+                }
+
+                // Skip DOM position detection when SCORM API tracking is active.
+                if (apiHasPosition) {
+                    return;
                 }
 
                 var currentPosition = getGenericCurrentPosition(content);
