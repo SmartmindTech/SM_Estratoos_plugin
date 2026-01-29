@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012862</version>
+        <version>2025012863</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.62</release>
+        <release>2.0.63</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,36 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.62/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.63/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.62</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.63</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.62 - DOM-Based Total Slides &amp; False 100% Fix</h3>
+            <h3>Version 2.0.63 - Fix False 100% Completion</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fixes position bar showing 1/1 (100% complete) for non-Storyline SCORMs</li>
-                <li>Fixes Liderazgo briefly showing 1/139 (1%) before correcting to 16/139</li>
-                <li>Suppresses misleading 100% progress when total slides can't be detected</li>
+                <li>Fixes SCORM showing 1/1 (100% complete) before total slides are detected</li>
+                <li>totalSlides sent as 0 (unknown) until real total is detected, preventing false 100%</li>
+                <li>Generic detection now sends a progress update when total slides changes</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>getGenericTotalSlides() now counts DOM elements (.slide, .page, [data-slide], etc.) as fallback</li>
-                <li>Also checks max data-slide/data-page attribute values for total</li>
-                <li>progressPercent set to null when slidescount &lt;= 1 (avoids false 100%)</li>
-                <li>Initial default slide 1 only sent for slidescount &lt;= 1 SCORMs (reset signal)</li>
-                <li>Multi-slide SCORMs wait for SCORM API instead of defaulting to 1</li>
+                <li>totalSlides=0 in postMessage when slidescount &lt;= 1 (signals unknown total to SmartLearning)</li>
+                <li>When generic detection updates slidescount (e.g. from 1 to 5), immediately sends corrected progress</li>
+                <li>Flow: initial 1/0 (unknown) → generic detects TOTAL_SLIDES=5 → updates to 1/5 (20%)</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.62: DOM-based total slides, suppress false 100%, fix initial dip</li>
                 <li>v2.0.61: Generic SCORM 0-indexed fix, JS variable total detection</li>
-                <li>v2.0.59-60: Position bar dip fix, module switch reset</li>
             </ul>
             ]]>
         </releasenotes>

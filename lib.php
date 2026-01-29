@@ -1087,12 +1087,14 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         }
 
         // Build message object.
+        // v2.0.63: Send totalSlides=0 when slidescount<=1 to signal "unknown total"
+        // and prevent SmartLearning from calculating a misleading 1/1=100%.
         var message = {
             type: 'scorm-progress',
             cmid: cmid,
             scormid: scormid,
             currentSlide: currentSlide,
-            totalSlides: slidescount,
+            totalSlides: (slidescount > 1) ? slidescount : 0,
             furthestSlide: furthestSlide, // Furthest progress reached (from score)
             lessonLocation: location || lastLocation,
             lessonStatus: status || lastStatus,
@@ -3328,23 +3330,26 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             if (content) {
                 // v2.0.61: Also detect total slide count and update slidescount.
                 var detectedTotal = getGenericTotalSlides(content);
+                var totalJustUpdated = false;
                 if (detectedTotal !== null && detectedTotal > slidescount) {
                     console.log('[Generic] Total slides detected:', detectedTotal, '(was:', slidescount, ')');
                     slidescount = detectedTotal;
+                    totalJustUpdated = true;
                 }
 
                 var currentPosition = getGenericCurrentPosition(content);
                 // Only report if:
                 // 1. We got a valid position (>= 1 after 0-index conversion)
-                // 2. It's different from what we had
+                // 2. It's different from what we had OR total just changed
                 // 3. It's within reasonable bounds (not more than slidescount if known)
                 if (currentPosition !== null &&
                     currentPosition >= 1 &&
-                    currentPosition !== genericSlideIndex &&
+                    (currentPosition !== genericSlideIndex || totalJustUpdated) &&
                     (slidescount === 0 || currentPosition <= slidescount)) {
                     genericSlideIndex = currentPosition;
-                    if (currentPosition !== lastSlide) {
-                        console.log('[Generic] Position changed to:', currentPosition);
+                    if (currentPosition !== lastSlide || totalJustUpdated) {
+                        console.log('[Generic] Position update:', currentPosition, '/', slidescount,
+                            totalJustUpdated ? '(total updated)' : '');
                         sendProgressUpdate(null, null, null, currentPosition);
                     }
                 }
