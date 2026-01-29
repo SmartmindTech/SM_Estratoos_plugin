@@ -2295,7 +2295,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     // position to avoid a brief wrong display (e.g. 1/139 before correcting to 16/139).
     // v2.0.67: When sessionStorage is empty, read lesson_location from Moodle as fallback
     // for furthestSlide. SessionStorage is tab-scoped and lost on new tabs/browser restart.
-    setTimeout(function() {
+    // v2.0.70: Fast retry mechanism for initial progress. Instead of a fixed 1000ms timeout,
+    // try every 200ms and send as soon as lesson_location is available from LMSInitialize.
+    // This eliminates ~800ms delay for fast-loading content (e.g. Basic SCORM).
+    var initialProgressSent = false;
+    var initialRetryCount = 0;
+    var initialRetryInterval = setInterval(function() {
+        if (initialProgressSent) { clearInterval(initialRetryInterval); return; }
+        initialRetryCount++;
+
         // v2.0.67: If furthestSlide is still null, try reading from Moodle's lesson_location.
         if (furthestSlide === null && !pendingSlideNavigation) {
             var moodleLocation = null;
@@ -2331,20 +2339,27 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             } catch (e) {}
         }
 
+        // Send as soon as we have data, or fall back after 5 attempts (1000ms total).
         if (furthestSlide !== null) {
+            clearInterval(initialRetryInterval);
+            initialProgressSent = true;
             sendProgressUpdate(null, null, null, furthestSlide);
-            console.log('[SCORM Plugin] Initial progress sent with furthest slide:', furthestSlide);
-        } else if (slidescount <= 1 && !pendingSlideNavigation) {
-            // v2.0.65: Skip default if tag navigation pending (tag will set correct position).
-            // Small/unknown SCORM: send default 1 as a reset signal.
-            sendProgressUpdate(null, null, null, 1);
-            console.log('[SCORM Plugin] Initial progress sent with default slide 1 (slidescount:', slidescount, ')');
-        } else {
-            // Multi-slide SCORM without sessionStorage data: let the SCORM API handle it.
-            // Don't send a wrong default that would briefly show 1/139.
-            console.log('[SCORM Plugin] No initial progress (waiting for SCORM API, slidescount:', slidescount, ')');
+            console.log('[SCORM Plugin] Initial progress sent with furthest slide:', furthestSlide, '(attempt', initialRetryCount, ')');
+        } else if (initialRetryCount >= 5) {
+            clearInterval(initialRetryInterval);
+            initialProgressSent = true;
+            if (slidescount <= 1 && !pendingSlideNavigation) {
+                // v2.0.65: Skip default if tag navigation pending (tag will set correct position).
+                // Small/unknown SCORM: send default 1 as a reset signal.
+                sendProgressUpdate(null, null, null, 1);
+                console.log('[SCORM Plugin] Initial progress sent with default slide 1 (slidescount:', slidescount, ')');
+            } else {
+                // Multi-slide SCORM without sessionStorage data: let the SCORM API handle it.
+                // Don't send a wrong default that would briefly show 1/139.
+                console.log('[SCORM Plugin] No initial progress (waiting for SCORM API, slidescount:', slidescount, ')');
+            }
         }
-    }, 1000);
+    }, 200);
 
     // Fallback: Poll the SCORM API for current position every 2 seconds.
     // Some SCORM content doesn't call SetValue on navigation.
