@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012869</version>
+        <version>2025012870</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.69</release>
+        <release>2.0.70</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,33 +29,33 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.69/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.70/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.69</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.70</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.69 - Preserve SCORM Score-Based Progress in API</h3>
+            <h3>Version 2.0.70 - Faster Position Bar for Basic SCORM</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix activity progress API overwriting SCORM score-based progress with generic completeditems/totalitems calculation</li>
-                <li>SCORM progress now correctly reflects furthest slide reached (from score.raw) instead of SCO completion state</li>
+                <li>Fix slow position bar display for Basic SCORM: initial progress message was sent with totalSlides=0 because generic detection hadn't run yet</li>
+                <li>Position bar now appears with the first progress message instead of waiting for the generic detection interval</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>get_activity_progress API now preserves progresspercent when already set by type-specific handlers</li>
-                <li>Prevents false 0% or 100% progress when SCORM has accurate score-based progress</li>
+                <li>Early total slides detection: try findGenericScormContent() + getGenericTotalSlides() inline before sending initial progress</li>
+                <li>Eliminates ~1.3s delay (was waiting for 1500ms setTimeout + 800ms interval for generic detection)</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.69: Preserve SCORM score-based progress in activity progress API</li>
                 <li>v2.0.68: Fix progress 0% on resume, score &gt;100%, false completion</li>
                 <li>v2.0.66: Auto-grade Basic SCORM from furthest slide progress</li>
-                <li>v2.0.65: Fix stale interceptor reads, furthestSlide for Basic SCORM</li>
             </ul>
             ]]>
         </releasenotes>

@@ -2315,6 +2315,22 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
         }
 
+        // v2.0.70: Try to detect total slides early so the initial progress message
+        // includes correct totalSlides. The SCORM content iframe is often already loaded
+        // at this point (LMSInitialize was called before this timeout fires).
+        if (slidescount <= 1) {
+            try {
+                var earlyContent = findGenericScormContent();
+                if (earlyContent) {
+                    var earlyTotal = getGenericTotalSlides(earlyContent);
+                    if (earlyTotal !== null && earlyTotal > slidescount) {
+                        console.log('[SCORM Plugin] Early total slides detection:', earlyTotal);
+                        slidescount = earlyTotal;
+                    }
+                }
+            } catch (e) {}
+        }
+
         if (furthestSlide !== null) {
             sendProgressUpdate(null, null, null, furthestSlide);
             console.log('[SCORM Plugin] Initial progress sent with furthest slide:', furthestSlide);
