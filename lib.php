@@ -1673,7 +1673,18 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
 
-                var result = originalSetValue.call(window.API, element, valueToWrite);
+                // v2.0.73: For lesson_location, write max(value, furthestSlide) to DB so that
+                // on page refresh, the content resumes at the furthest slide, not the current.
+                // Track the actual value (valueToWrite) for position bar updates.
+                var dbWriteValue = valueToWrite;
+                if (element === 'cmi.core.lesson_location' && furthestSlide !== null) {
+                    var locSlide = parseInt(valueToWrite, 10);
+                    if (!isNaN(locSlide) && locSlide < furthestSlide) {
+                        dbWriteValue = String(furthestSlide);
+                    }
+                }
+
+                var result = originalSetValue.call(window.API, element, dbWriteValue);
 
                 // DEBUG: Log all SCORM API calls to understand what the content sends.
                 console.log('[SCORM 1.2] LMSSetValue:', element, '=', valueToWrite && valueToWrite.substring ? valueToWrite.substring(0, 200) : valueToWrite);
@@ -2126,7 +2137,17 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
 
-                var result = originalSetValue2004.call(window.API_1484_11, element, valueToWrite);
+                // v2.0.73: For cmi.location, write max(value, furthestSlide) to DB so that
+                // on page refresh, the content resumes at the furthest slide, not the current.
+                var dbWriteValue2004 = valueToWrite;
+                if (element === 'cmi.location' && furthestSlide !== null) {
+                    var locSlide2004 = parseInt(valueToWrite, 10);
+                    if (!isNaN(locSlide2004) && locSlide2004 < furthestSlide) {
+                        dbWriteValue2004 = String(furthestSlide);
+                    }
+                }
+
+                var result = originalSetValue2004.call(window.API_1484_11, element, dbWriteValue2004);
 
                 // DEBUG: Log all SCORM API calls to understand what the content sends.
                 console.log('[SCORM 2004] SetValue:', element, '=', valueToWrite && valueToWrite.substring ? valueToWrite.substring(0, 200) : valueToWrite);
