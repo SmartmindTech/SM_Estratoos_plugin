@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012875</version>
+        <version>2025012876</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.75</release>
+        <release>2.0.76</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,33 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.75/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.76/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.75</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.76</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.75 - Fix Position Bar Jump During Tag Navigation</h3>
+            <h3>Version 2.0.76 - Captivate SCORM: Real-Time Position Tracking</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix position bar counter jumping from tag target (2/5) to furthest (3/5) during tag navigation</li>
-                <li>Initial progress retry now sends tag target as currentSlide when tag navigation is active</li>
+                <li>Parse Captivate suspend_data format (cs=N,vs=0:1:2:3,...) for slide position extraction</li>
+                <li>Position bar now follows Captivate slide navigation in real time via content variable polling</li>
+                <li>Generic position detection no longer permanently disabled when SCORM API goes stale</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Initial retry sends pendingSlideNavigation.slide instead of furthestSlide during tag navigation</li>
-                <li>Normal resume (no tag) still sends furthestSlide as currentSlide</li>
+                <li>Added Captivate cs=N format to parseSlideFromSuspendData and modifySuspendDataForSlide</li>
+                <li>Added cpInfoCurrentSlide/cpInfoCurrentSlideIndex and CURRENT_SLIDE to content variable detection</li>
+                <li>Track lastApiChangeTime; allow generic detection when API stale for >5 seconds</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.75: Fix position bar jumping to furthest during tag navigation</li>
                 <li>v2.0.74: Prevent lesson_location from going backward in DB for correct resume on refresh</li>
                 <li>v2.0.73: Persist furthestSlide in localStorage for cross-tab/refresh resume</li>
-                <li>v2.0.72: Score-based resume correction via LMSInitialize wrap and initial retry</li>
             </ul>
             ]]>
         </releasenotes>

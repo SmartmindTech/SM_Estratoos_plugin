@@ -434,6 +434,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     var lastSlide = null;
     var lastSuspendData = null;
     var lastSuspendDataOriginal = null;
+    var lastApiChangeTime = 0; // v2.0.76: Track when SCORM API last reported a change
 
     // Function to parse slide number from lesson_location.
     function parseSlideNumber(location) {
@@ -941,6 +942,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
         }
 
+        // 2.5. Captivate-style: comma-separated key=value (cs=1,vs=0:1:2:3,qt=0,qr=,ts=30013)
+        // cs = current slide (0-based), vs = visited slides (colon-separated)
+        if (data.indexOf(',') !== -1 && /\bcs=\d+/.test(data)) {
+            var csMatch = data.match(/\bcs=(\d+)/);
+            if (csMatch) {
+                var cs = parseInt(csMatch[1], 10);
+                if (!isNaN(cs) && cs >= 0) {
+                    console.log('[suspend_data] Captivate cs (0-based):', cs);
+                    slideSource = 'suspend_data';
+                    return cs + 1; // cs is 0-based
+                }
+            }
+        }
+
         // 3. URL-encoded format (Adobe Captivate style).
         if (data.indexOf('=') !== -1 && data.indexOf('&') !== -1) {
             try {
@@ -1380,6 +1395,21 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
         }
 
+        // Captivate format: cs=N,vs=0:1:2:3,...
+        if (/\bcs=\d+/.test(originalData) && originalData.indexOf(',') !== -1) {
+            var modified = originalData.replace(
+                /\bcs=(\d+)/,
+                function(match, oldValue) {
+                    if (parseInt(oldValue) !== targetIndex) {
+                        console.log('[SCORM suspend_data] Captivate cs:', oldValue, '->', targetIndex);
+                        return 'cs=' + targetIndex;
+                    }
+                    return match;
+                }
+            );
+            if (modified !== originalData) return modified;
+        }
+
         return originalData;
     }
 
@@ -1694,6 +1724,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // Only poll-based reads should suppress backward movement, not actual SCORM writes.
                 if (element === 'cmi.core.lesson_location' && valueToWrite !== lastLocation) {
                     lastLocation = valueToWrite;
+                    lastApiChangeTime = Date.now();
                     var parsedSlide = parseInt(valueToWrite, 10);
                     sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);
                     // v2.0.65: If user naturally navigated away from tag target, disable the
@@ -1769,6 +1800,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
                     lastSuspendDataOriginal = value;
                     lastSuspendData = valueToWrite;
+                    lastApiChangeTime = Date.now();
                     if (!inInterceptWindow) {
                         // Parse from ORIGINAL value to get Storyline's actual position
                         var slideNum = parseSlideFromSuspendData(value);
@@ -2157,6 +2189,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // Only poll-based reads should suppress backward movement, not actual SCORM writes.
                 if (element === 'cmi.location' && valueToWrite !== lastLocation) {
                     lastLocation = valueToWrite;
+                    lastApiChangeTime = Date.now();
                     var parsedSlide = parseInt(valueToWrite, 10);
                     sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);
                     // v2.0.65: If user naturally navigated away from tag target, disable the
@@ -2232,6 +2265,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
 
                     lastSuspendDataOriginal = value;
                     lastSuspendData = valueToWrite;
+                    lastApiChangeTime = Date.now();
                     if (!inInterceptWindow) {
                         // Parse from ORIGINAL value to get Storyline's actual position
                         var slideNum = parseSlideFromSuspendData(value);
@@ -2532,6 +2566,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         // Check if location changed.
         if (currentLocation && currentLocation !== lastLocation) {
             lastLocation = currentLocation;
+            lastApiChangeTime = Date.now();
             console.log('[SCORM Poll] Location changed:', currentLocation);
             sendProgressUpdate(currentLocation, lastStatus, null, null);
 
@@ -2558,6 +2593,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         // Check if suspend_data changed.
         if (currentSuspendData && currentSuspendData !== lastSuspendData) {
             lastSuspendData = currentSuspendData;
+            lastApiChangeTime = Date.now();
             var slideNum = parseSlideFromSuspendData(currentSuspendData);
             if (slideNum !== null && slideNum !== lastSlide) {
                 console.log('[SCORM Poll] Detected slide change from suspend_data:', slideNum);
@@ -3522,7 +3558,21 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             var win = playerInfo.window;
 
             // Method 1: Check for common slide/page variables
-            var varNames = ['currentSlide', 'currentPage', 'slideIndex', 'pageIndex', 'slideNum', 'pageNum', 'currentIndex'];
+            // Adobe Captivate: cpInfoCurrentSlide (1-based), cpInfoCurrentSlideIndex (0-based)
+            // Generic: CURRENT_SLIDE, current_slide, etc.
+            if (typeof win.cpInfoCurrentSlide !== 'undefined' && !isNaN(win.cpInfoCurrentSlide)) {
+                var val = parseInt(win.cpInfoCurrentSlide, 10);
+                if (val >= 1) {
+                    return val; // cpInfoCurrentSlide is 1-based
+                }
+            }
+            if (typeof win.cpInfoCurrentSlideIndex !== 'undefined' && !isNaN(win.cpInfoCurrentSlideIndex)) {
+                var val = parseInt(win.cpInfoCurrentSlideIndex, 10);
+                if (val >= 0) {
+                    return val + 1; // 0-based to 1-based
+                }
+            }
+            var varNames = ['currentSlide', 'CURRENT_SLIDE', 'current_slide', 'currentPage', 'slideIndex', 'pageIndex', 'slideNum', 'pageNum', 'currentIndex'];
             for (var i = 0; i < varNames.length; i++) {
                 if (typeof win[varNames[i]] !== 'undefined' && !isNaN(win[varNames[i]])) {
                     var rawVal = parseInt(win[varNames[i]], 10);
@@ -3642,8 +3692,13 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     return;
                 }
 
-                // Skip DOM position detection when SCORM API tracking is active.
-                if (apiHasPosition) {
+                // v2.0.76: Only skip generic detection if API recently updated (within last 5 seconds).
+                // For content like Captivate that only commits every ~30 seconds,
+                // the API goes stale between commits. Allow generic detection to fill the gaps
+                // by reading the content's internal JavaScript variables (cpInfoCurrentSlide, etc.).
+                var apiRecentlyUpdated = apiHasPosition && lastApiChangeTime > 0 &&
+                    (Date.now() - lastApiChangeTime) < 5000;
+                if (apiRecentlyUpdated) {
                     return;
                 }
 
