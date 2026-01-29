@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012865</version>
+        <version>2025012866</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.65</release>
+        <release>2.0.66</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,36 +29,42 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.65/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.66/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.65</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.66</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.65 - Fix Position Bar &amp; Resume for Basic SCORM</h3>
+            <h3>Version 2.0.66 - Auto-Grade Basic SCORM &amp; Position Bar Fixes</h3>
+
+            <h4>New Features</h4>
+            <ul>
+                <li>Auto-write grades to Moodle for SCORMs that don't manage their own scores (e.g. Basic SCORM)</li>
+                <li>Grade is calculated from furthest slide progress: (furthestSlide / totalSlides) * 100</li>
+                <li>Only activates when SCORM content never writes cmi.core.score.raw itself</li>
+            </ul>
 
             <h4>Bug Fixes</h4>
             <ul>
                 <li>Fix position bar jumping back up after backward navigation (stale interceptor returning old tag target)</li>
-                <li>Fix furthest slide not restored after page refresh for Basic SCORM (furthestSlide was never tracked)</li>
+                <li>Fix furthest slide not restored after page refresh for Basic SCORM</li>
                 <li>Fix initial default slide 1 overriding tag navigation target position</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Disable lesson_location read interceptor when SCORM content writes a different location (user navigated naturally)</li>
-                <li>Track furthestSlide from forward navigation in sendProgressUpdate (not just from score.raw)</li>
-                <li>Store furthestSlide in sessionStorage for resume after page refresh</li>
-                <li>Skip initial default slide 1 when tag navigation is pending</li>
-                <li>Same fixes applied to both SCORM 1.2 and SCORM 2004</li>
+                <li>Disable lesson_location read interceptor when user navigates away from tag target</li>
+                <li>Track furthestSlide from forward navigation (not just from score.raw)</li>
+                <li>Store furthestSlide in sessionStorage for resume persistence</li>
+                <li>Supports both SCORM 1.2 and SCORM 2004 grade element names</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v2.0.64: Fix backward nav, faster generic detection, fix tag navigation</li>
-                <li>v2.0.63: Fix false 100% completion, totalSlides=0 for unknown totals</li>
+                <li>v2.0.65: Fix stale interceptor reads, furthestSlide for Basic SCORM</li>
+                <li>v2.0.64: Fix backward nav, faster generic detection</li>
             </ul>
             ]]>
         </releasenotes>

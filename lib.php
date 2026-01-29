@@ -833,6 +833,13 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     // Track the source of slide position for priority handling.
     var slideSource = null; // 'suspend_data', 'navigation', 'score'
 
+    // v2.0.66: References to original (unwrapped) SCORM API for writing grades.
+    // Set from within the defineProperty trap when the API is detected.
+    var originalScormSetValue = null;  // function(element, value) - bypasses our interceptors
+    var originalScormCommit = null;    // function() - commits changes to Moodle DB
+    var contentWritesScore = false;    // true if SCORM content writes its own score.raw
+    var scormApiVersion = null;        // '1.2' or '2004' - determines element name format
+
     // Track the furthest slide reached (from score)
     // IMPORTANT: Initialize from sessionStorage to prevent reset on iframe reload!
     // The frontend stores the true maximum in sessionStorage, which persists across reloads.
@@ -1099,6 +1106,27 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                 } catch (e) {}
                 console.log('[SCORM] Furthest slide updated:', furthestSlide);
+
+                // v2.0.66: Write grade to Moodle for SCORMs that don't manage their own scores.
+                // Uses the same furthest-slide-based percentage strategy as Storyline score correction.
+                if (!contentWritesScore && originalScormSetValue && slidescount > 1) {
+                    var gradePercent = Math.round((furthestSlide / slidescount) * 10000) / 100;
+                    if (scormApiVersion === '2004') {
+                        originalScormSetValue('cmi.score.raw', String(gradePercent));
+                        originalScormSetValue('cmi.score.min', '0');
+                        originalScormSetValue('cmi.score.max', '100');
+                        originalScormSetValue('cmi.score.scaled', String(gradePercent / 100));
+                    } else {
+                        originalScormSetValue('cmi.core.score.raw', String(gradePercent));
+                        originalScormSetValue('cmi.core.score.min', '0');
+                        originalScormSetValue('cmi.core.score.max', '100');
+                    }
+                    console.log('[SCORM] Grade written to Moodle:', gradePercent + '%',
+                        '(' + furthestSlide + '/' + slidescount + ')');
+                    if (originalScormCommit) {
+                        originalScormCommit();
+                    }
+                }
             }
         }
 
@@ -1515,6 +1543,13 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
 
             var originalSetValue = window.API.LMSSetValue;
+            // v2.0.66: Store reference to original SCORM 1.2 API for grade writing.
+            originalScormSetValue = function(el, val) { return originalSetValue.call(window.API, el, val); };
+            scormApiVersion = '1.2';
+            if (window.API.LMSCommit) {
+                var origCommit = window.API.LMSCommit;
+                originalScormCommit = function() { return origCommit.call(window.API, ''); };
+            }
             window.API.LMSSetValue = function(element, value) {
                 var valueToWrite = value;
 
@@ -1614,6 +1649,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // Track score changes.
                 // IMPORTANT: Score represents FURTHEST PROGRESS, not current position.
                 if (element === 'cmi.core.score.raw') {
+                    contentWritesScore = true; // v2.0.66: Mark that this SCORM manages its own scores
                     var score = parseFloat(valueToWrite);
                     if (!isNaN(score) && slidescount > 0 && score <= 100) {
                         // Calculate slide from score percentage.
@@ -1917,6 +1953,15 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             }
 
             var originalSetValue2004 = window.API_1484_11.SetValue;
+            // v2.0.66: Store reference to original SCORM 2004 API for grade writing.
+            if (!originalScormSetValue) {
+                originalScormSetValue = function(el, val) { return originalSetValue2004.call(window.API_1484_11, el, val); };
+                scormApiVersion = '2004';
+            }
+            if (!originalScormCommit && window.API_1484_11.Commit) {
+                var origCommit2004 = window.API_1484_11.Commit;
+                originalScormCommit = function() { return origCommit2004.call(window.API_1484_11, ''); };
+            }
             window.API_1484_11.SetValue = function(element, value) {
                 var valueToWrite = value;
 
@@ -2010,6 +2055,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // Track score changes.
                 // IMPORTANT: Score represents FURTHEST PROGRESS, not current position.
                 if (element === 'cmi.score.raw') {
+                    contentWritesScore = true; // v2.0.66: Mark that this SCORM manages its own scores
                     var score = parseFloat(valueToWrite);
                     if (!isNaN(score) && slidescount > 0 && score <= 100) {
                         // Calculate slide from score percentage.
