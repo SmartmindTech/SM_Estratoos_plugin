@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012876</version>
+        <version>2025012877</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.76</release>
+        <release>2.0.77</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,35 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.76/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.77/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.76</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.77</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.76 - Captivate SCORM: Real-Time Position Tracking</h3>
+            <h3>Version 2.0.77 - Fix Position Bar Jumping to Furthest After Navigation</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Parse Captivate suspend_data format (cs=N,vs=0:1:2:3,...) for slide position extraction</li>
-                <li>Position bar now follows Captivate slide navigation in real time via content variable polling</li>
-                <li>Generic position detection no longer permanently disabled when SCORM API goes stale</li>
+                <li>Fix position bar counter jumping to furthest slide after backward/tag navigation</li>
+                <li>Poll no longer reads boosted lesson_location from DB and reports it as a position change</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Added Captivate cs=N format to parseSlideFromSuspendData and modifySuspendDataForSlide</li>
-                <li>Added cpInfoCurrentSlide/cpInfoCurrentSlideIndex and CURRENT_SLIDE to content variable detection</li>
-                <li>Track lastApiChangeTime; allow generic detection when API stale for >5 seconds</li>
+                <li>Track lastWrittenLocation (actual content value) separately from lastLocation (DB value)</li>
+                <li>LMSSetValue handler compares against actual value; poll compares against DB value</li>
+                <li>Same fix applied for both SCORM 1.2 (cmi.core.lesson_location) and SCORM 2004 (cmi.location)</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.76: Captivate SCORM real-time position tracking via content variables</li>
                 <li>v2.0.75: Fix position bar jumping to furthest during tag navigation</li>
                 <li>v2.0.74: Prevent lesson_location from going backward in DB for correct resume on refresh</li>
-                <li>v2.0.73: Persist furthestSlide in localStorage for cross-tab/refresh resume</li>
             </ul>
             ]]>
         </releasenotes>

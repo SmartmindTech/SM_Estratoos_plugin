@@ -429,7 +429,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     var cmid = {$cmid};
     var scormid = {$scormid};
     var slidescount = {$slidescount};
-    var lastLocation = null;
+    var lastLocation = null;       // Last value written to DB (may be boosted by v2.0.74)
+    var lastWrittenLocation = null; // v2.0.77: Actual value content wrote (before boost)
     var lastStatus = null;
     var lastSlide = null;
     var lastSuspendData = null;
@@ -1722,8 +1723,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // Track lesson_location changes.
                 // v2.0.64: Pass parsed slide as directSlide (not location) so backward navigation is allowed.
                 // Only poll-based reads should suppress backward movement, not actual SCORM writes.
-                if (element === 'cmi.core.lesson_location' && valueToWrite !== lastLocation) {
-                    lastLocation = valueToWrite;
+                // v2.0.77: Compare against lastWrittenLocation (actual content value) not lastLocation
+                // (DB value, may be boosted by v2.0.74). Set lastLocation = dbWriteValue so the poll
+                // doesn't re-report the boosted DB value as a position change.
+                if (element === 'cmi.core.lesson_location' && valueToWrite !== lastWrittenLocation) {
+                    lastWrittenLocation = valueToWrite;
+                    lastLocation = dbWriteValue;
                     lastApiChangeTime = Date.now();
                     var parsedSlide = parseInt(valueToWrite, 10);
                     sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);
@@ -2187,8 +2192,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 // Track location changes.
                 // v2.0.64: Pass parsed slide as directSlide (not location) so backward navigation is allowed.
                 // Only poll-based reads should suppress backward movement, not actual SCORM writes.
-                if (element === 'cmi.location' && valueToWrite !== lastLocation) {
-                    lastLocation = valueToWrite;
+                // v2.0.77: Compare against lastWrittenLocation (actual content value) not lastLocation
+                // (DB value, may be boosted by v2.0.74). Set lastLocation = dbWriteValue2004 so the poll
+                // doesn't re-report the boosted DB value as a position change.
+                if (element === 'cmi.location' && valueToWrite !== lastWrittenLocation) {
+                    lastWrittenLocation = valueToWrite;
+                    lastLocation = dbWriteValue2004;
                     lastApiChangeTime = Date.now();
                     var parsedSlide = parseInt(valueToWrite, 10);
                     sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);

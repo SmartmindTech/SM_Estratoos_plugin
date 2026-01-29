@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012876;  // YYYYMMDDXX format.
+$plugin->version = 2025012877;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.76';  // Captivate SCORM: parse suspend_data, content variable polling for real-time position.
+$plugin->release = '2.0.77';  // Fix poll reading boosted lesson_location from v2.0.74, causing position bar to jump to furthest.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
