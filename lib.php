@@ -841,22 +841,27 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
     var scormApiVersion = null;        // '1.2' or '2004' - determines element name format
 
     // Track the furthest slide reached (from score)
-    // IMPORTANT: Initialize from sessionStorage to prevent reset on iframe reload!
-    // The frontend stores the true maximum in sessionStorage, which persists across reloads.
-    // This prevents progress from appearing to go backwards when Storyline writes low init scores.
+    // IMPORTANT: Initialize from sessionStorage/localStorage to prevent reset on iframe reload!
+    // sessionStorage persists within the same tab, localStorage persists across tabs/refreshes.
+    // v2.0.73: Added localStorage fallback. sessionStorage is tab-scoped and lost on new tabs
+    // or page refreshes. localStorage persists, ensuring furthestSlide is known BEFORE the
+    // SCORM API is detected, so resume correction can fire before content reads CMI data.
     var furthestSlide = null;
     try {
         var storedFurthest = sessionStorage.getItem('scorm_furthest_slide_' + cmid);
+        if (!storedFurthest) {
+            storedFurthest = localStorage.getItem('scorm_furthest_slide_' + cmid);
+        }
         if (storedFurthest) {
             furthestSlide = parseInt(storedFurthest, 10);
             if (isNaN(furthestSlide) || furthestSlide < 1) {
                 furthestSlide = null;
             } else {
-                console.log('[SCORM Plugin] Restored furthest slide from sessionStorage:', furthestSlide);
+                console.log('[SCORM Plugin] Restored furthest slide from storage:', furthestSlide);
             }
         }
     } catch (e) {
-        // sessionStorage not available
+        // storage not available
     }
 
     // Function to parse slide from suspend_data (multiple vendor formats).
@@ -1104,6 +1109,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 furthestSlide = currentSlide;
                 try {
                     sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                    localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                 } catch (e) {}
                 console.log('[SCORM] Furthest slide updated:', furthestSlide);
 
@@ -1477,12 +1483,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                             origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
                                         }
                                     }
-                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
+                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
                                     console.log('[SCORM Plugin] Score-based resume correction: slide', location, '->', furthestSlide,
                                         '(score:', score, ', total:', total, ')');
                                 } else if (!isNaN(location) && location >= 1) {
                                     furthestSlide = Math.max(location, furthestFromScore || 0);
-                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
+                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
                                 }
                             }
                         }
@@ -1762,6 +1768,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 console.log('[SCORM 1.2] Furthest progress updated from suspend_data:', furthestSlide);
                                 try {
                                     sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                                    localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                                 } catch (e) {}
                             }
                             // Always send current position from suspend_data
@@ -1938,12 +1945,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                             origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
                                         }
                                     }
-                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
+                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
                                     console.log('[SCORM Plugin] Score-based resume correction (2004): slide', location, '->', furthestSlide,
                                         '(score:', score, ', total:', total, ')');
                                 } else if (!isNaN(location) && location >= 1) {
                                     furthestSlide = Math.max(location, furthestFromScore || 0);
-                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
+                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
                                 }
                             }
                         }
@@ -2214,6 +2221,7 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                                 console.log('[SCORM 2004] Furthest progress updated from suspend_data:', furthestSlide);
                                 try {
                                     sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                                    localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                                 } catch (e) {}
                             }
                             // Always send current position from suspend_data

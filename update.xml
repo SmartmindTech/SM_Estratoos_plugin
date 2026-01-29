@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012872</version>
+        <version>2025012873</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.72</release>
+        <release>2.0.73</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.72/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.73/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.72</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.73</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.72 - Score-Based Resume Correction</h3>
+            <h3>Version 2.0.73 - Persistent Resume Correction via localStorage</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix refresh loading current slide instead of furthest: use score.raw to determine actual furthest progress</li>
-                <li>lesson_location stores current position (wrong after backward nav), score.raw stores furthest progress</li>
+                <li>Fix content loading at current slide instead of furthest on refresh/new tab</li>
+                <li>sessionStorage is tab-scoped and lost on refresh; localStorage persists across tabs and sessions</li>
+                <li>furthestSlide now known before SCORM API detection, allowing resume correction to fire in time</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Wrap LMSInitialize/Initialize to correct resume position from score.raw before content reads CMI data</li>
-                <li>Initial progress retry now reads both lesson_location and score.raw, uses max as furthest slide</li>
-                <li>Score-based correction works for both SCORM 1.2 and SCORM 2004</li>
+                <li>Read furthestSlide from localStorage as fallback when sessionStorage is empty</li>
+                <li>Save furthestSlide to both sessionStorage and localStorage on every update (7 save points)</li>
+                <li>Resume correction now works on page refresh: content loads at furthest slide, not current</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.72: Score-based resume correction via LMSInitialize wrap and initial retry</li>
                 <li>v2.0.71: Faster initial progress: 200ms retry instead of fixed 1000ms timeout</li>
                 <li>v2.0.70: Early total slides detection before initial progress send</li>
-                <li>v2.0.69: Preserve SCORM score-based progress in activity progress API</li>
             </ul>
             ]]>
         </releasenotes>

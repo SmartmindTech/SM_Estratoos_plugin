@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012872;  // YYYYMMDDXX format.
+$plugin->version = 2025012873;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.72';  // Score-based resume correction: use score.raw to restore furthest slide on refresh.
+$plugin->release = '2.0.73';  // Persist furthestSlide in localStorage for cross-tab/refresh resume correction.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
