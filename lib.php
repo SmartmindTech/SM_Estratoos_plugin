@@ -1569,9 +1569,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 console.log('[SCORM 1.2] LMSSetValue:', element, '=', valueToWrite && valueToWrite.substring ? valueToWrite.substring(0, 200) : valueToWrite);
 
                 // Track lesson_location changes.
+                // v2.0.64: Pass parsed slide as directSlide (not location) so backward navigation is allowed.
+                // Only poll-based reads should suppress backward movement, not actual SCORM writes.
                 if (element === 'cmi.core.lesson_location' && valueToWrite !== lastLocation) {
                     lastLocation = valueToWrite;
-                    sendProgressUpdate(valueToWrite, lastStatus, null, null);
+                    var parsedSlide = parseInt(valueToWrite, 10);
+                    sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);
                 }
                 // Track lesson_status changes.
                 if (element === 'cmi.core.lesson_status') {
@@ -1949,9 +1952,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 console.log('[SCORM 2004] SetValue:', element, '=', valueToWrite && valueToWrite.substring ? valueToWrite.substring(0, 200) : valueToWrite);
 
                 // Track location changes.
+                // v2.0.64: Pass parsed slide as directSlide (not location) so backward navigation is allowed.
+                // Only poll-based reads should suppress backward movement, not actual SCORM writes.
                 if (element === 'cmi.location' && valueToWrite !== lastLocation) {
                     lastLocation = valueToWrite;
-                    sendProgressUpdate(valueToWrite, lastStatus, null, null);
+                    var parsedSlide = parseInt(valueToWrite, 10);
+                    sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);
                 }
                 // Track completion_status changes.
                 if (element === 'cmi.completion_status') {
@@ -3354,8 +3360,8 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
             }
-        }, 1500); // Check less frequently
-    }, 5000); // Start later to let specific detectors run first
+        }, 800); // v2.0.64: Faster interval for quicker total slides detection
+    }, 1500); // v2.0.64: Reduced start delay (was 5000ms) for faster initial detection
 
     window.addEventListener('beforeunload', function() {
         if (genericCheckInterval) {

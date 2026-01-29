@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012863;  // YYYYMMDDXX format.
+$plugin->version = 2025012864;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.63';  // Fix 1/1=100% by sending totalSlides=0 until real total detected.
+$plugin->release = '2.0.64';  // Fix backward nav, faster generic detection, fix tag navigation.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

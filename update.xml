@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012863</version>
+        <version>2025012864</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.63</release>
+        <release>2.0.64</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,35 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.63/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.64/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.63</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.64</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.63 - Fix False 100% Completion</h3>
+            <h3>Version 2.0.64 - Fix Backward Navigation &amp; Faster Detection</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fixes SCORM showing 1/1 (100% complete) before total slides are detected</li>
-                <li>totalSlides sent as 0 (unknown) until real total is detected, preventing false 100%</li>
-                <li>Generic detection now sends a progress update when total slides changes</li>
+                <li>Fix backward navigation not updating position bar (e.g. slide 2→1 stayed at 2/5)</li>
+                <li>Fix tag navigation failing because SmartLearning thought user was at wrong slide</li>
+                <li>Speed up generic total slides detection (was ~6.5s, now ~2.3s)</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>totalSlides=0 in postMessage when slidescount &lt;= 1 (signals unknown total to SmartLearning)</li>
-                <li>When generic detection updates slidescount (e.g. from 1 to 5), immediately sends corrected progress</li>
-                <li>Flow: initial 1/0 (unknown) → generic detects TOTAL_SLIDES=5 → updates to 1/5 (20%)</li>
+                <li>LMSSetValue writes to lesson_location now pass as directSlide (authoritative, allows backward)</li>
+                <li>Only poll-based reads suppress backward movement (stale data protection)</li>
+                <li>Generic detection start delay reduced from 5000ms to 1500ms, interval from 1500ms to 800ms</li>
+                <li>Same fix applied to both SCORM 1.2 (cmi.core.lesson_location) and SCORM 2004 (cmi.location)</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.63: Fix false 100% completion, totalSlides=0 for unknown totals</li>
                 <li>v2.0.62: DOM-based total slides, suppress false 100%, fix initial dip</li>
-                <li>v2.0.61: Generic SCORM 0-indexed fix, JS variable total detection</li>
             </ul>
             ]]>
         </releasenotes>
