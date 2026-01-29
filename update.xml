@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012871</version>
+        <version>2025012872</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.71</release>
+        <release>2.0.72</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.71/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.72/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.71</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.72</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.71 - Faster Initial Progress Send</h3>
+            <h3>Version 2.0.72 - Score-Based Resume Correction</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix slow position bar for Basic SCORM: replaced fixed 1000ms timeout with fast 200ms retry mechanism</li>
-                <li>Initial progress now sends as soon as LMSInitialize completes (~200ms) instead of waiting the full 1000ms</li>
+                <li>Fix refresh loading current slide instead of furthest: use score.raw to determine actual furthest progress</li>
+                <li>lesson_location stores current position (wrong after backward nav), score.raw stores furthest progress</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Retry every 200ms for up to 5 attempts: send initial progress as soon as lesson_location is available</li>
-                <li>Early total slides detection runs on each retry attempt</li>
-                <li>Falls back to previous behavior after 1000ms if data still unavailable</li>
+                <li>Wrap LMSInitialize/Initialize to correct resume position from score.raw before content reads CMI data</li>
+                <li>Initial progress retry now reads both lesson_location and score.raw, uses max as furthest slide</li>
+                <li>Score-based correction works for both SCORM 1.2 and SCORM 2004</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.71: Faster initial progress: 200ms retry instead of fixed 1000ms timeout</li>
                 <li>v2.0.70: Early total slides detection before initial progress send</li>
                 <li>v2.0.69: Preserve SCORM score-based progress in activity progress API</li>
-                <li>v2.0.68: Fix progress 0% on resume, score &gt;100%, false completion</li>
             </ul>
             ]]>
         </releasenotes>

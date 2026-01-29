@@ -1443,6 +1443,54 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 }
             }
 
+            // v2.0.72: When sessionStorage is empty (furthestSlide null), determine furthest
+            // from score.raw. Wrap LMSInitialize so the correction runs after the content
+            // iframe is loaded (TOTAL_SLIDES available) but before the content reads CMI data.
+            if (!pendingSlideNavigation && furthestSlide === null) {
+                var origLMSInitialize12 = window.API.LMSInitialize;
+                window.API.LMSInitialize = function(param) {
+                    var result = origLMSInitialize12.call(window.API, param);
+                    // Only run once
+                    if (furthestSlide !== null) return result;
+                    try {
+                        var scoreStr = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
+                        var locationStr = origLMSGetValue12.call(window.API, 'cmi.core.lesson_location');
+                        var score = parseFloat(scoreStr);
+                        var location = parseInt(locationStr, 10);
+
+                        if (!isNaN(score) && score > 0 && score <= 100) {
+                            // Detect total slides (content iframe should be loaded now)
+                            var content = findGenericScormContent();
+                            var total = content ? getGenericTotalSlides(content) : null;
+
+                            if (total && total > 1) {
+                                var furthestFromScore = Math.round((score / 100) * total);
+                                slidescount = total;
+
+                                if (!isNaN(location) && furthestFromScore > location) {
+                                    furthestSlide = furthestFromScore;
+                                    origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+                                    var sd = origLMSGetValue12.call(window.API, 'cmi.suspend_data');
+                                    if (sd && sd.length > 5) {
+                                        var fixed = modifySuspendDataForSlide(sd, furthestSlide);
+                                        if (fixed !== sd) {
+                                            origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
+                                        }
+                                    }
+                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
+                                    console.log('[SCORM Plugin] Score-based resume correction: slide', location, '->', furthestSlide,
+                                        '(score:', score, ', total:', total, ')');
+                                } else if (!isNaN(location) && location >= 1) {
+                                    furthestSlide = Math.max(location, furthestFromScore || 0);
+                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                    return result;
+                };
+            }
+
             // Wrap LMSGetValue to intercept reads.
             // For tag navigation: intercept lesson_location and suspend_data reads.
             // v2.0.58: For resume correction: ALWAYS install when furthestSlide is known.
@@ -1858,6 +1906,50 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 } catch (e) {
                     console.log('[SCORM Navigation] Error correcting SCORM 2004 resume position:', e.message);
                 }
+            }
+
+            // v2.0.72: Score-based resume correction for SCORM 2004.
+            if (!pendingSlideNavigation && furthestSlide === null) {
+                var origInitialize2004 = window.API_1484_11.Initialize;
+                window.API_1484_11.Initialize = function(param) {
+                    var result = origInitialize2004.call(window.API_1484_11, param);
+                    if (furthestSlide !== null) return result;
+                    try {
+                        var scoreStr = origGetValue2004.call(window.API_1484_11, 'cmi.score.raw');
+                        var locationStr = origGetValue2004.call(window.API_1484_11, 'cmi.location');
+                        var score = parseFloat(scoreStr);
+                        var location = parseInt(locationStr, 10);
+
+                        if (!isNaN(score) && score > 0 && score <= 100) {
+                            var content = findGenericScormContent();
+                            var total = content ? getGenericTotalSlides(content) : null;
+
+                            if (total && total > 1) {
+                                var furthestFromScore = Math.round((score / 100) * total);
+                                slidescount = total;
+
+                                if (!isNaN(location) && furthestFromScore > location) {
+                                    furthestSlide = furthestFromScore;
+                                    origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
+                                    var sd = origGetValue2004.call(window.API_1484_11, 'cmi.suspend_data');
+                                    if (sd && sd.length > 5) {
+                                        var fixed = modifySuspendDataForSlide(sd, furthestSlide);
+                                        if (fixed !== sd) {
+                                            origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
+                                        }
+                                    }
+                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
+                                    console.log('[SCORM Plugin] Score-based resume correction (2004): slide', location, '->', furthestSlide,
+                                        '(score:', score, ', total:', total, ')');
+                                } else if (!isNaN(location) && location >= 1) {
+                                    furthestSlide = Math.max(location, furthestFromScore || 0);
+                                    try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                    return result;
+                };
             }
 
             // Wrap GetValue FIRST to intercept suspend_data reads
@@ -2304,23 +2396,26 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (initialProgressSent) { clearInterval(initialRetryInterval); return; }
         initialRetryCount++;
 
-        // v2.0.67: If furthestSlide is still null, try reading from Moodle's lesson_location.
+        // v2.0.72: If furthestSlide is still null, read from Moodle's CMI data.
+        // Read both lesson_location AND score.raw to determine the actual furthest slide.
+        // lesson_location stores CURRENT position (wrong after backward navigation),
+        // score.raw stores furthest progress percentage (more reliable).
+        var retryParsedLocation = null;
+        var retryParsedScore = null;
         if (furthestSlide === null && !pendingSlideNavigation) {
-            var moodleLocation = null;
             try {
                 if (window.API && window.API.LMSGetValue) {
-                    moodleLocation = window.API.LMSGetValue.call(window.API, 'cmi.core.lesson_location');
+                    var loc = window.API.LMSGetValue.call(window.API, 'cmi.core.lesson_location');
+                    var scr = window.API.LMSGetValue.call(window.API, 'cmi.core.score.raw');
+                    if (loc) { retryParsedLocation = parseInt(loc, 10); if (isNaN(retryParsedLocation) || retryParsedLocation < 1) retryParsedLocation = null; }
+                    if (scr) { retryParsedScore = parseFloat(scr); if (isNaN(retryParsedScore) || retryParsedScore <= 0) retryParsedScore = null; }
                 } else if (window.API_1484_11 && window.API_1484_11.GetValue) {
-                    moodleLocation = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.location');
+                    var loc2 = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.location');
+                    var scr2 = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.score.raw');
+                    if (loc2) { retryParsedLocation = parseInt(loc2, 10); if (isNaN(retryParsedLocation) || retryParsedLocation < 1) retryParsedLocation = null; }
+                    if (scr2) { retryParsedScore = parseFloat(scr2); if (isNaN(retryParsedScore) || retryParsedScore <= 0) retryParsedScore = null; }
                 }
             } catch (e) {}
-            if (moodleLocation) {
-                var parsedLocation = parseInt(moodleLocation, 10);
-                if (!isNaN(parsedLocation) && parsedLocation >= 1) {
-                    furthestSlide = parsedLocation;
-                    console.log('[SCORM Plugin] Restored furthest slide from Moodle lesson_location:', furthestSlide);
-                }
-            }
         }
 
         // v2.0.70: Try to detect total slides early so the initial progress message
@@ -2337,6 +2432,25 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                     }
                 }
             } catch (e) {}
+        }
+
+        // v2.0.72: Determine furthestSlide using max of location and score-based calculation.
+        // lesson_location gives current position (wrong after backward nav).
+        // score.raw gives furthest progress (reliable). Use whichever is higher.
+        if (furthestSlide === null && !pendingSlideNavigation) {
+            var scoreBasedSlide = null;
+            if (retryParsedScore !== null && retryParsedScore <= 100 && slidescount > 1) {
+                scoreBasedSlide = Math.round((retryParsedScore / 100) * slidescount);
+            }
+            if (retryParsedLocation !== null || scoreBasedSlide !== null) {
+                furthestSlide = Math.max(retryParsedLocation || 0, scoreBasedSlide || 0);
+                if (furthestSlide >= 1) {
+                    console.log('[SCORM Plugin] Restored furthest slide from Moodle data:', furthestSlide,
+                        '(location:', retryParsedLocation, ', score-based:', scoreBasedSlide, ', total:', slidescount, ')');
+                } else {
+                    furthestSlide = null;
+                }
+            }
         }
 
         // Send as soon as we have data, or fall back after 5 attempts (1000ms total).
