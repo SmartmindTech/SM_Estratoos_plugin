@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012867</version>
+        <version>2025012868</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.67</release>
+        <release>2.0.68</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,15 +29,15 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.67/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.68/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.67</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.68</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.67 - Fix Progress 0% on Resume &amp; False Completion</h3>
+            <h3>Version 2.0.68 - Fix Progress 0% on Resume &amp; False Completion</h3>
 
             <h4>Bug Fixes</h4>
             <ul>

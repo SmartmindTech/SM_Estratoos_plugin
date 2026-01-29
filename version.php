@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012867;  // YYYYMMDDXX format.
+$plugin->version = 2025012868;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.67';  // Fix progress 0% on resume, score >100%, false completion.
+$plugin->release = '2.0.68';  // Fix progress 0% on resume, score >100%, false completion.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
