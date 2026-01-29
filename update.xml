@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012874</version>
+        <version>2025012875</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.74</release>
+        <release>2.0.75</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,36 +29,33 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.74/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.75/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.74</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.75</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.74 - Prevent lesson_location Backward in DB</h3>
+            <h3>Version 2.0.75 - Fix Position Bar Jump During Tag Navigation</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix content loading at current slide instead of furthest on page refresh</li>
-                <li>lesson_location in DB now always holds the furthest slide reached, never goes backward</li>
-                <li>Content resumes at furthest position on every page load (works from first visit)</li>
+                <li>Fix position bar counter jumping from tag target (2/5) to furthest (3/5) during tag navigation</li>
+                <li>Initial progress retry now sends tag target as currentSlide when tag navigation is active</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>LMSSetValue interceptor writes max(value, furthestSlide) for lesson_location to DB</li>
-                <li>Position bar still tracks actual current position (uses original value for tracking)</li>
-                <li>Works for both SCORM 1.2 (cmi.core.lesson_location) and SCORM 2004 (cmi.location)</li>
-                <li>Also persist furthestSlide in localStorage as fallback for cross-tab resume (v2.0.73)</li>
+                <li>Initial retry sends pendingSlideNavigation.slide instead of furthestSlide during tag navigation</li>
+                <li>Normal resume (no tag) still sends furthestSlide as currentSlide</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.74: Prevent lesson_location from going backward in DB for correct resume on refresh</li>
                 <li>v2.0.73: Persist furthestSlide in localStorage for cross-tab/refresh resume</li>
                 <li>v2.0.72: Score-based resume correction via LMSInitialize wrap and initial retry</li>
-                <li>v2.0.71: Faster initial progress: 200ms retry instead of fixed 1000ms timeout</li>
             </ul>
             ]]>
         </releasenotes>

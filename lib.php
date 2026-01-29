@@ -2486,8 +2486,12 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
         if (furthestSlide !== null) {
             clearInterval(initialRetryInterval);
             initialProgressSent = true;
-            sendProgressUpdate(null, null, null, furthestSlide);
-            console.log('[SCORM Plugin] Initial progress sent with furthest slide:', furthestSlide, '(attempt', initialRetryCount, ')');
+            // v2.0.75: During tag navigation, send tag target as current position.
+            // The user is at the tag target, not the furthest slide.
+            var initialSlide = pendingSlideNavigation ? pendingSlideNavigation.slide : furthestSlide;
+            sendProgressUpdate(null, null, null, initialSlide);
+            console.log('[SCORM Plugin] Initial progress sent with slide:', initialSlide,
+                '(furthest:', furthestSlide, ', attempt', initialRetryCount, ')');
         } else if (initialRetryCount >= 5) {
             clearInterval(initialRetryInterval);
             initialProgressSent = true;
