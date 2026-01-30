@@ -52,54 +52,99 @@ function wrapScormApi() {
 // Previously, we polled every 200ms which left a gap where Storyline could read
 // the cmi object before our wrapper was installed. With defineProperty, we wrap
 // the API the INSTANT it is created (when Moodle assigns window.API = new SCORMapi(...)).
+// v2.0.86: ALWAYS set traps (removed guard: pendingSlideNavigation || furthestSlide !== null).
+// When localStorage is empty, furthestSlide is null at load time and traps weren't set.
+// Captivate reads suspend_data from the pre-populated data model BEFORE calling LMSInitialize,
+// so the LMSInitialize wrapper (v2.0.85) fires too late. The trap computes furthestSlide from
+// score.raw/lesson_location the instant the API is created, enabling pre-init backing store
+// modification before any content can read it.
 var apiWrapped = false;
-if (pendingSlideNavigation || furthestSlide !== null) {
-    // Trap for SCORM 1.2 API
-    if (typeof window.API === 'undefined' || !window.API) {
-        (function() {
-            var _storedAPI = window.API;
-            try {
-                Object.defineProperty(window, 'API', {
-                    get: function() { return _storedAPI; },
-                    set: function(newAPI) {
-                        _storedAPI = newAPI;
-                        if (newAPI && newAPI.LMSSetValue && !apiWrapped) {
-                            console.log('[SCORM Navigation] window.API created - wrapping IMMEDIATELY via defineProperty trap');
-                            apiWrapped = wrapScormApi();
-                        }
-                    },
-                    configurable: true,
-                    enumerable: true
-                });
-                console.log('[SCORM Navigation] Object.defineProperty trap set for window.API');
-            } catch (e) {
-                console.log('[SCORM Navigation] Could not set defineProperty trap for API:', e.message);
+
+// v2.0.86: Helper to compute furthestSlide from a freshly-created SCORM API.
+// Called inside defineProperty traps before wrapScormApi() to ensure furthestSlide is known
+// for the pre-init backing store modification in wrapScorm12Api/wrapScorm2004Api.
+function computeFurthestFromApi(apiObj, getValueFn, locElement, scoreElement) {
+    if (furthestSlide !== null || pendingSlideNavigation) return; // Already known or tag navigation
+    try {
+        var loc = getValueFn.call(apiObj, locElement);
+        var scr = getValueFn.call(apiObj, scoreElement);
+        var parsedLoc = loc ? parseInt(loc, 10) : null;
+        var parsedScore = scr ? parseFloat(scr) : null;
+        if (parsedLoc && !isNaN(parsedLoc) && parsedLoc >= 1) {
+            furthestSlide = parsedLoc;
+        }
+        if (parsedScore && !isNaN(parsedScore) && parsedScore > 0 && parsedScore <= 100 && slidescount > 1) {
+            var scoreSlide = Math.round((parsedScore / 100) * slidescount);
+            if (scoreSlide > (furthestSlide || 0)) {
+                furthestSlide = scoreSlide;
             }
-        })();
-    }
-    // Trap for SCORM 2004 API
-    if (typeof window.API_1484_11 === 'undefined' || !window.API_1484_11) {
-        (function() {
-            var _storedAPI2004 = window.API_1484_11;
+        }
+        if (furthestSlide !== null && furthestSlide >= 1) {
+            console.log('[SCORM Navigation] Computed furthestSlide from API in trap:', furthestSlide,
+                '(location:', parsedLoc, ', score:', parsedScore, ', total:', slidescount, ')');
             try {
-                Object.defineProperty(window, 'API_1484_11', {
-                    get: function() { return _storedAPI2004; },
-                    set: function(newAPI) {
-                        _storedAPI2004 = newAPI;
-                        if (newAPI && newAPI.SetValue && !apiWrapped) {
-                            console.log('[SCORM Navigation] window.API_1484_11 created - wrapping IMMEDIATELY via defineProperty trap');
-                            apiWrapped = wrapScormApi();
+                sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+            } catch(e) {}
+        }
+    } catch(e) {}
+}
+
+// Trap for SCORM 1.2 API
+if (typeof window.API === 'undefined' || !window.API) {
+    (function() {
+        var _storedAPI = window.API;
+        try {
+            Object.defineProperty(window, 'API', {
+                get: function() { return _storedAPI; },
+                set: function(newAPI) {
+                    _storedAPI = newAPI;
+                    if (newAPI && newAPI.LMSSetValue && !apiWrapped) {
+                        // v2.0.86: Compute furthestSlide before wrapping
+                        if (newAPI.LMSGetValue) {
+                            computeFurthestFromApi(newAPI, newAPI.LMSGetValue,
+                                'cmi.core.lesson_location', 'cmi.core.score.raw');
                         }
-                    },
-                    configurable: true,
-                    enumerable: true
-                });
-                console.log('[SCORM Navigation] Object.defineProperty trap set for window.API_1484_11');
-            } catch (e) {
-                console.log('[SCORM Navigation] Could not set defineProperty trap for API_1484_11:', e.message);
-            }
-        })();
-    }
+                        console.log('[SCORM Navigation] window.API created - wrapping IMMEDIATELY via defineProperty trap');
+                        apiWrapped = wrapScormApi();
+                    }
+                },
+                configurable: true,
+                enumerable: true
+            });
+            console.log('[SCORM Navigation] Object.defineProperty trap set for window.API');
+        } catch (e) {
+            console.log('[SCORM Navigation] Could not set defineProperty trap for API:', e.message);
+        }
+    })();
+}
+// Trap for SCORM 2004 API
+if (typeof window.API_1484_11 === 'undefined' || !window.API_1484_11) {
+    (function() {
+        var _storedAPI2004 = window.API_1484_11;
+        try {
+            Object.defineProperty(window, 'API_1484_11', {
+                get: function() { return _storedAPI2004; },
+                set: function(newAPI) {
+                    _storedAPI2004 = newAPI;
+                    if (newAPI && newAPI.SetValue && !apiWrapped) {
+                        // v2.0.86: Compute furthestSlide before wrapping
+                        if (newAPI.GetValue) {
+                            computeFurthestFromApi(newAPI, newAPI.GetValue,
+                                'cmi.location', 'cmi.score.raw');
+                        }
+                        console.log('[SCORM Navigation] window.API_1484_11 created - wrapping IMMEDIATELY via defineProperty trap');
+                        apiWrapped = wrapScormApi();
+                    }
+                },
+                configurable: true,
+                enumerable: true
+            });
+            console.log('[SCORM Navigation] Object.defineProperty trap set for window.API_1484_11');
+        } catch (e) {
+            console.log('[SCORM Navigation] Could not set defineProperty trap for API_1484_11:', e.message);
+        }
+    })();
 }
 
 // Try to wrap immediately (API may already exist), then retry with intervals as fallback.

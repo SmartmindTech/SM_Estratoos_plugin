@@ -201,7 +201,7 @@ setTimeout(function() {
             }
         }
     }, 1000);
-}, 4000);
+}, 2000); // v2.0.86: Reduced from 4000ms for faster initial position detection
 
 window.addEventListener('beforeunload', function() {
     if (iSpringCheckInterval) {

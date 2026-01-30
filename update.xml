@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012885</version>
+        <version>2025012886</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.85</release>
+        <release>2.0.86</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,28 +29,32 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.85/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.86/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.85</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.86</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.85 - Fix Resume Correction for Captivate SCORM</h3>
+            <h3>Version 2.0.86 - Fix Resume Correction &amp; Faster Vendor Position Detection</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix resume not navigating to furthest slide after refresh: LMSInitialize wrapper now always corrects suspend_data when furthestSlide is set, even when the initial retry loop pre-populated it or lesson_location already matched</li>
-                <li>Handles case where lesson_location=4 (boosted) but suspend_data cs=2 (actual slide 3) — Captivate uses cs field, not lesson_location, for resume position</li>
-                <li>Applied to both SCORM 1.2 and SCORM 2004 API wrappers</li>
+                <li>Fix Captivate resume: always set Object.defineProperty traps (even when localStorage is empty) and compute furthestSlide from score.raw/lesson_location in the trap before wrapping — ensures backing store is corrected before content reads suspend_data</li>
+                <li>Captivate reads suspend_data from pre-populated data model BEFORE calling LMSInitialize, so the LMSInitialize wrapper (v2.0.85) fires too late — the trap fires the instant the API is created</li>
+            </ul>
+
+            <h4>Improvements</h4>
+            <ul>
+                <li>Reduce initial polling delay for iSpring, Rise 360, and Captivate vendor detectors from 4s to 2s for faster position bar updates</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v2.0.84: Fix Captivate position bar bugs (Generic 0-based misread, resume correction fallback)</li>
+                <li>v2.0.85: Fix resume correction suspend_data in LMSInitialize wrapper</li>
+                <li>v2.0.84: Fix Captivate position bar bugs (Generic 0-based misread)</li>
                 <li>v2.0.83: Refactor tracking_js.php into modular class files by SCORM vendor</li>
-                <li>v2.0.82: Fix Captivate SCORM position bar showing furthest instead of current slide</li>
             </ul>
             ]]>
         </releasenotes>

@@ -210,7 +210,7 @@ setTimeout(function() {
             }
         }
     }, 1000);
-}, 4000);
+}, 2000); // v2.0.86: Reduced from 4000ms for faster initial position detection
 
 // v2.0.84: Resume correction via Captivate navigation API.
 // If the Captivate content didn't honor the modified suspend_data (cs field) for resume,
