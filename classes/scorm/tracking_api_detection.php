@@ -64,22 +64,22 @@ var apiWrapped = false;
 // Called inside defineProperty traps before wrapScormApi() to ensure furthestSlide is known
 // for the pre-init backing store modification in wrapScorm12Api/wrapScorm2004Api.
 function computeFurthestFromApi(apiObj, getValueFn, locElement, scoreElement) {
-    if (furthestSlide !== null || pendingSlideNavigation) return; // Already known or tag navigation
+    if (pendingSlideNavigation) return; // v2.0.88: Always compute from DB, take max with existing
     try {
         var loc = getValueFn.call(apiObj, locElement);
         var scr = getValueFn.call(apiObj, scoreElement);
         var parsedLoc = loc ? parseInt(loc, 10) : null;
         var parsedScore = scr ? parseFloat(scr) : null;
+        var dbFurthest = furthestSlide || 0; // v2.0.88: Start from existing value (may be from localStorage)
         if (parsedLoc && !isNaN(parsedLoc) && parsedLoc >= 1) {
-            furthestSlide = parsedLoc;
+            dbFurthest = Math.max(dbFurthest, parsedLoc);
         }
         if (parsedScore && !isNaN(parsedScore) && parsedScore > 0 && parsedScore <= 100 && slidescount > 1) {
             var scoreSlide = Math.round((parsedScore / 100) * slidescount);
-            if (scoreSlide > (furthestSlide || 0)) {
-                furthestSlide = scoreSlide;
-            }
+            dbFurthest = Math.max(dbFurthest, scoreSlide);
         }
-        if (furthestSlide !== null && furthestSlide >= 1) {
+        if (dbFurthest >= 1) {
+            furthestSlide = dbFurthest;
             console.log('[SCORM Navigation] Computed furthestSlide from API in trap:', furthestSlide,
                 '(location:', parsedLoc, ', score:', parsedScore, ', total:', slidescount, ')');
             try {
@@ -193,7 +193,7 @@ var initialRetryInterval = setInterval(function() {
     // score.raw stores furthest progress percentage (more reliable).
     var retryParsedLocation = null;
     var retryParsedScore = null;
-    if (furthestSlide === null && !pendingSlideNavigation) {
+    if (!pendingSlideNavigation) { // v2.0.88: Always read DB, take max with existing
         try {
             if (window.API && window.API.LMSGetValue) {
                 var loc = window.API.LMSGetValue.call(window.API, 'cmi.core.lesson_location');
@@ -228,18 +228,22 @@ var initialRetryInterval = setInterval(function() {
     // v2.0.72: Determine furthestSlide using max of location and score-based calculation.
     // lesson_location gives current position (wrong after backward nav).
     // score.raw gives furthest progress (reliable). Use whichever is higher.
-    if (furthestSlide === null && !pendingSlideNavigation) {
+    if (!pendingSlideNavigation) { // v2.0.88: Always compute, take max with existing
         var scoreBasedSlide = null;
         if (retryParsedScore !== null && retryParsedScore <= 100 && slidescount > 1) {
             scoreBasedSlide = Math.round((retryParsedScore / 100) * slidescount);
         }
         if (retryParsedLocation !== null || scoreBasedSlide !== null) {
-            furthestSlide = Math.max(retryParsedLocation || 0, scoreBasedSlide || 0);
-            if (furthestSlide >= 1) {
+            var dbMax = Math.max(retryParsedLocation || 0, scoreBasedSlide || 0);
+            var newFurthest = Math.max(furthestSlide || 0, dbMax); // v2.0.88: Max with existing
+            if (newFurthest >= 1 && newFurthest !== furthestSlide) {
+                furthestSlide = newFurthest;
+                console.log('[SCORM Plugin] Updated furthest slide from Moodle data:', furthestSlide,
+                    '(location:', retryParsedLocation, ', score-based:', scoreBasedSlide, ', total:', slidescount, ')');
+            } else if (furthestSlide === null && newFurthest >= 1) {
+                furthestSlide = newFurthest;
                 console.log('[SCORM Plugin] Restored furthest slide from Moodle data:', furthestSlide,
                     '(location:', retryParsedLocation, ', score-based:', scoreBasedSlide, ', total:', slidescount, ')');
-            } else {
-                furthestSlide = null;
             }
         }
     }
