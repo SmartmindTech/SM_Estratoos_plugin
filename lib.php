@@ -1639,11 +1639,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             window.API.LMSSetValue = function(element, value) {
                 var valueToWrite = value;
 
-                // Write interception for suspend_data.
-                // During intercept window: force TAG TARGET so Storyline initializes at correct slide.
-                // After intercept window: force FURTHEST SLIDE so resume position = furthest progress.
-                // This ensures on reload, user continues from their highest natural progress,
-                // not from the tag target they jumped to.
+                // Write interception for suspend_data during tag navigation.
+                // During intercept window: force TAG TARGET so content initializes at correct slide.
+                // v2.0.80: After intercept window, let natural value through (DB gets cs=current).
                 if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
                     if (!isOurNavigationStillActive()) {
                         console.log('[SCORM 1.2] LMSSetValue: navigation superseded, NOT intercepting write');
@@ -1657,36 +1655,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             if (modifiedValue !== value) {
                                 valueToWrite = modifiedValue;
                             }
-                        } else if (furthestSlide !== null) {
-                            // After initialization: force furthest slide for correct resume
-                            var originalSlide = parseSlideFromSuspendData(value);
-                            if (originalSlide !== null && originalSlide < furthestSlide) {
-                                var modifiedValue = modifySuspendDataForSlide(value, furthestSlide);
-                                if (modifiedValue !== value) {
-                                    console.log('[SCORM 1.2] Writing furthest slide to DB:', furthestSlide,
-                                        '(Storyline at:', originalSlide, ')');
-                                    valueToWrite = modifiedValue;
-                                }
-                            }
-                            // If originalSlide >= furthestSlide, let natural write through
                         }
-                    }
-                }
-
-                // v2.0.58: Write interception for furthest slide preservation.
-                // Prevents Storyline from writing suspend_data with a slide below furthestSlide.
-                // Works for both resume correction AND normal backwards navigation.
-                // No longer depends on resumeCorrectionSlide (which failed when cmi data
-                // wasn't populated at defineProperty trap time).
-                if (element === 'cmi.suspend_data' && !pendingSlideNavigation && furthestSlide !== null) {
-                    var originalSlide = parseSlideFromSuspendData(value);
-                    if (originalSlide !== null && originalSlide < furthestSlide) {
-                        var modifiedValue = modifySuspendDataForSlide(value, furthestSlide);
-                        if (modifiedValue !== value) {
-                            console.log('[SCORM 1.2] Write intercept: forcing furthest', furthestSlide,
-                                '(Storyline wrote:', originalSlide, ')');
-                            valueToWrite = modifiedValue;
-                        }
+                        // v2.0.80: After intercept window, let natural value through.
+                        // DB gets cs=current so SmartLearning API polling shows correct position.
+                        // Resume is handled by pre-init backing store + read interceptors at page load.
                     }
                 }
 
@@ -1844,27 +1816,20 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 return result;
             };
 
-            // v2.0.55: Schedule a proactive write after the intercept window closes.
-            // Ensures the DB gets the furthest slide even if Storyline doesn't write naturally.
+            // v2.0.80: Schedule a proactive write after the intercept window closes.
+            // Only write lesson_location and score for resume/progress.
+            // Do NOT boost suspend_data.cs - let DB have real current position
+            // so SmartLearning API polling shows correct position bar.
             if (pendingSlideNavigation) {
                 setTimeout(function() {
                     if (furthestSlide === null) return;
                     try {
-                        var sd = origLMSGetValue12.call(window.API, 'cmi.suspend_data');
-                        if (sd && sd.length > 5) {
-                            var dbSlide = parseSlideFromSuspendData(sd);
-                            if (dbSlide !== null && dbSlide < furthestSlide) {
-                                var fixed = modifySuspendDataForSlide(sd, furthestSlide);
-                                if (fixed !== sd) {
-                                    origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
-                                    lastSuspendData = fixed; // v2.0.79: Prevent DOM observer from treating boosted DB value as navigation
-                                    origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
-                                    console.log('[SCORM 1.2] Post-intercept: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
-                                }
-                            }
+                        var currentLoc = origLMSGetValue12.call(window.API, 'cmi.core.lesson_location');
+                        var locSlide = parseInt(currentLoc, 10);
+                        if (isNaN(locSlide) || locSlide < furthestSlide) {
+                            origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+                            console.log('[SCORM 1.2] Post-intercept: wrote lesson_location:', furthestSlide);
                         }
-                        // v2.0.57: Also correct score to reflect furthest progress.
-                        // v2.0.67: Guard with slidescount > 1 (default is 1 before detection) and cap at 100.
                         if (slidescount > 1) {
                             var currentScore = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
                             var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
@@ -1880,27 +1845,18 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 }, INTERCEPT_WINDOW_MS + 2000);
             }
 
-            // v2.0.58: Schedule a proactive write to ensure DB has furthest slide.
-            // Runs for ANY non-tag session where furthestSlide is known.
+            // v2.0.80: Schedule a proactive write to ensure DB has correct resume data.
+            // Only write lesson_location and score - NOT suspend_data.cs.
             if (!pendingSlideNavigation && furthestSlide !== null) {
                 setTimeout(function() {
                     if (furthestSlide === null) return;
                     try {
-                        var sd = origLMSGetValue12.call(window.API, 'cmi.suspend_data');
-                        if (sd && sd.length > 5) {
-                            var dbSlide = parseSlideFromSuspendData(sd);
-                            if (dbSlide !== null && dbSlide < furthestSlide) {
-                                var fixed = modifySuspendDataForSlide(sd, furthestSlide);
-                                if (fixed !== sd) {
-                                    origLMSSetValue12.call(window.API, 'cmi.suspend_data', fixed);
-                                    lastSuspendData = fixed; // v2.0.79: Prevent DOM observer from treating boosted DB value as navigation
-                                    origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
-                                    console.log('[SCORM 1.2] Resume post-init: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
-                                }
-                            }
+                        var currentLoc = origLMSGetValue12.call(window.API, 'cmi.core.lesson_location');
+                        var locSlide = parseInt(currentLoc, 10);
+                        if (isNaN(locSlide) || locSlide < furthestSlide) {
+                            origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+                            console.log('[SCORM 1.2] Resume post-init: wrote lesson_location:', furthestSlide);
                         }
-                        // v2.0.57: Also correct score to reflect furthest progress.
-                        // v2.0.67: Guard with slidescount > 1 (default is 1 before detection) and cap at 100.
                         if (slidescount > 1) {
                             var currentScore = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
                             var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
@@ -2128,11 +2084,9 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
             window.API_1484_11.SetValue = function(element, value) {
                 var valueToWrite = value;
 
-                // Write interception for suspend_data.
-                // During intercept window: force TAG TARGET so Storyline initializes at correct slide.
-                // After intercept window: force FURTHEST SLIDE so resume position = furthest progress.
-                // This ensures on reload, user continues from their highest natural progress,
-                // not from the tag target they jumped to.
+                // Write interception for suspend_data during tag navigation.
+                // During intercept window: force TAG TARGET so content initializes at correct slide.
+                // v2.0.80: After intercept window, let natural value through (DB gets cs=current).
                 if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
                     if (!isOurNavigationStillActive()) {
                         console.log('[SCORM 2004] SetValue: navigation superseded, NOT intercepting write');
@@ -2146,32 +2100,10 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                             if (modifiedValue !== value) {
                                 valueToWrite = modifiedValue;
                             }
-                        } else if (furthestSlide !== null) {
-                            // After initialization: force furthest slide for correct resume
-                            var originalSlide = parseSlideFromSuspendData(value);
-                            if (originalSlide !== null && originalSlide < furthestSlide) {
-                                var modifiedValue = modifySuspendDataForSlide(value, furthestSlide);
-                                if (modifiedValue !== value) {
-                                    console.log('[SCORM 2004] Writing furthest slide to DB:', furthestSlide,
-                                        '(Storyline at:', originalSlide, ')');
-                                    valueToWrite = modifiedValue;
-                                }
-                            }
-                            // If originalSlide >= furthestSlide, let natural write through
                         }
-                    }
-                }
-
-                // v2.0.58: Write interception for furthest slide preservation.
-                if (element === 'cmi.suspend_data' && !pendingSlideNavigation && furthestSlide !== null) {
-                    var originalSlide = parseSlideFromSuspendData(value);
-                    if (originalSlide !== null && originalSlide < furthestSlide) {
-                        var modifiedValue = modifySuspendDataForSlide(value, furthestSlide);
-                        if (modifiedValue !== value) {
-                            console.log('[SCORM 2004] Write intercept: forcing furthest', furthestSlide,
-                                '(Storyline wrote:', originalSlide, ')');
-                            valueToWrite = modifiedValue;
-                        }
+                        // v2.0.80: After intercept window, let natural value through.
+                        // DB gets cs=current so SmartLearning API polling shows correct position.
+                        // Resume is handled by pre-init backing store + read interceptors at page load.
                     }
                 }
 
@@ -2326,26 +2258,19 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 return result;
             };
 
-            // v2.0.55: Schedule a proactive write after the intercept window closes (SCORM 2004).
+            // v2.0.80: Schedule a proactive write after the intercept window closes (SCORM 2004).
+            // Only write location and score for resume/progress.
+            // Do NOT boost suspend_data.cs - let DB have real current position.
             if (pendingSlideNavigation) {
                 setTimeout(function() {
                     if (furthestSlide === null) return;
                     try {
-                        var sd = origGetValue2004.call(window.API_1484_11, 'cmi.suspend_data');
-                        if (sd && sd.length > 5) {
-                            var dbSlide = parseSlideFromSuspendData(sd);
-                            if (dbSlide !== null && dbSlide < furthestSlide) {
-                                var fixed = modifySuspendDataForSlide(sd, furthestSlide);
-                                if (fixed !== sd) {
-                                    origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
-                                    lastSuspendData = fixed; // v2.0.79: Prevent DOM observer from treating boosted DB value as navigation
-                                    origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
-                                    console.log('[SCORM 2004] Post-intercept: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
-                                }
-                            }
+                        var currentLoc = origGetValue2004.call(window.API_1484_11, 'cmi.location');
+                        var locSlide = parseInt(currentLoc, 10);
+                        if (isNaN(locSlide) || locSlide < furthestSlide) {
+                            origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
+                            console.log('[SCORM 2004] Post-intercept: wrote location:', furthestSlide);
                         }
-                        // v2.0.57: Also correct score to reflect furthest progress.
-                        // v2.0.67: Guard with slidescount > 1 (default is 1 before detection) and cap at 100.
                         if (slidescount > 1) {
                             var currentScore = origGetValue2004.call(window.API_1484_11, 'cmi.score.raw');
                             var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
@@ -2361,26 +2286,18 @@ function local_sm_estratoos_plugin_get_postmessage_tracking_js($cmid, $scormid, 
                 }, INTERCEPT_WINDOW_MS + 2000);
             }
 
-            // v2.0.58: Schedule a proactive write for furthest slide (SCORM 2004).
+            // v2.0.80: Schedule a proactive write to ensure DB has correct resume data (SCORM 2004).
+            // Only write location and score - NOT suspend_data.cs.
             if (!pendingSlideNavigation && furthestSlide !== null) {
                 setTimeout(function() {
                     if (furthestSlide === null) return;
                     try {
-                        var sd = origGetValue2004.call(window.API_1484_11, 'cmi.suspend_data');
-                        if (sd && sd.length > 5) {
-                            var dbSlide = parseSlideFromSuspendData(sd);
-                            if (dbSlide !== null && dbSlide < furthestSlide) {
-                                var fixed = modifySuspendDataForSlide(sd, furthestSlide);
-                                if (fixed !== sd) {
-                                    origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', fixed);
-                                    lastSuspendData = fixed; // v2.0.79: Prevent DOM observer from treating boosted DB value as navigation
-                                    origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
-                                    console.log('[SCORM 2004] Resume post-init: wrote furthest slide to DB:', furthestSlide, '(was:', dbSlide, ')');
-                                }
-                            }
+                        var currentLoc = origGetValue2004.call(window.API_1484_11, 'cmi.location');
+                        var locSlide = parseInt(currentLoc, 10);
+                        if (isNaN(locSlide) || locSlide < furthestSlide) {
+                            origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
+                            console.log('[SCORM 2004] Resume post-init: wrote location:', furthestSlide);
                         }
-                        // v2.0.57: Also correct score to reflect furthest progress.
-                        // v2.0.67: Guard with slidescount > 1 (default is 1 before detection) and cap at 100.
                         if (slidescount > 1) {
                             var currentScore = origGetValue2004.call(window.API_1484_11, 'cmi.score.raw');
                             var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);

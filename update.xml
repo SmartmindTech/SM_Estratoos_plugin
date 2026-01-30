@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012879</version>
+        <version>2025012880</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.79</release>
+        <release>2.0.80</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,37 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.79/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.80/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.79</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.80</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.79 - Fix Position Bar Jumping to Furthest After Post-Intercept Write</h3>
+            <h3>Version 2.0.80 - Fix Position Bar Showing Furthest Instead of Current Slide</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix position bar jumping to furthest slide when post-intercept writes boosted suspend_data to DB</li>
-                <li>DOM MutationObserver no longer picks up boosted DB values as real navigation events</li>
+                <li>Position bar now shows correct current slide instead of always showing furthest</li>
+                <li>SmartLearning API polling reads real cs=current from DB instead of boosted cs=furthest</li>
+                <li>Going back and forth between slides now updates position bar immediately</li>
             </ul>
 
             <h4>Changes</h4>
             <ul>
-                <li>Update lastSuspendData after all direct suspend_data writes that bypass the LMSSetValue interceptor</li>
-                <li>Covers init backing store, post-intercept tag, and post-intercept non-tag writes</li>
-                <li>Same fix applied for both SCORM 1.2 and SCORM 2004 handlers (6 locations total)</li>
+                <li>Stop boosting suspend_data.cs during normal navigation writes (LMSSetValue)</li>
+                <li>Remove suspend_data.cs boost from post-intercept timeouts (tag and non-tag)</li>
+                <li>Keep score.raw and lesson_location boosts for progress tracking and resume</li>
+                <li>Resume correctness handled by pre-init backing store and read interceptors at page load</li>
+                <li>Same changes applied for both SCORM 1.2 and SCORM 2004 handlers</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.79: Fix DOM observer picking up post-intercept boosted values as navigation</li>
                 <li>v2.0.78: Fix re-entrant LMSSetValue processing modified suspend_data as navigation</li>
                 <li>v2.0.77: Fix position bar jumping to furthest (poll reading boosted lesson_location from DB)</li>
-                <li>v2.0.76: Captivate SCORM real-time position tracking via content variables</li>
             </ul>
             ]]>
         </releasenotes>

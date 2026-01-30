@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012879;  // YYYYMMDDXX format.
+$plugin->version = 2025012880;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.79';  // Prevent post-intercept boosted suspend_data from being picked up by DOM observer as real navigation.
+$plugin->release = '2.0.80';  // Stop boosting suspend_data.cs during normal navigation so DB has real current position.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
