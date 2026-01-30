@@ -101,7 +101,8 @@ if (!pendingSlideNavigation && furthestSlide === null) {
     var origInitialize2004 = window.API_1484_11.Initialize;
     window.API_1484_11.Initialize = function(param) {
         var result = origInitialize2004.call(window.API_1484_11, param);
-        if (furthestSlide !== null) return result;
+        // v2.0.84: Changed from early return to conditional block (same as SCORM 1.2).
+        if (furthestSlide === null) {
         try {
             var scoreStr = origGetValue2004.call(window.API_1484_11, 'cmi.score.raw');
             var locationStr = origGetValue2004.call(window.API_1484_11, 'cmi.location');
@@ -137,6 +138,27 @@ if (!pendingSlideNavigation && furthestSlide === null) {
                 }
             }
         } catch (e) {}
+        } // end if (furthestSlide === null)
+
+        // v2.0.84: Always correct suspend_data if furthestSlide is set and suspend_data
+        // is behind (same logic as SCORM 1.2 — see tracking_api_scorm12.php).
+        if (furthestSlide !== null && furthestSlide > 1) {
+            try {
+                var initSD = origGetValue2004.call(window.API_1484_11, 'cmi.suspend_data');
+                if (initSD && initSD.length > 5) {
+                    var initSlide = parseSlideFromSuspendData(initSD);
+                    if (initSlide !== null && initSlide < furthestSlide) {
+                        var initFixed = modifySuspendDataForSlide(initSD, furthestSlide);
+                        if (initFixed !== initSD) {
+                            origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', initFixed);
+                            lastSuspendData = initFixed;
+                            console.log('[SCORM Plugin] Initialize resume (2004): corrected suspend_data from slide', initSlide, 'to', furthestSlide);
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+
         return result;
     };
 }

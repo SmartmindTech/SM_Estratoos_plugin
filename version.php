@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012884;  // YYYYMMDDXX format.
+$plugin->version = 2025012885;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.84';  // Fix Captivate SCORM position bar bugs (Generic 0-based misread, resume correction).
+$plugin->release = '2.0.85';  // Fix resume correction: correct suspend_data in LMSInitialize when furthestSlide set by retry loop.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

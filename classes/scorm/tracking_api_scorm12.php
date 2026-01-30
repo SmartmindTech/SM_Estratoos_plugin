@@ -108,8 +108,12 @@ if (!pendingSlideNavigation && furthestSlide === null) {
     var origLMSInitialize12 = window.API.LMSInitialize;
     window.API.LMSInitialize = function(param) {
         var result = origLMSInitialize12.call(window.API, param);
-        // Only run once
-        if (furthestSlide !== null) return result;
+        // v2.0.84: Changed from early return to conditional block.
+        // Previously: if (furthestSlide !== null) return result;
+        // Problem: the initial retry loop (detection.php) may set furthestSlide from
+        // score.raw/lesson_location BEFORE LMSInitialize fires, but does NOT correct
+        // suspend_data. The early return skipped suspend_data correction entirely.
+        if (furthestSlide === null) {
         try {
             var scoreStr = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
             var locationStr = origLMSGetValue12.call(window.API, 'cmi.core.lesson_location');
@@ -146,6 +150,31 @@ if (!pendingSlideNavigation && furthestSlide === null) {
                 }
             }
         } catch (e) {}
+        } // end if (furthestSlide === null)
+
+        // v2.0.84: Always correct suspend_data if furthestSlide is set and suspend_data
+        // is behind. This handles two scenarios:
+        // (a) The initial retry loop set furthestSlide before LMSInitialize (early return case)
+        // (b) Score logic above set furthestSlide but didn't correct suspend_data because
+        //     furthestFromScore <= lesson_location (e.g., Captivate has lesson_location=4
+        //     but suspend_data cs=2 meaning slide 3)
+        if (furthestSlide !== null && furthestSlide > 1) {
+            try {
+                var initSD = origLMSGetValue12.call(window.API, 'cmi.suspend_data');
+                if (initSD && initSD.length > 5) {
+                    var initSlide = parseSlideFromSuspendData(initSD);
+                    if (initSlide !== null && initSlide < furthestSlide) {
+                        var initFixed = modifySuspendDataForSlide(initSD, furthestSlide);
+                        if (initFixed !== initSD) {
+                            origLMSSetValue12.call(window.API, 'cmi.suspend_data', initFixed);
+                            lastSuspendData = initFixed;
+                            console.log('[SCORM Plugin] LMSInitialize resume: corrected suspend_data from slide', initSlide, 'to', furthestSlide);
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+
         return result;
     };
 }
