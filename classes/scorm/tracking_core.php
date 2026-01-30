@@ -43,6 +43,7 @@ class tracking_core {
     var lastSuspendData = null;
     var lastSuspendDataOriginal = null;
     var lastApiChangeTime = 0; // v2.0.76: Track when SCORM API last reported a change
+    var pageLoadTime = Date.now(); // v2.0.87: For resume protection window (suppress stale vendor poller reads)
 
     // Function to parse slide number from lesson_location.
     function parseSlideNumber(location) {
@@ -113,6 +114,19 @@ class tracking_core {
     function sendProgressUpdate(location, status, score, directSlide) {
         var currentSlide = directSlide || parseSlideNumber(location) || lastSlide;
 
+        // v2.0.87: Suppress stale vendor poller reads during resume initialization.
+        // Vendor pollers (iSpring, Storyline, etc.) can read the player's initial/loading
+        // state (slide 1) before content has fully resumed to the correct position.
+        // During the first 10s, suppress directSlide backward movement below furthestSlide.
+        if (directSlide !== null && lastSlide !== null && directSlide < lastSlide &&
+            furthestSlide !== null && directSlide < furthestSlide &&
+            !pendingSlideNavigation && (Date.now() - pageLoadTime) < INTERCEPT_WINDOW_MS) {
+            console.log('[SCORM Progress] Suppressed stale vendor poll during resume:', directSlide,
+                '(keeping:', lastSlide, ', furthest:', furthestSlide, ')');
+            currentSlide = lastSlide;
+            directSlide = null; // Prevent backward movement
+        }
+
         // Update lastSlide if we have a new value.
         if (currentSlide !== null && currentSlide !== lastSlide) {
             // v2.0.59: Only allow lastSlide to decrease from directSlide (suspend_data).
@@ -126,14 +140,17 @@ class tracking_core {
             }
         }
 
-        // v2.0.65: Track furthestSlide from forward navigation.
+        // v2.0.87: Track furthestSlide from forward navigation.
         // For SCORMs without score.raw (like Basic SCORM), this is the only way to track progress.
-        // Don't update during tag navigation confirmation (within intercept window matching target).
+        // During tag navigation, only advance furthest if user naturally goes beyond tag target.
         if (currentSlide !== null && (furthestSlide === null || currentSlide > furthestSlide)) {
-            var isTagConfirmation = pendingSlideNavigation && interceptStartTime &&
-                (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS &&
-                currentSlide === pendingSlideNavigation.slide;
-            if (!isTagConfirmation) {
+            var allowFurthestAdvance = true;
+            if (pendingSlideNavigation) {
+                // v2.0.87: Block ALL furthest advances during tag navigation
+                // unless user naturally navigated beyond the tag target.
+                allowFurthestAdvance = currentSlide > pendingSlideNavigation.slide;
+            }
+            if (allowFurthestAdvance) {
                 furthestSlide = currentSlide;
                 try {
                     sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));

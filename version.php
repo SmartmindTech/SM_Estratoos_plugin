@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012886;  // YYYYMMDDXX format.
+$plugin->version = 2025012887;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.86';  // Always set defineProperty traps, compute furthestSlide in trap; reduce vendor polling delays.
+$plugin->release = '2.0.87';  // Enforce 8-flow behavior for all SCORM vendors; fix tag navigation progress inflation and resume position bar drop.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

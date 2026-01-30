@@ -298,7 +298,13 @@ window.API_1484_11.SetValue = function(element, value) {
         var writtenScore = parseFloat(value);
         if (!isNaN(writtenScore)) {
             var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
-            if (writtenScore < furthestScore) {
+            if (pendingSlideNavigation) {
+                // v2.0.87: During tag navigation, always write furthestScore to prevent DB inflation.
+                // Content writes score reflecting tag position, not actual progress.
+                console.log('[SCORM 2004] Score capped during tag navigation from', writtenScore, 'to', furthestScore,
+                    '(furthest slide:', furthestSlide, '/', slidescount, ')');
+                valueToWrite = String(furthestScore);
+            } else if (writtenScore < furthestScore) {
                 console.log('[SCORM 2004] Score corrected from', writtenScore, 'to', furthestScore,
                     '(furthest slide:', furthestSlide, '/', slidescount, ')');
                 valueToWrite = String(furthestScore);
@@ -308,11 +314,17 @@ window.API_1484_11.SetValue = function(element, value) {
 
     // v2.0.73: For cmi.location, write max(value, furthestSlide) to DB so that
     // on page refresh, the content resumes at the furthest slide, not the current.
+    // v2.0.87: During tag navigation, cap at furthestSlide to prevent DB inflation.
     var dbWriteValue2004 = valueToWrite;
     if (element === 'cmi.location' && furthestSlide !== null) {
         var locSlide2004 = parseInt(valueToWrite, 10);
-        if (!isNaN(locSlide2004) && locSlide2004 < furthestSlide) {
-            dbWriteValue2004 = String(furthestSlide);
+        if (!isNaN(locSlide2004)) {
+            if (pendingSlideNavigation && locSlide2004 > furthestSlide) {
+                // v2.0.87: Cap at furthestSlide during tag navigation to prevent DB inflation.
+                dbWriteValue2004 = String(furthestSlide);
+            } else if (locSlide2004 < furthestSlide) {
+                dbWriteValue2004 = String(furthestSlide);
+            }
         }
     }
 
@@ -441,13 +453,15 @@ window.API_1484_11.SetValue = function(element, value) {
 
                 // v2.0.82: Extract Captivate vs (visited slides) for accurate furthestSlide.
                 // vs=0:1:2:3 means slides 0-3 visited → furthest is 4 (0-based to 1-based).
+                // v2.0.87: During tag navigation, only advance furthest if beyond tag target.
                 if (/\bvs=/.test(value)) {
                     var vsMatch = value.match(/\bvs=([0-9:]+)/);
                     if (vsMatch) {
                         var visited = vsMatch[1].split(':').map(function(s) { return parseInt(s, 10); }).filter(function(n) { return !isNaN(n); });
                         if (visited.length > 0) {
                             var maxVisited = Math.max.apply(null, visited) + 1; // 0-based to 1-based
-                            if (furthestSlide === null || maxVisited > furthestSlide) {
+                            var allowVsAdvance = !pendingSlideNavigation || maxVisited > pendingSlideNavigation.slide;
+                            if (allowVsAdvance && (furthestSlide === null || maxVisited > furthestSlide)) {
                                 furthestSlide = maxVisited;
                                 console.log('[SCORM 2004] Furthest progress updated from Captivate vs field:', furthestSlide);
                                 try {
@@ -460,7 +474,9 @@ window.API_1484_11.SetValue = function(element, value) {
                 }
 
                 // Update furthestSlide from parsed slide (only increases)
-                if (furthestSlide === null || slideNum > furthestSlide) {
+                // v2.0.87: During tag navigation, only advance furthest if beyond tag target.
+                var allowAdvance = !pendingSlideNavigation || slideNum > pendingSlideNavigation.slide;
+                if (allowAdvance && (furthestSlide === null || slideNum > furthestSlide)) {
                     furthestSlide = slideNum;
                     console.log('[SCORM 2004] Furthest progress updated from suspend_data:', furthestSlide);
                     try {
@@ -485,26 +501,21 @@ window.API_1484_11.SetValue = function(element, value) {
     return result;
 };
 
-// v2.0.80: Schedule a proactive write after the intercept window closes (SCORM 2004).
-// Only write location and score for resume/progress.
-// Do NOT boost suspend_data.cs - let DB have real current position.
+// v2.0.87: Schedule a proactive write after the intercept window closes (SCORM 2004).
+// ALWAYS write furthestSlide and furthestScore unconditionally during tag navigation.
+// Tag navigation may have inflated DB values (location=tag, score=tag%).
+// The post-intercept write corrects DB to actual furthest progress.
 if (pendingSlideNavigation) {
     setTimeout(function() {
         if (furthestSlide === null) return;
         try {
-            var currentLoc = origGetValue2004.call(window.API_1484_11, 'cmi.location');
-            var locSlide = parseInt(currentLoc, 10);
-            if (isNaN(locSlide) || locSlide < furthestSlide) {
-                origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
-                console.log('[SCORM 2004] Post-intercept: wrote location:', furthestSlide);
-            }
+            // v2.0.87: Always write furthestSlide (tag navigation may have inflated DB values).
+            origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
+            console.log('[SCORM 2004] Post-intercept: wrote location:', furthestSlide);
             if (slidescount > 1) {
-                var currentScore = origGetValue2004.call(window.API_1484_11, 'cmi.score.raw');
                 var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
-                if (!currentScore || parseFloat(currentScore) < furthestScore) {
-                    origSetValue2004ref.call(window.API_1484_11, 'cmi.score.raw', String(furthestScore));
-                    console.log('[SCORM 2004] Post-intercept: corrected score to', furthestScore);
-                }
+                origSetValue2004ref.call(window.API_1484_11, 'cmi.score.raw', String(furthestScore));
+                console.log('[SCORM 2004] Post-intercept: wrote score:', furthestScore);
             }
             window.API_1484_11.Commit('');
         } catch (e) {

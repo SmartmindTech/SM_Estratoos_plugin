@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012886</version>
+        <version>2025012887</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.86</release>
+        <release>2.0.87</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,27 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.86/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.87/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.86</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.87</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.86 - Fix Resume Correction &amp; Faster Vendor Position Detection</h3>
+            <h3>Version 2.0.87 - Enforce 8-Flow Behavior for All SCORM Vendors</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix Captivate resume: always set Object.defineProperty traps (even when localStorage is empty) and compute furthestSlide from score.raw/lesson_location in the trap before wrapping — ensures backing store is corrected before content reads suspend_data</li>
-                <li>Captivate reads suspend_data from pre-populated data model BEFORE calling LMSInitialize, so the LMSInitialize wrapper (v2.0.85) fires too late — the trap fires the instant the API is created</li>
-            </ul>
-
-            <h4>Improvements</h4>
-            <ul>
-                <li>Reduce initial polling delay for iSpring, Rise 360, and Captivate vendor detectors from 4s to 2s for faster position bar updates</li>
+                <li>Fix tag navigation inflating progress: furthestSlide no longer advances during tag sessions (sendProgressUpdate, suspend_data tracking, Captivate vs field all guarded)</li>
+                <li>Fix tag navigation inflating DB values: lesson_location and score.raw capped at furthestSlide during tag sessions to prevent resume from wrong position</li>
+                <li>Fix post-intercept write: unconditionally write furthestSlide/score after tag navigation to correct any inflated DB values</li>
+                <li>Fix position bar dropping to 1 on refresh (iSpring, all vendors): suppress stale vendor poller reads during 10s resume protection window</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.86: Always set defineProperty traps; compute furthestSlide in trap; reduce vendor delays</li>
                 <li>v2.0.85: Fix resume correction suspend_data in LMSInitialize wrapper</li>
                 <li>v2.0.84: Fix Captivate position bar bugs (Generic 0-based misread)</li>
                 <li>v2.0.83: Refactor tracking_js.php into modular class files by SCORM vendor</li>

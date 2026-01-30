@@ -183,7 +183,7 @@ setTimeout(function() {
             }
         }
     }, 1000); // Check every second.
-}, 4000); // Wait 4 seconds for content to fully load.
+}, 2000); // v2.0.86: Reduced from 4000ms for faster initial position detection
 
 // Clean up Storyline interval on unload.
 window.addEventListener('beforeunload', function() {
