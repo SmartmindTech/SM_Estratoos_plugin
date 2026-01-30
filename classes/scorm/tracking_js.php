@@ -558,6 +558,11 @@ class tracking_js {
     var contentWritesScore = false;    // true if SCORM content writes its own score.raw
     var scormApiVersion = null;        // '1.2' or '2004' - determines element name format
 
+    // v2.0.82: Track last Captivate cs value to detect periodic commits (timer-based, not navigation).
+    // Captivate writes suspend_data every ~30s with format cs=N,vs=...,qt=...,qr=...,ts=...
+    // The cs field stays stale (unchanged) during periodic commits, causing wrong position updates.
+    var lastCaptivateCs = null;
+
     // Track the furthest slide reached (from score)
     // IMPORTANT: Initialize from sessionStorage/localStorage to prevent reset on iframe reload!
     // sessionStorage persists within the same tab, localStorage persists across tabs/refreshes.
@@ -1440,9 +1445,12 @@ class tracking_js {
                     }
                 }
                 // Track lesson_status changes.
+                // v2.0.82: Pass null instead of lastLocation — lastLocation is boosted to
+                // furthestSlide by the lesson_location interceptor, so passing it here would
+                // override the position bar with furthest instead of current slide.
                 if (element === 'cmi.core.lesson_status') {
                     lastStatus = valueToWrite;
-                    sendProgressUpdate(lastLocation, valueToWrite, null, null);
+                    sendProgressUpdate(null, valueToWrite, null, null);
                 }
                 // Track score changes.
                 // IMPORTANT: Score represents FURTHEST PROGRESS, not current position.
@@ -1485,11 +1493,13 @@ class tracking_js {
                             sendProgressUpdate(null, lastStatus, valueToWrite, calculatedSlide);
                         } else {
                             // Don't change currentSlide, but send update with furthestSlide for progress bar.
+                            // v2.0.82: Pass null instead of lastLocation — it's boosted to furthest
+                            // and would override position bar with wrong slide number.
                             console.log('[SCORM] Score indicates furthest progress:', furthestSlide, '(current slide:', lastSlide, ')');
-                            sendProgressUpdate(lastLocation, lastStatus, valueToWrite, null);
+                            sendProgressUpdate(null, lastStatus, valueToWrite, null);
                         }
                     } else {
-                        sendProgressUpdate(lastLocation, lastStatus, valueToWrite, null);
+                        sendProgressUpdate(null, lastStatus, valueToWrite, null);
                     }
                 }
                 // Track suspend_data changes for position and progress.
@@ -1506,10 +1516,43 @@ class tracking_js {
                     lastSuspendData = valueToWrite;
                     lastApiChangeTime = Date.now();
                     if (!inInterceptWindow) {
-                        // Parse from ORIGINAL value to get Storyline's actual position
+                        // Parse from ORIGINAL value to get actual position
                         var slideNum = parseSlideFromSuspendData(value);
                         if (slideNum !== null) {
-                            // Update furthestSlide (only increases)
+                            // v2.0.82: Detect Captivate periodic commits (cs unchanged = timer-based, not navigation).
+                            // Captivate writes suspend_data every ~30s with format cs=N,vs=...,qt=...,qr=...,ts=...
+                            // The cs field stays stale during periodic commits, causing wrong position updates.
+                            var isCaptivatePeriodicCommit = false;
+                            if (/\bcs=\d+/.test(value)) {
+                                var csMatch = value.match(/\bcs=(\d+)/);
+                                var currentCs = csMatch ? parseInt(csMatch[1], 10) : -1;
+                                if (lastCaptivateCs !== null && currentCs === lastCaptivateCs) {
+                                    isCaptivatePeriodicCommit = true;
+                                }
+                                lastCaptivateCs = currentCs;
+                            }
+
+                            // v2.0.82: Extract Captivate vs (visited slides) for accurate furthestSlide.
+                            // vs=0:1:2:3 means slides 0-3 visited → furthest is 4 (0-based to 1-based).
+                            if (/\bvs=/.test(value)) {
+                                var vsMatch = value.match(/\bvs=([0-9:]+)/);
+                                if (vsMatch) {
+                                    var visited = vsMatch[1].split(':').map(function(s) { return parseInt(s, 10); }).filter(function(n) { return !isNaN(n); });
+                                    if (visited.length > 0) {
+                                        var maxVisited = Math.max.apply(null, visited) + 1; // 0-based to 1-based
+                                        if (furthestSlide === null || maxVisited > furthestSlide) {
+                                            furthestSlide = maxVisited;
+                                            console.log('[SCORM 1.2] Furthest progress updated from Captivate vs field:', furthestSlide);
+                                            try {
+                                                sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                                                localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                                            } catch (e) {}
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Update furthestSlide from parsed slide (only increases)
                             if (furthestSlide === null || slideNum > furthestSlide) {
                                 furthestSlide = slideNum;
                                 console.log('[SCORM 1.2] Furthest progress updated from suspend_data:', furthestSlide);
@@ -1518,10 +1561,13 @@ class tracking_js {
                                     localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                                 } catch (e) {}
                             }
-                            // Always send current position from suspend_data
-                            if (slideNum !== lastSlide) {
+
+                            // Send position update — skip if Captivate periodic commit (cs is stale)
+                            if (!isCaptivatePeriodicCommit && slideNum !== lastSlide) {
                                 console.log('[SCORM 1.2] Position from suspend_data:', slideNum);
                                 sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                            } else if (isCaptivatePeriodicCommit) {
+                                console.log('[SCORM 1.2] Captivate periodic commit, cs unchanged — skipping position update');
                             }
                         }
                     } else {
@@ -1882,9 +1928,12 @@ class tracking_js {
                     }
                 }
                 // Track completion_status changes.
+                // v2.0.82: Pass null instead of lastLocation — lastLocation is boosted to
+                // furthestSlide by the location interceptor, so passing it here would
+                // override the position bar with furthest instead of current slide.
                 if (element === 'cmi.completion_status') {
                     lastStatus = valueToWrite;
-                    sendProgressUpdate(lastLocation, valueToWrite, null, null);
+                    sendProgressUpdate(null, valueToWrite, null, null);
                 }
                 // Track score changes.
                 // IMPORTANT: Score represents FURTHEST PROGRESS, not current position.
@@ -1927,11 +1976,13 @@ class tracking_js {
                             sendProgressUpdate(null, lastStatus, valueToWrite, calculatedSlide);
                         } else {
                             // Don't change currentSlide, but send update with furthestSlide for progress bar.
+                            // v2.0.82: Pass null instead of lastLocation — it's boosted to furthest
+                            // and would override position bar with wrong slide number.
                             console.log('[SCORM 2004] Score indicates furthest progress:', furthestSlide, '(current slide:', lastSlide, ')');
-                            sendProgressUpdate(lastLocation, lastStatus, valueToWrite, null);
+                            sendProgressUpdate(null, lastStatus, valueToWrite, null);
                         }
                     } else {
-                        sendProgressUpdate(lastLocation, lastStatus, valueToWrite, null);
+                        sendProgressUpdate(null, lastStatus, valueToWrite, null);
                     }
                 }
                 // Track suspend_data changes for position and progress.
@@ -1948,10 +1999,43 @@ class tracking_js {
                     lastSuspendData = valueToWrite;
                     lastApiChangeTime = Date.now();
                     if (!inInterceptWindow) {
-                        // Parse from ORIGINAL value to get Storyline's actual position
+                        // Parse from ORIGINAL value to get actual position
                         var slideNum = parseSlideFromSuspendData(value);
                         if (slideNum !== null) {
-                            // Update furthestSlide (only increases)
+                            // v2.0.82: Detect Captivate periodic commits (cs unchanged = timer-based, not navigation).
+                            // Captivate writes suspend_data every ~30s with format cs=N,vs=...,qt=...,qr=...,ts=...
+                            // The cs field stays stale during periodic commits, causing wrong position updates.
+                            var isCaptivatePeriodicCommit = false;
+                            if (/\bcs=\d+/.test(value)) {
+                                var csMatch = value.match(/\bcs=(\d+)/);
+                                var currentCs = csMatch ? parseInt(csMatch[1], 10) : -1;
+                                if (lastCaptivateCs !== null && currentCs === lastCaptivateCs) {
+                                    isCaptivatePeriodicCommit = true;
+                                }
+                                lastCaptivateCs = currentCs;
+                            }
+
+                            // v2.0.82: Extract Captivate vs (visited slides) for accurate furthestSlide.
+                            // vs=0:1:2:3 means slides 0-3 visited → furthest is 4 (0-based to 1-based).
+                            if (/\bvs=/.test(value)) {
+                                var vsMatch = value.match(/\bvs=([0-9:]+)/);
+                                if (vsMatch) {
+                                    var visited = vsMatch[1].split(':').map(function(s) { return parseInt(s, 10); }).filter(function(n) { return !isNaN(n); });
+                                    if (visited.length > 0) {
+                                        var maxVisited = Math.max.apply(null, visited) + 1; // 0-based to 1-based
+                                        if (furthestSlide === null || maxVisited > furthestSlide) {
+                                            furthestSlide = maxVisited;
+                                            console.log('[SCORM 2004] Furthest progress updated from Captivate vs field:', furthestSlide);
+                                            try {
+                                                sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                                                localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                                            } catch (e) {}
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Update furthestSlide from parsed slide (only increases)
                             if (furthestSlide === null || slideNum > furthestSlide) {
                                 furthestSlide = slideNum;
                                 console.log('[SCORM 2004] Furthest progress updated from suspend_data:', furthestSlide);
@@ -1960,10 +2044,13 @@ class tracking_js {
                                     localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                                 } catch (e) {}
                             }
-                            // Always send current position from suspend_data
-                            if (slideNum !== lastSlide) {
+
+                            // Send position update — skip if Captivate periodic commit (cs is stale)
+                            if (!isCaptivatePeriodicCommit && slideNum !== lastSlide) {
                                 console.log('[SCORM 2004] Position from suspend_data:', slideNum);
                                 sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                            } else if (isCaptivatePeriodicCommit) {
+                                console.log('[SCORM 2004] Captivate periodic commit, cs unchanged — skipping position update');
                             }
                         }
                     } else {

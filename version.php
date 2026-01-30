@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012881;  // YYYYMMDDXX format.
+$plugin->version = 2025012882;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.81';  // Refactor lib.php: extract logic into modular class files under classes/hooks/ and classes/scorm/.
+$plugin->release = '2.0.82';  // Fix Captivate SCORM position bar showing furthest instead of current slide.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
