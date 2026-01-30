@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012883</version>
+        <version>2025012884</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.83</release>
+        <release>2.0.84</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,28 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.83/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.84/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.83</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.84</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.83 - Refactor tracking_js.php into Modular Files</h3>
+            <h3>Version 2.0.84 - Fix Captivate SCORM Position Bar Bugs</h3>
 
-            <h4>Refactoring</h4>
+            <h4>Bug Fixes</h4>
             <ul>
-                <li>Split tracking_js.php (4,322 lines) into 14 modular files organized by SCORM vendor</li>
-                <li>Vendor-specific files: Storyline, iSpring, Captivate, Rise 360, Lectora, Generic</li>
-                <li>Shared infrastructure: core state, parsers, SCORM 1.2/2004 API, detection, navigation</li>
-                <li>Coordinator pattern: tracking_js.php assembles all fragments into a single IIFE</li>
-                <li>Pure code reorganization — no behavioral changes</li>
+                <li>Fix position bar showing 3/5 then changing to 2/5: Generic detector misread Captivate's 0-based currentSlide variable as 1-based</li>
+                <li>Add Captivate resume correction fallback: navigate to furthest slide via cpCmndGotoSlide API when suspend_data modification is not honored</li>
+                <li>Suppress Generic position detection for Captivate content by detecting cs= format in suspend_data</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.83: Refactor tracking_js.php into modular class files by SCORM vendor</li>
                 <li>v2.0.82: Fix Captivate SCORM position bar showing furthest instead of current slide</li>
                 <li>v2.0.81: Refactor lib.php into modular class files</li>
-                <li>v2.0.80: Fix position bar showing furthest instead of current slide</li>
             </ul>
             ]]>
         </releasenotes>

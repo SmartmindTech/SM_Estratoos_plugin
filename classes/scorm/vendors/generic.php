@@ -269,6 +269,35 @@ setTimeout(function() {
                 return;
             }
 
+            // v2.0.84: Detect Captivate format from suspend_data before running generic position detection.
+            // Captivate uses 0-based variables (currentSlide=2 means slide 3) which Generic
+            // would misinterpret. The SCORM API tracking (SetValue interceptor) already handles
+            // Captivate position correctly via cs field parsing.
+            if (lastCaptivateCs === null) {
+                try {
+                    var checkSD = null;
+                    if (window.API && window.API.LMSGetValue) {
+                        checkSD = window.API.LMSGetValue('cmi.suspend_data');
+                    } else if (window.API_1484_11 && window.API_1484_11.GetValue) {
+                        checkSD = window.API_1484_11.GetValue('cmi.suspend_data');
+                    }
+                    if (checkSD && /\bcs=\d+/.test(checkSD)) {
+                        var csM = checkSD.match(/\bcs=(\d+)/);
+                        if (csM) {
+                            lastCaptivateCs = parseInt(csM[1], 10);
+                            console.log('[Generic] Detected Captivate suspend_data (cs=' + lastCaptivateCs + '), skipping generic position detection');
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            // Skip generic position detection for Captivate content — the SCORM API
+            // write interceptor handles Captivate position correctly via cs field parsing.
+            // Total slides detection above still runs.
+            if (lastCaptivateCs !== null) {
+                return;
+            }
+
             var currentPosition = getGenericCurrentPosition(content);
             // Only report if:
             // 1. We got a valid position (>= 1 after 0-index conversion)

@@ -212,6 +212,22 @@ setTimeout(function() {
     }, 1000);
 }, 4000);
 
+// v2.0.84: Resume correction via Captivate navigation API.
+// If the Captivate content didn't honor the modified suspend_data (cs field) for resume,
+// try to navigate to the furthest slide via Captivate's direct navigation API.
+// This fires after 5 seconds — enough time for content to fully load — and only when
+// there's no active tag navigation and we're behind the furthest slide.
+setTimeout(function() {
+    if (furthestSlide !== null && !pendingSlideNavigation &&
+        lastSlide !== null && lastSlide < furthestSlide) {
+        var captPlayer = findCaptivatePlayer();
+        if (captPlayer && captPlayer.window) {
+            console.log('[Captivate] Resume correction: current slide', lastSlide, '< furthest', furthestSlide, '— navigating via API');
+            navigateViaCaptivate(furthestSlide);
+        }
+    }
+}, 5000);
+
 window.addEventListener('beforeunload', function() {
     if (captivateCheckInterval) {
         clearInterval(captivateCheckInterval);
