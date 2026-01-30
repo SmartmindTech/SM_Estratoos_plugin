@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012880</version>
+        <version>2025012881</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.80</release>
+        <release>2.0.81</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,37 +29,38 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.80/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.81/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.80</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.81</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.80 - Fix Position Bar Showing Furthest Instead of Current Slide</h3>
+            <h3>Version 2.0.81 - Refactor lib.php into Modular Class Files</h3>
 
-            <h4>Bug Fixes</h4>
+            <h4>Architecture Improvements</h4>
             <ul>
-                <li>Position bar now shows correct current slide instead of always showing furthest</li>
-                <li>SmartLearning API polling reads real cs=current from DB instead of boosted cs=furthest</li>
-                <li>Going back and forth between slides now updates position bar immediately</li>
+                <li>Extracted lib.php (4,726 lines) into 6 modular class files under classes/</li>
+                <li>lib.php is now ~230 lines of thin delegator functions</li>
+                <li>No functionality changes — all code preserved, just reorganized</li>
             </ul>
 
-            <h4>Changes</h4>
+            <h4>New Files</h4>
             <ul>
-                <li>Stop boosting suspend_data.cs during normal navigation writes (LMSSetValue)</li>
-                <li>Remove suspend_data.cs boost from post-intercept timeouts (tag and non-tag)</li>
-                <li>Keep score.raw and lesson_location boosts for progress tracking and resume</li>
-                <li>Resume correctness handled by pre-init backing store and read interceptors at page load</li>
-                <li>Same changes applied for both SCORM 1.2 and SCORM 2004 handlers</li>
+                <li>classes/hooks/webservice_hooks.php — Web service pre/post processing</li>
+                <li>classes/hooks/navigation_hooks.php — Navigation menu and post-install redirect</li>
+                <li>classes/hooks/navbar_hooks.php — Boost navbar icon rendering</li>
+                <li>classes/scorm/tracking_js.php — SCORM real-time position tracking JavaScript</li>
+                <li>classes/scorm/embed_assets.php — Embed mode CSS and JavaScript</li>
+                <li>classes/scorm/slidecount.php — SCORM slide count detection</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.80: Fix position bar showing furthest instead of current slide</li>
                 <li>v2.0.79: Fix DOM observer picking up post-intercept boosted values as navigation</li>
                 <li>v2.0.78: Fix re-entrant LMSSetValue processing modified suspend_data as navigation</li>
-                <li>v2.0.77: Fix position bar jumping to furthest (poll reading boosted lesson_location from DB)</li>
             </ul>
             ]]>
         </releasenotes>
