@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012888;  // YYYYMMDDXX format.
+$plugin->version = 2025012889;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.88';  // Fix stale localStorage causing wrong position counter; always compute furthestSlide from DB via Math.max.
+$plugin->release = '2.0.89';  // Refactor SCORM logs: remove verbose logs, add 12 targeted position-tracking logs.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

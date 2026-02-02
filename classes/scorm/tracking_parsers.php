@@ -46,7 +46,6 @@ function parseSlideFromSuspendData(data) {
         var parsed = JSON.parse(data);
         var slideNum = extractSlideFromParsedData(parsed);
         if (slideNum !== null) {
-            console.log('[suspend_data] Parsed JSON directly, slide:', slideNum);
             slideSource = 'suspend_data';
             return slideNum;
         }
@@ -60,14 +59,11 @@ function parseSlideFromSuspendData(data) {
             // Try LZ decompression first (most common for Storyline).
             var decompressed = LZString.decompressFromBase64(data);
             if (decompressed && decompressed.length > 0) {
-                console.log('[suspend_data] LZ decompressed, length:', decompressed.length);
-
                 // Try to parse decompressed JSON.
                 try {
                     var parsed = JSON.parse(decompressed);
                     var slideNum = extractSlideFromParsedData(parsed);
                     if (slideNum !== null) {
-                        console.log('[suspend_data] LZ+JSON slide:', slideNum);
                         slideSource = 'suspend_data';
                         return slideNum;
                     }
@@ -78,13 +74,12 @@ function parseSlideFromSuspendData(data) {
                 // Search for resume patterns in decompressed text.
                 var slideNum = extractSlideFromText(decompressed);
                 if (slideNum !== null) {
-                    console.log('[suspend_data] LZ text slide:', slideNum);
                     slideSource = 'suspend_data';
                     return slideNum;
                 }
             }
         } catch (e) {
-            console.log('[suspend_data] LZ decompression failed');
+            // LZ decompression failed
         }
 
         // Fallback: try plain Base64 decode.
@@ -96,7 +91,6 @@ function parseSlideFromSuspendData(data) {
                 var parsed = JSON.parse(decoded);
                 var slideNum = extractSlideFromParsedData(parsed);
                 if (slideNum !== null) {
-                    console.log('[suspend_data] Base64+JSON slide:', slideNum);
                     slideSource = 'suspend_data';
                     return slideNum;
                 }
@@ -105,7 +99,6 @@ function parseSlideFromSuspendData(data) {
             // Search for patterns.
             var slideNum = extractSlideFromText(decoded);
             if (slideNum !== null) {
-                console.log('[suspend_data] Base64 text slide:', slideNum);
                 slideSource = 'suspend_data';
                 return slideNum;
             }
@@ -121,7 +114,6 @@ function parseSlideFromSuspendData(data) {
         if (csMatch) {
             var cs = parseInt(csMatch[1], 10);
             if (!isNaN(cs) && cs >= 0) {
-                console.log('[suspend_data] Captivate cs (0-based):', cs);
                 slideSource = 'suspend_data';
                 return cs + 1; // cs is 0-based
             }
@@ -150,13 +142,11 @@ function parseSlideFromSuspendData(data) {
     // 4. Search for patterns in raw string.
     var slideNum = extractSlideFromText(data);
     if (slideNum !== null) {
-        console.log('[suspend_data] Raw text slide:', slideNum);
         slideSource = 'suspend_data';
         return slideNum;
     }
 
     // If we can't parse suspend_data, return null.
-    console.log('[suspend_data] Could not extract slide position from suspend_data');
     return null;
 }
 
@@ -182,7 +172,6 @@ function extractSlideFromParsedData(parsed) {
         var match = resume.match(/^(\d+)_(\d+)$/);
         if (match) {
             // scene_slide format - return the slide number.
-            console.log('[suspend_data] Resume format scene_slide:', match[1], '_', match[2]);
             return parseInt(match[2], 10);
         }
         match = resume.match(/^(\d+)$/);
@@ -201,7 +190,6 @@ function extractSlideFromParsedData(parsed) {
                 var resume = String(item.v);
                 var match = resume.match(/^(\d+)_(\d+)$/);
                 if (match) {
-                    console.log('[suspend_data] Storyline d-array Resume:', match[1], '_', match[2]);
                     return parseInt(match[2], 10);
                 }
                 match = resume.match(/^(\d+)$/);
@@ -279,7 +267,6 @@ function modifySuspendDataForSlide(originalData, targetSlide) {
     if (!originalData || originalData.length < 5) return originalData;
 
     var targetIndex = targetSlide - 1; // 0-based index
-    console.log('[SCORM suspend_data] Modifying for slide:', targetSlide, '(index:', targetIndex, ')');
 
     // Try LZ decompression (Articulate Storyline format)
     if (originalData.match(/^[A-Za-z0-9+/=]{20,}$/)) {
@@ -294,7 +281,6 @@ function modifySuspendDataForSlide(originalData, targetSlide) {
                     /"l"\s*:\s*(\d+)/g,
                     function(match, oldValue) {
                         if (parseInt(oldValue) !== targetIndex) {
-                            console.log('[SCORM suspend_data] "l":', oldValue, '->', targetIndex);
                             anyChange = true;
                             return '"l":' + targetIndex;
                         }
@@ -308,7 +294,6 @@ function modifySuspendDataForSlide(originalData, targetSlide) {
                     /"resume"\s*:\s*"(\d+)_(\d+)"/g,
                     function(match, scene, slide) {
                         if (parseInt(slide) !== targetIndex) {
-                            console.log('[SCORM suspend_data] "resume":', scene + '_' + slide, '->', scene + '_' + targetIndex);
                             anyChange = true;
                             return '"resume":"' + scene + '_' + targetIndex + '"';
                         }
@@ -321,7 +306,6 @@ function modifySuspendDataForSlide(originalData, targetSlide) {
                     /("n"\s*:\s*"Resume"\s*,\s*"v"\s*:\s*")(\d+)_(\d+)(")/gi,
                     function(match, prefix, scene, slide, suffix) {
                         if (parseInt(slide) !== targetIndex) {
-                            console.log('[SCORM suspend_data] d-array Resume:', scene + '_' + slide, '->', scene + '_' + targetIndex);
                             anyChange = true;
                             return prefix + scene + '_' + targetIndex + suffix;
                         }
@@ -334,7 +318,6 @@ function modifySuspendDataForSlide(originalData, targetSlide) {
                     /("v"\s*:\s*")(\d+)_(\d+)("\s*,\s*"n"\s*:\s*"Resume")/gi,
                     function(match, prefix, scene, slide, suffix) {
                         if (parseInt(slide) !== targetIndex) {
-                            console.log('[SCORM suspend_data] reverse d-array:', scene + '_' + slide, '->', scene + '_' + targetIndex);
                             anyChange = true;
                             return prefix + scene + '_' + targetIndex + suffix;
                         }
@@ -346,15 +329,12 @@ function modifySuspendDataForSlide(originalData, targetSlide) {
                     // Re-compress with LZ-String
                     var recompressed = LZString.compressToBase64(modified);
                     if (recompressed) {
-                        console.log('[SCORM suspend_data] Re-compressed successfully');
                         return recompressed;
                     }
-                } else {
-                    console.log('[SCORM suspend_data] All fields already at target, no change needed');
                 }
             }
         } catch (e) {
-            console.log('[SCORM suspend_data] LZ error:', e.message);
+            // LZ error
         }
     }
 
@@ -364,7 +344,6 @@ function modifySuspendDataForSlide(originalData, targetSlide) {
             /\bcs=(\d+)/,
             function(match, oldValue) {
                 if (parseInt(oldValue) !== targetIndex) {
-                    console.log('[SCORM suspend_data] Captivate cs:', oldValue, '->', targetIndex);
                     return 'cs=' + targetIndex;
                 }
                 return match;
@@ -386,15 +365,11 @@ function modifySuspendDataText(text, targetSlide) {
     var modified = text;
     var changesMade = false;
 
-    console.log('[SCORM suspend_data text] Attempting text-based modification for slide:', targetSlide, '(index:', targetIndex, ')');
-    console.log('[SCORM suspend_data text] Text sample (first 500 chars):', text.substring(0, 500));
-
     // Pattern 1: scene_slide format with flexible quoting - "resume":"0_7", resume:0_7, etc.
     // Captures: $1=prefix (resume + quotes/separator), $2=scene, $3=slide, $4=suffix
     var p1 = modified.replace(
         /(["']?resume["']?\s*[:=]\s*["']?)(\d+)_(\d+)(["']?)/gi,
         function(match, prefix, scene, slide, suffix) {
-            console.log('[SCORM suspend_data text] Replacing resume scene_slide:', match, '->', prefix + scene + '_' + targetIndex + suffix);
             changesMade = true;
             return prefix + scene + '_' + targetIndex + suffix;
         }
@@ -407,7 +382,6 @@ function modifySuspendDataText(text, targetSlide) {
         function(match, prefix, oldSlide, suffix) {
             // Skip if this is part of a scene_slide (already handled)
             if (match.indexOf('_') !== -1) return match;
-            console.log('[SCORM suspend_data text] Replacing resume:', match, '->', prefix + targetIndex + suffix);
             changesMade = true;
             return prefix + targetIndex + suffix;
         }
@@ -418,7 +392,6 @@ function modifySuspendDataText(text, targetSlide) {
     var p3 = modified.replace(
         /("n"\s*:\s*"Resume"[^}]{0,50}"v"\s*:\s*")(\d+)_(\d+)(")/gi,
         function(match, prefix, scene, slide, suffix) {
-            console.log('[SCORM suspend_data text] Replacing d-array Resume:', scene + '_' + slide, '->', scene + '_' + targetIndex);
             changesMade = true;
             return prefix + scene + '_' + targetIndex + suffix;
         }
@@ -429,7 +402,6 @@ function modifySuspendDataText(text, targetSlide) {
     var p4 = modified.replace(
         /("v"\s*:\s*")(\d+)_(\d+)("[^}]{0,50}"n"\s*:\s*"Resume")/gi,
         function(match, prefix, scene, slide, suffix) {
-            console.log('[SCORM suspend_data text] Replacing reverse d-array:', scene + '_' + slide, '->', scene + '_' + targetIndex);
             changesMade = true;
             return prefix + scene + '_' + targetIndex + suffix;
         }
@@ -440,7 +412,6 @@ function modifySuspendDataText(text, targetSlide) {
     var p5 = modified.replace(
         /(["']?currentSlide["']?\s*[:=]\s*["']?)(\d+)(["']?)/gi,
         function(match, prefix, oldSlide, suffix) {
-            console.log('[SCORM suspend_data text] Replacing currentSlide:', oldSlide, '->', targetIndex);
             changesMade = true;
             return prefix + targetIndex + suffix;
         }
@@ -451,7 +422,6 @@ function modifySuspendDataText(text, targetSlide) {
     var p6 = modified.replace(
         /(["']?CurrentSlideIndex["']?\s*[:=]\s*["']?)(\d+)(["']?)/gi,
         function(match, prefix, oldSlide, suffix) {
-            console.log('[SCORM suspend_data text] Replacing CurrentSlideIndex:', oldSlide, '->', targetIndex);
             changesMade = true;
             return prefix + targetIndex + suffix;
         }
@@ -462,7 +432,6 @@ function modifySuspendDataText(text, targetSlide) {
     var p7 = modified.replace(
         /(["']?slide["']?\s*[:=]\s*["']?)(\d+)(["']?)(?![_\d])/gi,
         function(match, prefix, oldSlide, suffix) {
-            console.log('[SCORM suspend_data text] Replacing slide:', oldSlide, '->', targetIndex);
             changesMade = true;
             return prefix + targetIndex + suffix;
         }
@@ -473,7 +442,6 @@ function modifySuspendDataText(text, targetSlide) {
     var p8 = modified.replace(
         /(["']?position["']?\s*[:=]\s*["']?)(\d+)(["']?)(?![_\d])/gi,
         function(match, prefix, oldSlide, suffix) {
-            console.log('[SCORM suspend_data text] Replacing position:', oldSlide, '->', targetIndex);
             changesMade = true;
             return prefix + targetIndex + suffix;
         }
@@ -484,7 +452,6 @@ function modifySuspendDataText(text, targetSlide) {
     var p9 = modified.replace(
         /(["']?(?:state|bookmark)["']?\s*[:=]\s*["']?)(\d+)_(\d+)(["']?)/gi,
         function(match, prefix, scene, slide, suffix) {
-            console.log('[SCORM suspend_data text] Replacing state/bookmark:', scene + '_' + slide, '->', scene + '_' + targetIndex);
             changesMade = true;
             return prefix + scene + '_' + targetIndex + suffix;
         }
@@ -495,30 +462,11 @@ function modifySuspendDataText(text, targetSlide) {
     var p10 = modified.replace(
         /(["']?(?:page|slide)Index["']?\s*[:=]\s*["']?)(\d+)(["']?)/gi,
         function(match, prefix, oldSlide, suffix) {
-            console.log('[SCORM suspend_data text] Replacing Index:', oldSlide, '->', targetIndex);
             changesMade = true;
             return prefix + targetIndex + suffix;
         }
     );
     if (p10 !== modified) modified = p10;
-
-    if (!changesMade) {
-        console.log('[SCORM suspend_data text] No patterns matched in text');
-        // Log what patterns ARE in the text for debugging
-        var debugPatterns = [
-            /resume/gi,
-            /slide/gi,
-            /position/gi,
-            /current/gi,
-            /\d+_\d+/g
-        ];
-        for (var dp = 0; dp < debugPatterns.length; dp++) {
-            var matches = text.match(debugPatterns[dp]);
-            if (matches) {
-                console.log('[SCORM suspend_data text] Found pattern:', debugPatterns[dp].source, '-> matches:', matches.slice(0, 5).join(', '));
-            }
-        }
-    }
 
     return modified;
 }

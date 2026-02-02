@@ -80,8 +80,7 @@ function computeFurthestFromApi(apiObj, getValueFn, locElement, scoreElement) {
         }
         if (dbFurthest >= 1) {
             furthestSlide = dbFurthest;
-            console.log('[SCORM Navigation] Computed furthestSlide from API in trap:', furthestSlide,
-                '(location:', parsedLoc, ', score:', parsedScore, ', total:', slidescount, ')');
+            console.log('[SCORM Tracking] Init furthest=' + furthestSlide + ' (location=' + parsedLoc + ', score=' + parsedScore + '%)');
             try {
                 sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                 localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
@@ -105,16 +104,14 @@ if (typeof window.API === 'undefined' || !window.API) {
                             computeFurthestFromApi(newAPI, newAPI.LMSGetValue,
                                 'cmi.core.lesson_location', 'cmi.core.score.raw');
                         }
-                        console.log('[SCORM Navigation] window.API created - wrapping IMMEDIATELY via defineProperty trap');
                         apiWrapped = wrapScormApi();
                     }
                 },
                 configurable: true,
                 enumerable: true
             });
-            console.log('[SCORM Navigation] Object.defineProperty trap set for window.API');
         } catch (e) {
-            console.log('[SCORM Navigation] Could not set defineProperty trap for API:', e.message);
+            // Could not set defineProperty trap for API
         }
     })();
 }
@@ -133,16 +130,14 @@ if (typeof window.API_1484_11 === 'undefined' || !window.API_1484_11) {
                             computeFurthestFromApi(newAPI, newAPI.GetValue,
                                 'cmi.location', 'cmi.score.raw');
                         }
-                        console.log('[SCORM Navigation] window.API_1484_11 created - wrapping IMMEDIATELY via defineProperty trap');
                         apiWrapped = wrapScormApi();
                     }
                 },
                 configurable: true,
                 enumerable: true
             });
-            console.log('[SCORM Navigation] Object.defineProperty trap set for window.API_1484_11');
         } catch (e) {
-            console.log('[SCORM Navigation] Could not set defineProperty trap for API_1484_11:', e.message);
+            // Could not set defineProperty trap for API_1484_11
         }
     })();
 }
@@ -162,9 +157,6 @@ if (!apiWrapped && !wrapScormApi()) {
 // The multiple-intercept approach to LMSGetValue is now the primary navigation mechanism.
 // Keeping sessionStorage clear logic only to prevent stale data.
 if (pendingSlideNavigation) {
-    console.log('[SCORM Navigation] Pending navigation detected for slide:', pendingSlideNavigation.slide);
-    console.log('[SCORM Navigation] Using LMSGetValue intercept (no direct API fallback)');
-
     // Note: sessionStorage is cleared after reading (line ~1103), so no additional cleanup needed
 }
 
@@ -218,7 +210,6 @@ var initialRetryInterval = setInterval(function() {
             if (earlyContent) {
                 var earlyTotal = getGenericTotalSlides(earlyContent);
                 if (earlyTotal !== null && earlyTotal > slidescount) {
-                    console.log('[SCORM Plugin] Early total slides detection:', earlyTotal);
                     slidescount = earlyTotal;
                 }
             }
@@ -238,12 +229,10 @@ var initialRetryInterval = setInterval(function() {
             var newFurthest = Math.max(furthestSlide || 0, dbMax); // v2.0.88: Max with existing
             if (newFurthest >= 1 && newFurthest !== furthestSlide) {
                 furthestSlide = newFurthest;
-                console.log('[SCORM Plugin] Updated furthest slide from Moodle data:', furthestSlide,
-                    '(location:', retryParsedLocation, ', score-based:', scoreBasedSlide, ', total:', slidescount, ')');
+                console.log('[SCORM Tracking] Retry furthest=' + furthestSlide + ' (location=' + retryParsedLocation + ', score=' + retryParsedScore + '%)');
             } else if (furthestSlide === null && newFurthest >= 1) {
                 furthestSlide = newFurthest;
-                console.log('[SCORM Plugin] Restored furthest slide from Moodle data:', furthestSlide,
-                    '(location:', retryParsedLocation, ', score-based:', scoreBasedSlide, ', total:', slidescount, ')');
+                console.log('[SCORM Tracking] Retry furthest=' + furthestSlide + ' (location=' + retryParsedLocation + ', score=' + retryParsedScore + '%)');
             }
         }
     }
@@ -256,8 +245,6 @@ var initialRetryInterval = setInterval(function() {
         // The user is at the tag target, not the furthest slide.
         var initialSlide = pendingSlideNavigation ? pendingSlideNavigation.slide : furthestSlide;
         sendProgressUpdate(null, null, null, initialSlide);
-        console.log('[SCORM Plugin] Initial progress sent with slide:', initialSlide,
-            '(furthest:', furthestSlide, ', attempt', initialRetryCount, ')');
     } else if (initialRetryCount >= 5) {
         clearInterval(initialRetryInterval);
         initialProgressSent = true;
@@ -265,11 +252,9 @@ var initialRetryInterval = setInterval(function() {
             // v2.0.65: Skip default if tag navigation pending (tag will set correct position).
             // Small/unknown SCORM: send default 1 as a reset signal.
             sendProgressUpdate(null, null, null, 1);
-            console.log('[SCORM Plugin] Initial progress sent with default slide 1 (slidescount:', slidescount, ')');
         } else {
             // Multi-slide SCORM without sessionStorage data: let the SCORM API handle it.
             // Don't send a wrong default that would briefly show 1/139.
-            console.log('[SCORM Plugin] No initial progress (waiting for SCORM API, slidescount:', slidescount, ')');
         }
     }
 }, 200);
@@ -299,7 +284,7 @@ var pollInterval = setInterval(function() {
     if (currentLocation && currentLocation !== lastLocation) {
         lastLocation = currentLocation;
         lastApiChangeTime = Date.now();
-        console.log('[SCORM Poll] Location changed:', currentLocation);
+        console.log('[SCORM Tracking] Poll: location=' + currentLocation + ' furthest=' + furthestSlide);
         sendProgressUpdate(currentLocation, lastStatus, null, null);
 
         // DIRECT NAVIGATION FALLBACK: DISABLED
@@ -310,14 +295,10 @@ var pollInterval = setInterval(function() {
         if (directNavigationTarget !== null) {
             var currentSlideNum = parseInt(currentLocation, 10);
             if (!isNaN(currentSlideNum) && currentSlideNum === directNavigationTarget) {
-                console.log('[SCORM Poll] Position matches target, navigation successful');
                 directNavigationTarget = null;
                 try {
                     sessionStorage.removeItem('scorm_fallback_reload_' + cmid);
                 } catch (e) {}
-            } else {
-                // Log mismatch but don't trigger fallback - the visual display is correct
-                console.log('[SCORM Poll] Position reported:', currentSlideNum, '(target:', directNavigationTarget, ') - waiting for SCORM to update');
             }
         }
     }
@@ -328,7 +309,6 @@ var pollInterval = setInterval(function() {
         lastApiChangeTime = Date.now();
         var slideNum = parseSlideFromSuspendData(currentSuspendData);
         if (slideNum !== null && slideNum !== lastSlide) {
-            console.log('[SCORM Poll] Detected slide change from suspend_data:', slideNum);
             sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
         }
     }
@@ -346,7 +326,6 @@ window.addEventListener('message', function(event) {
         if (event.data.slide !== undefined) {
             var slideNum = parseInt(event.data.slide, 10);
             if (!isNaN(slideNum) && slideNum !== lastSlide) {
-                console.log('[SCORM Internal] Detected slide from message:', slideNum);
                 sendProgressUpdate(null, null, null, slideNum);
             }
         }
@@ -379,7 +358,6 @@ if (typeof MutationObserver !== 'undefined') {
                 lastSuspendData = currentSuspendData;
                 var slideNum = parseSlideFromSuspendData(currentSuspendData);
                 if (slideNum !== null && slideNum !== lastSlide) {
-                    console.log('[SCORM DOM] Detected slide change:', slideNum);
                     sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
                 }
             }

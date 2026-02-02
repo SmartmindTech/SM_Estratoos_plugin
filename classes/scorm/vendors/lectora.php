@@ -83,22 +83,18 @@ function getLectoraCurrentPage(playerInfo) {
 
         // Method 1: Direct currentPage or pageNum variable
         if (typeof win.currentPage !== 'undefined') {
-            console.log('[Lectora] currentPage:', win.currentPage);
             return win.currentPage;
         }
         if (typeof win.pageNum !== 'undefined') {
-            console.log('[Lectora] pageNum:', win.pageNum);
             return win.pageNum;
         }
 
         // Method 2: trivantis object
         if (win.trivantis) {
             if (win.trivantis.currentPage !== undefined) {
-                console.log('[Lectora] trivantis.currentPage:', win.trivantis.currentPage);
                 return win.trivantis.currentPage;
             }
             if (win.trivantis.pageIndex !== undefined) {
-                console.log('[Lectora] trivantis.pageIndex:', win.trivantis.pageIndex);
                 return win.trivantis.pageIndex + 1;
             }
         }
@@ -107,11 +103,9 @@ function getLectoraCurrentPage(playerInfo) {
         if (win.TrivAPI) {
             if (win.TrivAPI.GetCurrentPage) {
                 var page = win.TrivAPI.GetCurrentPage();
-                console.log('[Lectora] TrivAPI.GetCurrentPage():', page);
                 return page;
             }
             if (win.TrivAPI.currentPage !== undefined) {
-                console.log('[Lectora] TrivAPI.currentPage:', win.TrivAPI.currentPage);
                 return win.TrivAPI.currentPage;
             }
         }
@@ -119,11 +113,9 @@ function getLectoraCurrentPage(playerInfo) {
         // Method 4: lectora global object
         if (win.lectora) {
             if (win.lectora.currentPageNumber !== undefined) {
-                console.log('[Lectora] lectora.currentPageNumber:', win.lectora.currentPageNumber);
                 return win.lectora.currentPageNumber;
             }
             if (win.lectora.pageNum !== undefined) {
-                console.log('[Lectora] lectora.pageNum:', win.lectora.pageNum);
                 return win.lectora.pageNum;
             }
         }
@@ -139,7 +131,6 @@ function getLectoraCurrentPage(playerInfo) {
                 var id = page.id || page.className;
                 var match = id.match(/page[_\-]?(\d+)/i);
                 if (match) {
-                    console.log('[Lectora] DOM page element:', match[1]);
                     return parseInt(match[1], 10);
                 }
                 return i + 1;
@@ -151,13 +142,12 @@ function getLectoraCurrentPage(playerInfo) {
         if (hash) {
             var match = hash.match(/page[_\-]?(\d+)/i);
             if (match) {
-                console.log('[Lectora] Hash page:', match[1]);
                 return parseInt(match[1], 10);
             }
         }
 
     } catch (e) {
-        console.log('[Lectora] Error accessing player:', e.message);
+        // Error accessing player
     }
 
     return null;
@@ -172,7 +162,6 @@ setTimeout(function() {
             if (currentPage !== null && currentPage !== lectoraPageIndex) {
                 lectoraPageIndex = currentPage;
                 if (currentPage !== lastSlide) {
-                    console.log('[Lectora] Page changed to:', currentPage);
                     sendProgressUpdate(null, null, null, currentPage);
                 }
             }
@@ -199,18 +188,16 @@ function navigateViaLectora(targetSlide) {
         // Method 1: TrivAPI.GoToPage
         if (win.TrivAPI && win.TrivAPI.GoToPage) {
             win.TrivAPI.GoToPage(targetSlide);
-            console.log('[SCORM Navigation] Lectora TrivAPI.GoToPage called');
             return true;
         }
 
         // Method 2: trivExternalCall
         if (win.trivExternalCall) {
             win.trivExternalCall('GoToPage', targetSlide);
-            console.log('[SCORM Navigation] Lectora trivExternalCall GoToPage called');
             return true;
         }
     } catch (e) {
-        console.log('[SCORM Navigation] Lectora navigation error:', e.message);
+        // Lectora navigation error
     }
 
     return false;

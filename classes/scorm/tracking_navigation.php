@@ -69,8 +69,6 @@ class tracking_navigation {
  * @returns {boolean} True if navigation was attempted.
  */
 function navigateToSlide(targetSlide, skipReload) {
-    console.log('[SCORM Navigation] Attempting to navigate to slide:', targetSlide, skipReload ? '(skip reload)' : '');
-
     // Try vendor-specific navigation APIs in priority order.
     // Each navigateViaXxx() function returns true if navigation succeeded.
     // These functions are defined in classes/scorm/vendors/*.php
@@ -88,7 +86,6 @@ function navigateToSlide(targetSlide, skipReload) {
 
     // SUSPEND_DATA MODIFICATION: Last resort — modify resume position and reload
     if (skipReload) {
-        console.log('[SCORM Navigation] Skipping suspend_data reload (already in navigation cycle)');
         // Just modify suspend_data via SCORM API without reloading
         try {
             if (window.API && window.API.LMSGetValue && window.API.LMSSetValue) {
@@ -98,12 +95,11 @@ function navigateToSlide(targetSlide, skipReload) {
                     if (modifiedData !== currentData) {
                         window.API.LMSSetValue('cmi.suspend_data', modifiedData);
                         window.API.LMSCommit('');
-                        console.log('[SCORM Navigation] suspend_data modified via API (no reload)');
                     }
                 }
             }
         } catch (e) {
-            console.log('[SCORM Navigation] API modification error:', e.message);
+            // API modification error
         }
         return false; // Don't claim success - let the content naturally update
     }
@@ -138,8 +134,6 @@ function navigateViaInnerFrames(targetSlide) {
                     cmid: cmid,
                     slide: targetSlide
                 }, '*');
-                console.log('[SCORM Navigation] Posted navigation to inner iframe');
-
                 try {
                     // Try generic inner iframe methods (defined in vendors/generic.php)
                     if (navigateGenericInnerFrame(innerWin, targetSlide)) return true;
@@ -149,9 +143,9 @@ function navigateViaInnerFrames(targetSlide) {
                     if (navigateStorylineInnerFrame(innerWin, targetSlide)) return true;
                     if (navigateISpringInnerFrame(innerWin, targetSlide)) return true;
 
-                    // Try video player detection (non-navigable)
+                    // Video player detection (non-navigable)
                     if (innerWin.player && innerWin.player.seekTo) {
-                        console.log('[SCORM Navigation] Inner iframe has video player, cannot convert slide to time');
+                        // Inner iframe has video player, cannot convert slide to time
                     }
                 } catch (e) {
                     // Cross-origin, continue
@@ -161,7 +155,7 @@ function navigateViaInnerFrames(targetSlide) {
             }
         }
     } catch (e) {
-        console.log('[SCORM Navigation] Inner iframe navigation error:', e.message);
+        // Inner iframe navigation error
     }
     return false;
 }
@@ -178,8 +172,6 @@ function navigateViaInnerFrames(targetSlide) {
  * @returns {boolean} True if navigation was initiated.
  */
 function modifySuspendDataAndReload(targetSlide) {
-    console.log('[SCORM suspend_data] Setting up pending navigation to slide:', targetSlide);
-
     // ANTI-RELOAD-LOOP: Check if we've already attempted a fallback reload for this slide
     // This uses a separate key from 'scorm_pending_navigation_' because that one gets cleared on read
     // This prevents cascading reloads when Poll fallback triggers multiple times
@@ -190,14 +182,11 @@ function modifySuspendDataAndReload(targetSlide) {
             var fallbackData = JSON.parse(existingFallback);
             // If same slide and recent (within 15 seconds), don't trigger another reload
             if (fallbackData.slide === targetSlide && (Date.now() - fallbackData.timestamp) < 15000) {
-                console.log('[SCORM suspend_data] Reload BLOCKED - fallback already attempted for slide:', targetSlide);
-                console.log('[SCORM suspend_data] Fallback timestamp:', fallbackData.timestamp, 'Age:', Date.now() - fallbackData.timestamp, 'ms');
                 return false;
             }
         }
     } catch (e) {
         // Continue with normal flow if parsing fails
-        console.log('[SCORM suspend_data] Could not check fallback status:', e.message);
     }
 
     // Mark that we're attempting a fallback reload for this slide
@@ -207,7 +196,7 @@ function modifySuspendDataAndReload(targetSlide) {
             timestamp: Date.now()
         }));
     } catch (e) {
-        console.log('[SCORM suspend_data] Could not store fallback status:', e.message);
+        // Could not store fallback status
     }
 
     // Store navigation target in sessionStorage
@@ -219,9 +208,8 @@ function modifySuspendDataAndReload(targetSlide) {
             timestamp: Date.now()
         };
         sessionStorage.setItem('scorm_pending_navigation_' + cmid, JSON.stringify(navData));
-        console.log('[SCORM suspend_data] Pending navigation stored:', navData);
     } catch (e) {
-        console.log('[SCORM suspend_data] Failed to store pending navigation:', e.message);
+        // Failed to store pending navigation
         return false;
     }
 
@@ -236,8 +224,6 @@ function modifySuspendDataAndReload(targetSlide) {
  * Find and reload the SCORM content iframe.
  */
 function reloadScormContentIframe() {
-    console.log('[SCORM suspend_data] Looking for SCORM content iframe to reload...');
-
     // Look for the SCORM content iframe
     var iframes = document.querySelectorAll('iframe');
     var reloaded = false;
@@ -250,7 +236,6 @@ function reloadScormContentIframe() {
         // Skip the outer Moodle player iframes
         if (src.indexOf('/mod/scorm/') === -1 && src.length > 0) {
             try {
-                console.log('[SCORM suspend_data] Reloading iframe:', src.substring(0, 100));
                 iframe.contentWindow.location.reload();
                 reloaded = true;
             } catch (e) {
@@ -261,10 +246,9 @@ function reloadScormContentIframe() {
                     setTimeout(function() {
                         iframe.src = currentSrc;
                     }, 100);
-                    console.log('[SCORM suspend_data] Reloaded iframe via src reassignment');
                     reloaded = true;
                 } catch (e2) {
-                    console.log('[SCORM suspend_data] Could not reload iframe:', e2.message);
+                    // Could not reload iframe
                 }
             }
             break;
@@ -275,8 +259,6 @@ function reloadScormContentIframe() {
     // asking it to reload the embed. This is more elegant than window.location.reload()
     // because it doesn't cause cascading re-initialization of the Vue app.
     if (!reloaded) {
-        console.log('[SCORM suspend_data] No iframe found, requesting parent to reload embed');
-
         // Try to send message to parent window (SmartLearning Vue app)
         try {
             var pendingNav = sessionStorage.getItem('scorm_pending_navigation_' + cmid);
@@ -294,7 +276,6 @@ function reloadScormContentIframe() {
                         slide: targetSlide,
                         timestamp: Date.now()
                     }, '*');
-                    console.log('[SCORM suspend_data] Posted reload-embed message to parent');
                     messageSent = true;
                 } catch (e) {
                     // Cross-origin, continue to next parent
@@ -311,22 +292,19 @@ function reloadScormContentIframe() {
                         slide: targetSlide,
                         timestamp: Date.now()
                     }, '*');
-                    console.log('[SCORM suspend_data] Posted reload-embed message to top window');
                     messageSent = true;
                 } catch (e) {}
             }
 
             // If message was sent, don't reload - let the parent handle it
             if (messageSent) {
-                console.log('[SCORM suspend_data] Waiting for parent to reload embed...');
                 return;
             }
         } catch (e) {
-            console.log('[SCORM suspend_data] Could not send message to parent:', e.message);
+            // Could not send message to parent
         }
 
         // Fallback: reload the whole page if postMessage failed
-        console.log('[SCORM suspend_data] Fallback: reloading current window');
         window.location.reload();
     }
 }
@@ -337,9 +315,6 @@ function reloadScormContentIframe() {
 
 // Listen for navigation requests from SmartLearning parent window
 window.addEventListener('message', function(event) {
-    // Debug: log all received messages
-    console.log('[SCORM Navigation] Message received from:', event.origin, 'type:', event.data?.type, 'data:', event.data);
-
     // Check for navigation request message
     if (event.data && event.data.type === 'scorm-navigate-to-slide') {
         var targetCmid = event.data.cmid;
@@ -347,12 +322,10 @@ window.addEventListener('message', function(event) {
 
         // Verify this message is for this SCORM module
         if (targetCmid && targetCmid !== cmid) {
-            console.log('[SCORM Navigation] Ignoring navigation request for different cmid:', targetCmid);
             return;
         }
 
         if (targetSlide && !isNaN(targetSlide)) {
-            console.log('[SCORM Navigation] Received navigation request to slide:', targetSlide);
             var success = navigateToSlide(parseInt(targetSlide, 10));
 
             // Send response back to parent
@@ -373,8 +346,6 @@ window.addEventListener('message', function(event) {
         }
     }
 }, false);
-
-console.log('[SCORM Navigation] Navigation listener registered for cmid:', cmid);
 
 JSEOF;
     }

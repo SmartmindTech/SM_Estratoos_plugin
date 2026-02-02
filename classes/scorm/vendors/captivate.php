@@ -83,7 +83,6 @@ function getCaptivateCurrentSlide(playerInfo) {
 
         // Method 1: cpInfoCurrentSlide variable (most common)
         if (typeof win.cpInfoCurrentSlide !== 'undefined') {
-            console.log('[Captivate] cpInfoCurrentSlide:', win.cpInfoCurrentSlide);
             return win.cpInfoCurrentSlide + 1; // 0-based to 1-based
         }
 
@@ -91,11 +90,9 @@ function getCaptivateCurrentSlide(playerInfo) {
         if (win.cp && win.cp.movie) {
             var movie = win.cp.movie;
             if (movie.cpInfoCurrentSlide !== undefined) {
-                console.log('[Captivate] cp.movie.cpInfoCurrentSlide:', movie.cpInfoCurrentSlide);
                 return movie.cpInfoCurrentSlide + 1;
             }
             if (movie.currentSlide !== undefined) {
-                console.log('[Captivate] cp.movie.currentSlide:', movie.currentSlide);
                 return movie.currentSlide;
             }
         }
@@ -105,11 +102,9 @@ function getCaptivateCurrentSlide(playerInfo) {
             var api = win.cpAPIInterface;
             if (api.getCurrentSlide) {
                 var slide = api.getCurrentSlide();
-                console.log('[Captivate] cpAPIInterface.getCurrentSlide():', slide);
                 return slide + 1;
             }
             if (api.currentSlide !== undefined) {
-                console.log('[Captivate] cpAPIInterface.currentSlide:', api.currentSlide);
                 return api.currentSlide + 1;
             }
         }
@@ -117,7 +112,6 @@ function getCaptivateCurrentSlide(playerInfo) {
         // Method 4: Captivate global object
         if (win.Captivate) {
             if (win.Captivate.currentSlide !== undefined) {
-                console.log('[Captivate] Captivate.currentSlide:', win.Captivate.currentSlide);
                 return win.Captivate.currentSlide;
             }
         }
@@ -125,7 +119,6 @@ function getCaptivateCurrentSlide(playerInfo) {
         // Method 5: cpCmndSlideEnter (event listener based)
         // Store the value if the function was called
         if (win._captivateLastSlide !== undefined) {
-            console.log('[Captivate] _captivateLastSlide:', win._captivateLastSlide);
             return win._captivateLastSlide;
         }
 
@@ -139,7 +132,6 @@ function getCaptivateCurrentSlide(playerInfo) {
                 var id = elem.id || elem.className;
                 var match = id.match(/slide[_\-]?(\d+)/i);
                 if (match) {
-                    console.log('[Captivate] DOM slide element:', match[1]);
                     return parseInt(match[1], 10);
                 }
                 // Count visible slides
@@ -148,7 +140,7 @@ function getCaptivateCurrentSlide(playerInfo) {
         }
 
     } catch (e) {
-        console.log('[Captivate] Error accessing player:', e.message);
+        // Error accessing player
     }
 
     return null;
@@ -169,7 +161,6 @@ function injectCaptivateListener(playerInfo) {
         var originalSlideEnter = win.cpCmndSlideEnter;
         win.cpCmndSlideEnter = function(slideIndex) {
             win._captivateLastSlide = slideIndex + 1;
-            console.log('[Captivate] cpCmndSlideEnter:', slideIndex);
             if (originalSlideEnter) {
                 originalSlideEnter.apply(this, arguments);
             }
@@ -180,15 +171,12 @@ function injectCaptivateListener(playerInfo) {
             win.addEventListener('cpSlideEnter', function(e) {
                 if (e.detail && e.detail.slideIndex !== undefined) {
                     win._captivateLastSlide = e.detail.slideIndex + 1;
-                    console.log('[Captivate] cpSlideEnter event:', e.detail.slideIndex);
                 }
             });
         }
 
-        console.log('[Captivate] Event listener injected successfully');
-
     } catch (e) {
-        console.log('[Captivate] Error injecting listener:', e.message);
+        // Error injecting listener
     }
 }
 
@@ -204,7 +192,6 @@ setTimeout(function() {
             if (currentSlide !== null && currentSlide !== captivateSlideIndex) {
                 captivateSlideIndex = currentSlide;
                 if (currentSlide !== lastSlide) {
-                    console.log('[Captivate] Slide changed to:', currentSlide);
                     sendProgressUpdate(null, null, null, currentSlide);
                 }
             }
@@ -222,8 +209,7 @@ setTimeout(function() {
         lastSlide !== null && lastSlide < furthestSlide) {
         var captPlayer = findCaptivatePlayer();
         if (captPlayer && captPlayer.window) {
-            console.log('[Captivate] Resume correction: current slide', lastSlide, '< furthest', furthestSlide, '— navigating via API');
-            navigateViaCaptivate(furthestSlide);
+                navigateViaCaptivate(furthestSlide);
         }
     }
 }, 5000);
@@ -247,25 +233,22 @@ function navigateViaCaptivate(targetSlide) {
         // Method 1: cpCmndGotoSlide function
         if (win.cpCmndGotoSlide) {
             win.cpCmndGotoSlide(targetSlide - 1); // 0-based
-            console.log('[SCORM Navigation] Captivate cpCmndGotoSlide called');
             return true;
         }
 
         // Method 2: cpAPIInterface
         if (win.cpAPIInterface && win.cpAPIInterface.gotoSlide) {
             win.cpAPIInterface.gotoSlide(targetSlide - 1);
-            console.log('[SCORM Navigation] Captivate cpAPIInterface.gotoSlide called');
             return true;
         }
 
         // Method 3: cp.movie.gotoSlide
         if (win.cp && win.cp.movie && win.cp.movie.gotoSlide) {
             win.cp.movie.gotoSlide(targetSlide - 1);
-            console.log('[SCORM Navigation] Captivate cp.movie.gotoSlide called');
             return true;
         }
     } catch (e) {
-        console.log('[SCORM Navigation] Captivate navigation error:', e.message);
+        // Captivate navigation error
     }
 
     return false;

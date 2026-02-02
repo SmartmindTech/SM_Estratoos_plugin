@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012888</version>
+        <version>2025012889</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.88</release>
+        <release>2.0.89</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.88/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.89/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.88</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.89</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.88 - Fix Stale localStorage Causing Wrong Position Counter</h3>
+            <h3>Version 2.0.89 - Refactor SCORM Logs</h3>
 
-            <h4>Bug Fixes</h4>
+            <h4>Changes</h4>
             <ul>
-                <li>Fix stale localStorage causing wrong position counter: computeFurthestFromApi() and initial retry loop now always read from DB and use Math.max with existing value instead of skipping when furthestSlide is already set</li>
-                <li>Remove furthestSlide !== null early-return guards that prevented DB comparison when localStorage had a stale value</li>
-                <li>All three code paths (defineProperty trap, retry loop DB read, retry loop computation) now consistently use Math.max to reconcile localStorage vs DB values</li>
+                <li>Remove ~300 verbose console.log statements from all 12 SCORM tracking files</li>
+                <li>Add 12 targeted position-tracking logs with consistent prefixes: [SCORM Tracking], [SCORM 1.2], [SCORM 2004]</li>
+                <li>Logs now trace full position bar flow: init → API writes → poll → sendProgressUpdate</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.88: Fix stale localStorage causing wrong position counter; always compute furthestSlide from DB via Math.max</li>
                 <li>v2.0.87: Enforce 8-flow behavior for all SCORM vendors; fix tag navigation progress inflation and resume position bar drop</li>
                 <li>v2.0.86: Always set defineProperty traps; compute furthestSlide in trap; reduce vendor delays</li>
                 <li>v2.0.85: Fix resume correction suspend_data in LMSInitialize wrapper</li>
-                <li>v2.0.84: Fix Captivate position bar bugs (Generic 0-based misread)</li>
             </ul>
             ]]>
         </releasenotes>

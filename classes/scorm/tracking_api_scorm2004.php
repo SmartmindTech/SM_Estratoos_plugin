@@ -56,19 +56,11 @@ if (pendingSlideNavigation && window.API_1484_11.GetValue && window.API_1484_11.
             var modifiedSD2004 = modifySuspendDataForSlide(currentSD2004, pendingSlideNavigation.slide);
             if (modifiedSD2004 !== currentSD2004) {
                 window.API_1484_11.SetValue.call(window.API_1484_11, 'cmi.suspend_data', modifiedSD2004);
-                console.log('[SCORM Navigation] DIRECTLY modified cmi.suspend_data in SCORM 2004 backing store for slide:', pendingSlideNavigation.slide);
-            } else {
-                console.log('[SCORM Navigation] SCORM 2004 backing store suspend_data already has correct slide');
             }
-        } else {
-            console.log('[SCORM Navigation] No SCORM 2004 suspend_data in backing store to modify (empty or short)');
         }
         // 2. Set location directly in the backing store
         window.API_1484_11.SetValue.call(window.API_1484_11, 'cmi.location', String(pendingSlideNavigation.slide));
-        console.log('[SCORM Navigation] DIRECTLY set cmi.location in SCORM 2004 backing store to:', pendingSlideNavigation.slide);
-    } catch (e) {
-        console.log('[SCORM Navigation] Error modifying SCORM 2004 backing store:', e.message);
-    }
+    } catch (e) {}
 }
 
 // v2.0.55: On resume (no tag navigation), correct backing store to furthest slide.
@@ -85,15 +77,10 @@ if (!pendingSlideNavigation && furthestSlide !== null && window.API_1484_11.GetV
                 if (corrected2004 !== resumeSD2004) {
                     window.API_1484_11.SetValue.call(window.API_1484_11, 'cmi.suspend_data', corrected2004);
                     window.API_1484_11.SetValue.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
-                    console.log('[SCORM Navigation] Corrected SCORM 2004 resume to furthest slide:', furthestSlide, '(DB had:', dbSlide2004, ')');
                 }
             }
-        } else {
-            console.log('[SCORM Navigation] SCORM 2004 suspend_data not yet populated at trap time, relying on read/write interceptors');
         }
-    } catch (e) {
-        console.log('[SCORM Navigation] Error correcting SCORM 2004 resume position:', e.message);
-    }
+    } catch (e) {}
 }
 
 // v2.0.72: Score-based resume correction for SCORM 2004.
@@ -129,8 +116,6 @@ if (!pendingSlideNavigation && furthestSlide === null) {
                             }
                         }
                         try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
-                        console.log('[SCORM Plugin] Score-based resume correction (2004): slide', location, '->', furthestSlide,
-                            '(score:', score, ', total:', total, ')');
                     } else if (!isNaN(location) && location >= 1) {
                         furthestSlide = Math.max(location, furthestFromScore || 0);
                         try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
@@ -152,7 +137,6 @@ if (!pendingSlideNavigation && furthestSlide === null) {
                         if (initFixed !== initSD) {
                             origSetValue2004ref.call(window.API_1484_11, 'cmi.suspend_data', initFixed);
                             lastSuspendData = initFixed;
-                            console.log('[SCORM Plugin] Initialize resume (2004): corrected suspend_data from slide', initSlide, 'to', furthestSlide);
                         }
                     }
                 }
@@ -184,10 +168,8 @@ if (window.API_1484_11.GetValue && (pendingSlideNavigation || furthestSlide !== 
                 return result; // Window expired - let actual value through
             }
             if (!isOurNavigationStillActive()) {
-                console.log('[SCORM 2004] location: navigation superseded, returning original:', result);
                 return result;
             }
-            console.log('[SCORM 2004] Intercepting location, returning:', pendingSlideNavigation.slide);
             return String(pendingSlideNavigation.slide);
         }
 
@@ -200,7 +182,6 @@ if (window.API_1484_11.GetValue && (pendingSlideNavigation || furthestSlide !== 
                     var correctedSD = modifySuspendDataForSlide(result, furthestSlide);
                     if (correctedSD !== result) {
                         resumeReadInterceptCount++;
-                        console.log('[SCORM 2004] Resume read intercept #' + resumeReadInterceptCount + ': corrected slide from', origSlide, 'to', furthestSlide);
                         return correctedSD;
                     }
                 }
@@ -221,7 +202,6 @@ if (window.API_1484_11.GetValue && (pendingSlideNavigation || furthestSlide !== 
         if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
             // CRITICAL: Check if our navigation is still active
             if (!isOurNavigationStillActive()) {
-                console.log('[SCORM 2004] suspend_data read: navigation superseded, returning original');
                 return result;
             }
 
@@ -235,26 +215,20 @@ if (window.API_1484_11.GetValue && (pendingSlideNavigation || furthestSlide !== 
 
             if (withinWindow && underLimit) {
                 suspendDataInterceptCount++;
-                console.log('[SCORM 2004] GetValue intercept #' + suspendDataInterceptCount + ' for slide:', pendingSlideNavigation.slide);
 
                 var modifiedData = modifySuspendDataForSlide(result, pendingSlideNavigation.slide);
                 if (modifiedData !== result) {
-                    console.log('[SCORM 2004] Returning modified suspend_data');
                     return modifiedData;
                 }
             } else if (suspendDataInterceptCount > 0) {
                 // Window closed for suspend_data, but keep pendingSlideNavigation for location
                 // location intercept must continue for the entire session (polling needs it)
-                console.log('[SCORM 2004] suspend_data intercept window closed after ' + suspendDataInterceptCount + ' intercepts');
                 // DO NOT null pendingSlideNavigation - location intercept still needs it
             }
         }
 
         return result;
     };
-    console.log('[SCORM Navigation] GetValue interceptor installed' +
-        (pendingSlideNavigation ? ' for navigation to slide: ' + pendingSlideNavigation.slide :
-         ' for resume correction (furthest: ' + furthestSlide + ')'));
 }
 
 var originalSetValue2004 = window.API_1484_11.SetValue;
@@ -275,7 +249,7 @@ window.API_1484_11.SetValue = function(element, value) {
     // v2.0.80: After intercept window, let natural value through (DB gets cs=current).
     if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
         if (!isOurNavigationStillActive()) {
-            console.log('[SCORM 2004] SetValue: navigation superseded, NOT intercepting write');
+            // Navigation superseded, not intercepting write
         } else {
             var inInterceptWindow = interceptStartTime !== null &&
                 (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
@@ -301,12 +275,8 @@ window.API_1484_11.SetValue = function(element, value) {
             if (pendingSlideNavigation) {
                 // v2.0.87: During tag navigation, always write furthestScore to prevent DB inflation.
                 // Content writes score reflecting tag position, not actual progress.
-                console.log('[SCORM 2004] Score capped during tag navigation from', writtenScore, 'to', furthestScore,
-                    '(furthest slide:', furthestSlide, '/', slidescount, ')');
                 valueToWrite = String(furthestScore);
             } else if (writtenScore < furthestScore) {
-                console.log('[SCORM 2004] Score corrected from', writtenScore, 'to', furthestScore,
-                    '(furthest slide:', furthestSlide, '/', slidescount, ')');
                 valueToWrite = String(furthestScore);
             }
         }
@@ -338,9 +308,6 @@ window.API_1484_11.SetValue = function(element, value) {
 
     var result = originalSetValue2004.call(window.API_1484_11, element, dbWriteValue2004);
 
-    // DEBUG: Log all SCORM API calls to understand what the content sends.
-    console.log('[SCORM 2004] SetValue:', element, '=', valueToWrite && valueToWrite.substring ? valueToWrite.substring(0, 200) : valueToWrite);
-
     // Track location changes.
     // v2.0.64: Pass parsed slide as directSlide (not location) so backward navigation is allowed.
     // Only poll-based reads should suppress backward movement, not actual SCORM writes.
@@ -351,6 +318,7 @@ window.API_1484_11.SetValue = function(element, value) {
         lastWrittenLocation = valueToWrite;
         lastLocation = dbWriteValue2004;
         lastApiChangeTime = Date.now();
+        console.log('[SCORM 2004] location: ' + valueToWrite + ' (db=' + dbWriteValue2004 + ', furthest=' + furthestSlide + ')');
         var parsedSlide = parseInt(valueToWrite, 10);
         sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);
         // v2.0.65: If user naturally navigated away from tag target, disable the
@@ -359,8 +327,6 @@ window.API_1484_11.SetValue = function(element, value) {
         if (pendingSlideNavigation && !locationInterceptDisabled &&
             String(valueToWrite) !== String(pendingSlideNavigation.slide)) {
             locationInterceptDisabled = true;
-            console.log('[SCORM 2004] User navigated away from tag target',
-                pendingSlideNavigation.slide, '-> location interceptor disabled');
         }
     }
     // Track completion_status changes.
@@ -397,24 +363,17 @@ window.API_1484_11.SetValue = function(element, value) {
             if (!inInterceptWindow && naturallyBeyondTarget &&
                 (furthestSlide === null || calculatedSlide > furthestSlide)) {
                 furthestSlide = calculatedSlide;
-                console.log('[SCORM 2004] Furthest progress updated:', furthestSlide);
-            } else if (inInterceptWindow) {
-                console.log('[SCORM 2004] Ignoring score during intercept window:', calculatedSlide, '(keeping furthest:', furthestSlide, ')');
-            } else if (pendingSlideNavigation && calculatedSlide <= pendingSlideNavigation.slide) {
-                console.log('[SCORM 2004] Ignoring score at/below tag target:', calculatedSlide, '(tag target:', pendingSlideNavigation.slide, ', keeping furthest:', furthestSlide, ')');
             }
 
             // Only use score-based slide for CURRENT position if no suspend_data AND not in intercept window.
             // During intercept window, we have a pending navigation target, so don't override with score.
             if (slideSource !== 'suspend_data' && lastSlide === null && !inInterceptWindow) {
-                console.log('[SCORM 2004] Using score-based slide (fallback):', calculatedSlide);
                 slideSource = 'score';
                 sendProgressUpdate(null, lastStatus, valueToWrite, calculatedSlide);
             } else {
                 // Don't change currentSlide, but send update with furthestSlide for progress bar.
                 // v2.0.82: Pass null instead of lastLocation — it's boosted to furthest
                 // and would override position bar with wrong slide number.
-                console.log('[SCORM 2004] Score indicates furthest progress:', furthestSlide, '(current slide:', lastSlide, ')');
                 sendProgressUpdate(null, lastStatus, valueToWrite, null);
             }
         } else {
@@ -463,7 +422,6 @@ window.API_1484_11.SetValue = function(element, value) {
                             var allowVsAdvance = !pendingSlideNavigation || maxVisited > pendingSlideNavigation.slide;
                             if (allowVsAdvance && (furthestSlide === null || maxVisited > furthestSlide)) {
                                 furthestSlide = maxVisited;
-                                console.log('[SCORM 2004] Furthest progress updated from Captivate vs field:', furthestSlide);
                                 try {
                                     sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                                     localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
@@ -478,7 +436,6 @@ window.API_1484_11.SetValue = function(element, value) {
                 var allowAdvance = !pendingSlideNavigation || slideNum > pendingSlideNavigation.slide;
                 if (allowAdvance && (furthestSlide === null || slideNum > furthestSlide)) {
                     furthestSlide = slideNum;
-                    console.log('[SCORM 2004] Furthest progress updated from suspend_data:', furthestSlide);
                     try {
                         sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                         localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
@@ -487,14 +444,10 @@ window.API_1484_11.SetValue = function(element, value) {
 
                 // Send position update — skip if Captivate periodic commit (cs is stale)
                 if (!isCaptivatePeriodicCommit && slideNum !== lastSlide) {
-                    console.log('[SCORM 2004] Position from suspend_data:', slideNum);
+                    console.log('[SCORM 2004] suspend_data slide: ' + slideNum + ' (furthest=' + furthestSlide + ')');
                     sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
-                } else if (isCaptivatePeriodicCommit) {
-                    console.log('[SCORM 2004] Captivate periodic commit, cs unchanged — skipping position update');
                 }
             }
-        } else {
-            console.log('[SCORM 2004] Skipping suspend_data tracking during intercept window');
         }
     }
 
@@ -511,16 +464,14 @@ if (pendingSlideNavigation) {
         try {
             // v2.0.87: Always write furthestSlide (tag navigation may have inflated DB values).
             origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
-            console.log('[SCORM 2004] Post-intercept: wrote location:', furthestSlide);
+            var furthestScore = null;
             if (slidescount > 1) {
-                var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
+                furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                 origSetValue2004ref.call(window.API_1484_11, 'cmi.score.raw', String(furthestScore));
-                console.log('[SCORM 2004] Post-intercept: wrote score:', furthestScore);
             }
+            console.log('[SCORM 2004] Post-intercept write: location=' + furthestSlide + ' score=' + furthestScore);
             window.API_1484_11.Commit('');
-        } catch (e) {
-            console.log('[SCORM 2004] Post-intercept write error:', e.message);
-        }
+        } catch (e) {}
     }, INTERCEPT_WINDOW_MS + 2000);
 }
 
@@ -534,20 +485,16 @@ if (!pendingSlideNavigation && furthestSlide !== null) {
             var locSlide = parseInt(currentLoc, 10);
             if (isNaN(locSlide) || locSlide < furthestSlide) {
                 origSetValue2004ref.call(window.API_1484_11, 'cmi.location', String(furthestSlide));
-                console.log('[SCORM 2004] Resume post-init: wrote location:', furthestSlide);
             }
             if (slidescount > 1) {
                 var currentScore = origGetValue2004.call(window.API_1484_11, 'cmi.score.raw');
                 var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                 if (!currentScore || parseFloat(currentScore) < furthestScore) {
                     origSetValue2004ref.call(window.API_1484_11, 'cmi.score.raw', String(furthestScore));
-                    console.log('[SCORM 2004] Resume post-init: corrected score to', furthestScore);
                 }
             }
             window.API_1484_11.Commit('');
-        } catch (e) {
-            console.log('[SCORM 2004] Resume post-init write error:', e.message);
-        }
+        } catch (e) {}
     }, INTERCEPT_WINDOW_MS + 2000);
 }
 

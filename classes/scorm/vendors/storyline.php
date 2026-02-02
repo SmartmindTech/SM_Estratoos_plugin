@@ -97,7 +97,6 @@ function getStorylineCurrentSlide(playerInfo) {
                     // Some Storyline versions expose a "Menu.SlideNumber" or similar.
                     var slideNum = player.GetVar('Menu.SlideNumber');
                     if (slideNum) {
-                        console.log('[Storyline] GetVar Menu.SlideNumber:', slideNum);
                         return parseInt(slideNum, 10);
                     }
                 }
@@ -110,7 +109,6 @@ function getStorylineCurrentSlide(playerInfo) {
             // Format: #/scenes/xxx/slides/yyy or similar.
             var match = hash.match(/slides?[\/\-_]?(\d+)/i);
             if (match) {
-                console.log('[Storyline] Hash slide:', match[1]);
                 return parseInt(match[1], 10);
             }
         }
@@ -126,7 +124,6 @@ function getStorylineCurrentSlide(playerInfo) {
                 var slideIdx = container.getAttribute('data-slide-index') ||
                                container.getAttribute('data-acc-slide');
                 if (slideIdx) {
-                    console.log('[Storyline] DOM slide-index:', slideIdx);
                     return parseInt(slideIdx, 10) + 1; // Convert 0-based to 1-based.
                 }
             }
@@ -136,7 +133,6 @@ function getStorylineCurrentSlide(playerInfo) {
         if (win.g_slideObject || win.g_PlayerInfo) {
             var slideObj = win.g_slideObject || win.g_PlayerInfo;
             if (slideObj.slideIndex !== undefined) {
-                console.log('[Storyline] g_slideObject.slideIndex:', slideObj.slideIndex);
                 return slideObj.slideIndex + 1;
             }
         }
@@ -148,21 +144,19 @@ function getStorylineCurrentSlide(playerInfo) {
             var classes = activeSlide.className;
             var match = classes.match(/slide[_\-]?(\d+)/i);
             if (match) {
-                console.log('[Storyline] Active slide class:', match[1]);
                 return parseInt(match[1], 10);
             }
             // Try to get index from siblings.
             var siblings = activeSlide.parentElement.children;
             for (var i = 0; i < siblings.length; i++) {
                 if (siblings[i] === activeSlide) {
-                    console.log('[Storyline] Active slide sibling index:', i + 1);
                     return i + 1;
                 }
             }
         }
 
     } catch (e) {
-        console.log('[Storyline] Error accessing player:', e.message);
+        // Error accessing player
     }
 
     return null;
@@ -177,7 +171,6 @@ setTimeout(function() {
             if (currentSlide !== null && currentSlide !== storylineSlideIndex) {
                 storylineSlideIndex = currentSlide;
                 if (currentSlide !== lastSlide) {
-                    console.log('[Storyline] Slide changed to:', currentSlide);
                     sendProgressUpdate(null, null, null, currentSlide);
                 }
             }
@@ -206,7 +199,6 @@ function navigateViaStoryline(targetSlide) {
             // Method 1: Storyline's goToSlide function
             if (win.goToSlide) {
                 win.goToSlide(targetSlide - 1); // 0-based
-                console.log('[SCORM Navigation] Storyline goToSlide called');
                 return true;
             }
 
@@ -217,7 +209,6 @@ function navigateViaStoryline(targetSlide) {
                     // Try common Storyline variables for navigation
                     try {
                         player.SetVar('Jump', targetSlide);
-                        console.log('[SCORM Navigation] Storyline SetVar Jump called');
                         return true;
                     } catch (e) {}
                 }
@@ -230,12 +221,11 @@ function navigateViaStoryline(targetSlide) {
                 var newHash = hash.replace(/slide[_\-]?(\d+)/i, 'slide' + (targetSlide - 1));
                 if (newHash !== hash) {
                     win.location.hash = newHash;
-                    console.log('[SCORM Navigation] Storyline hash navigation attempted');
                     return true;
                 }
             }
         } catch (e) {
-            console.log('[SCORM Navigation] Storyline navigation error:', e.message);
+            // Storyline navigation error
         }
     }
     return false;
@@ -259,12 +249,11 @@ function navigateStorylineInnerFrame(iframeWin, targetSlide) {
                 try {
                     if (player.SetVar) player.SetVar('Jump', targetSlide);
                 } catch(e) {}
-                console.log('[SCORM Navigation] Inner iframe GetPlayer SetVar attempted');
                 return true;
             }
         }
     } catch (e) {
-        console.log('[SCORM Navigation] Inner iframe Storyline error:', e.message);
+        // Inner iframe Storyline error
     }
     return false;
 }

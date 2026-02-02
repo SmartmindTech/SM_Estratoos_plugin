@@ -56,19 +56,11 @@ if (pendingSlideNavigation && window.API.LMSGetValue && window.API.LMSSetValue) 
             var modifiedSD = modifySuspendDataForSlide(currentSD, pendingSlideNavigation.slide);
             if (modifiedSD !== currentSD) {
                 window.API.LMSSetValue.call(window.API, 'cmi.suspend_data', modifiedSD);
-                console.log('[SCORM Navigation] DIRECTLY modified cmi.suspend_data in backing store for slide:', pendingSlideNavigation.slide);
-            } else {
-                console.log('[SCORM Navigation] Backing store suspend_data already has correct slide');
             }
-        } else {
-            console.log('[SCORM Navigation] No suspend_data in backing store to modify (empty or short)');
         }
         // 2. Set lesson_location directly in the backing store
         window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location', String(pendingSlideNavigation.slide));
-        console.log('[SCORM Navigation] DIRECTLY set cmi.core.lesson_location in backing store to:', pendingSlideNavigation.slide);
-    } catch (e) {
-        console.log('[SCORM Navigation] Error modifying SCORM 1.2 backing store:', e.message);
-    }
+    } catch (e) {}
 }
 
 // v2.0.55: On resume (no tag navigation), if sessionStorage has a higher furthest
@@ -88,17 +80,10 @@ if (!pendingSlideNavigation && furthestSlide !== null && window.API.LMSGetValue 
                 if (corrected !== resumeSD) {
                     window.API.LMSSetValue.call(window.API, 'cmi.suspend_data', corrected);
                     window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
-                    console.log('[SCORM Navigation] Corrected resume to furthest slide:', furthestSlide, '(DB had:', dbSlide, ')');
                 }
-            } else {
-                console.log('[SCORM Navigation] DB slide', dbSlide, 'already at or beyond furthest', furthestSlide);
             }
-        } else {
-            console.log('[SCORM Navigation] suspend_data not yet populated at trap time, relying on read/write interceptors');
         }
-    } catch (e) {
-        console.log('[SCORM Navigation] Error correcting resume position:', e.message);
-    }
+    } catch (e) {}
 }
 
 // v2.0.72: When sessionStorage is empty (furthestSlide null), determine furthest
@@ -141,8 +126,6 @@ if (!pendingSlideNavigation && furthestSlide === null) {
                             }
                         }
                         try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
-                        console.log('[SCORM Plugin] Score-based resume correction: slide', location, '->', furthestSlide,
-                            '(score:', score, ', total:', total, ')');
                     } else if (!isNaN(location) && location >= 1) {
                         furthestSlide = Math.max(location, furthestFromScore || 0);
                         try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
@@ -168,7 +151,6 @@ if (!pendingSlideNavigation && furthestSlide === null) {
                         if (initFixed !== initSD) {
                             origLMSSetValue12.call(window.API, 'cmi.suspend_data', initFixed);
                             lastSuspendData = initFixed;
-                            console.log('[SCORM Plugin] LMSInitialize resume: corrected suspend_data from slide', initSlide, 'to', furthestSlide);
                         }
                     }
                 }
@@ -203,10 +185,8 @@ if (window.API.LMSGetValue && (pendingSlideNavigation || furthestSlide !== null)
                 return result; // Window expired - let actual value through
             }
             if (!isOurNavigationStillActive()) {
-                console.log('[SCORM 1.2] lesson_location: navigation superseded, returning original:', result);
                 return result;
             }
-            console.log('[SCORM 1.2] Intercepting lesson_location, returning:', pendingSlideNavigation.slide);
             return String(pendingSlideNavigation.slide);
         }
 
@@ -221,7 +201,6 @@ if (window.API.LMSGetValue && (pendingSlideNavigation || furthestSlide !== null)
                     var correctedSD = modifySuspendDataForSlide(result, furthestSlide);
                     if (correctedSD !== result) {
                         resumeReadInterceptCount++;
-                        console.log('[SCORM 1.2] Resume read intercept #' + resumeReadInterceptCount + ': corrected slide from', origSlide, 'to', furthestSlide);
                         return correctedSD;
                     }
                 }
@@ -242,7 +221,6 @@ if (window.API.LMSGetValue && (pendingSlideNavigation || furthestSlide !== null)
         if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
             // CRITICAL: Check if our navigation is still active
             if (!isOurNavigationStillActive()) {
-                console.log('[SCORM 1.2] suspend_data read: navigation superseded, returning original');
                 return result;
             }
 
@@ -256,26 +234,20 @@ if (window.API.LMSGetValue && (pendingSlideNavigation || furthestSlide !== null)
 
             if (withinWindow && underLimit) {
                 suspendDataInterceptCount++;
-                console.log('[SCORM 1.2] LMSGetValue intercept #' + suspendDataInterceptCount + ' for slide:', pendingSlideNavigation.slide);
 
                 var modifiedData = modifySuspendDataForSlide(result, pendingSlideNavigation.slide);
                 if (modifiedData !== result) {
-                    console.log('[SCORM 1.2] Returning modified suspend_data');
                     return modifiedData;
                 }
             } else if (suspendDataInterceptCount > 0) {
                 // Window closed for suspend_data, but keep pendingSlideNavigation for lesson_location
                 // lesson_location intercept must continue for the entire session (polling needs it)
-                console.log('[SCORM 1.2] suspend_data intercept window closed after ' + suspendDataInterceptCount + ' intercepts');
                 // DO NOT null pendingSlideNavigation - lesson_location intercept still needs it
             }
         }
 
         return result;
     };
-    console.log('[SCORM Navigation] LMSGetValue interceptor installed' +
-        (pendingSlideNavigation ? ' for navigation to slide: ' + pendingSlideNavigation.slide :
-         ' for resume correction (furthest: ' + furthestSlide + ')'));
 }
 
 var originalSetValue = window.API.LMSSetValue;
@@ -294,7 +266,7 @@ window.API.LMSSetValue = function(element, value) {
     // v2.0.80: After intercept window, let natural value through (DB gets cs=current).
     if (element === 'cmi.suspend_data' && pendingSlideNavigation) {
         if (!isOurNavigationStillActive()) {
-            console.log('[SCORM 1.2] LMSSetValue: navigation superseded, NOT intercepting write');
+            // Navigation superseded, not intercepting write
         } else {
             var inInterceptWindow = interceptStartTime !== null &&
                 (Date.now() - interceptStartTime) < INTERCEPT_WINDOW_MS;
@@ -322,12 +294,8 @@ window.API.LMSSetValue = function(element, value) {
             if (pendingSlideNavigation) {
                 // v2.0.87: During tag navigation, always write furthestScore to prevent DB inflation.
                 // Content writes score reflecting tag position, not actual progress.
-                console.log('[SCORM 1.2] Score capped during tag navigation from', writtenScore, 'to', furthestScore,
-                    '(furthest slide:', furthestSlide, '/', slidescount, ')');
                 valueToWrite = String(furthestScore);
             } else if (writtenScore < furthestScore) {
-                console.log('[SCORM 1.2] Score corrected from', writtenScore, 'to', furthestScore,
-                    '(furthest slide:', furthestSlide, '/', slidescount, ')');
                 valueToWrite = String(furthestScore);
             }
         }
@@ -360,9 +328,6 @@ window.API.LMSSetValue = function(element, value) {
 
     var result = originalSetValue.call(window.API, element, dbWriteValue);
 
-    // DEBUG: Log all SCORM API calls to understand what the content sends.
-    console.log('[SCORM 1.2] LMSSetValue:', element, '=', valueToWrite && valueToWrite.substring ? valueToWrite.substring(0, 200) : valueToWrite);
-
     // Track lesson_location changes.
     // v2.0.64: Pass parsed slide as directSlide (not location) so backward navigation is allowed.
     // Only poll-based reads should suppress backward movement, not actual SCORM writes.
@@ -373,6 +338,7 @@ window.API.LMSSetValue = function(element, value) {
         lastWrittenLocation = valueToWrite;
         lastLocation = dbWriteValue;
         lastApiChangeTime = Date.now();
+        console.log('[SCORM 1.2] location: ' + valueToWrite + ' (db=' + dbWriteValue + ', furthest=' + furthestSlide + ')');
         var parsedSlide = parseInt(valueToWrite, 10);
         sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);
         // v2.0.65: If user naturally navigated away from tag target, disable the
@@ -381,8 +347,6 @@ window.API.LMSSetValue = function(element, value) {
         if (pendingSlideNavigation && !locationInterceptDisabled &&
             String(valueToWrite) !== String(pendingSlideNavigation.slide)) {
             locationInterceptDisabled = true;
-            console.log('[SCORM 1.2] User navigated away from tag target',
-                pendingSlideNavigation.slide, '-> location interceptor disabled');
         }
     }
     // Track lesson_status changes.
@@ -419,24 +383,17 @@ window.API.LMSSetValue = function(element, value) {
             if (!inInterceptWindow && naturallyBeyondTarget &&
                 (furthestSlide === null || calculatedSlide > furthestSlide)) {
                 furthestSlide = calculatedSlide;
-                console.log('[SCORM] Furthest progress updated:', furthestSlide);
-            } else if (inInterceptWindow) {
-                console.log('[SCORM] Ignoring score during intercept window:', calculatedSlide, '(keeping furthest:', furthestSlide, ')');
-            } else if (pendingSlideNavigation && calculatedSlide <= pendingSlideNavigation.slide) {
-                console.log('[SCORM] Ignoring score at/below tag target:', calculatedSlide, '(tag target:', pendingSlideNavigation.slide, ', keeping furthest:', furthestSlide, ')');
             }
 
             // Only use score-based slide for CURRENT position if no suspend_data AND not in intercept window.
             // During intercept window, we have a pending navigation target, so don't override with score.
             if (slideSource !== 'suspend_data' && lastSlide === null && !inInterceptWindow) {
-                console.log('[SCORM] Using score-based slide (fallback):', calculatedSlide);
                 slideSource = 'score';
                 sendProgressUpdate(null, lastStatus, valueToWrite, calculatedSlide);
             } else {
                 // Don't change currentSlide, but send update with furthestSlide for progress bar.
                 // v2.0.82: Pass null instead of lastLocation — it's boosted to furthest
                 // and would override position bar with wrong slide number.
-                console.log('[SCORM] Score indicates furthest progress:', furthestSlide, '(current slide:', lastSlide, ')');
                 sendProgressUpdate(null, lastStatus, valueToWrite, null);
             }
         } else {
@@ -485,7 +442,6 @@ window.API.LMSSetValue = function(element, value) {
                             var allowVsAdvance = !pendingSlideNavigation || maxVisited > pendingSlideNavigation.slide;
                             if (allowVsAdvance && (furthestSlide === null || maxVisited > furthestSlide)) {
                                 furthestSlide = maxVisited;
-                                console.log('[SCORM 1.2] Furthest progress updated from Captivate vs field:', furthestSlide);
                                 try {
                                     sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                                     localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
@@ -500,7 +456,6 @@ window.API.LMSSetValue = function(element, value) {
                 var allowAdvance = !pendingSlideNavigation || slideNum > pendingSlideNavigation.slide;
                 if (allowAdvance && (furthestSlide === null || slideNum > furthestSlide)) {
                     furthestSlide = slideNum;
-                    console.log('[SCORM 1.2] Furthest progress updated from suspend_data:', furthestSlide);
                     try {
                         sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                         localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
@@ -509,14 +464,10 @@ window.API.LMSSetValue = function(element, value) {
 
                 // Send position update — skip if Captivate periodic commit (cs is stale)
                 if (!isCaptivatePeriodicCommit && slideNum !== lastSlide) {
-                    console.log('[SCORM 1.2] Position from suspend_data:', slideNum);
+                    console.log('[SCORM 1.2] suspend_data slide: ' + slideNum + ' (furthest=' + furthestSlide + ')');
                     sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
-                } else if (isCaptivatePeriodicCommit) {
-                    console.log('[SCORM 1.2] Captivate periodic commit, cs unchanged — skipping position update');
                 }
             }
-        } else {
-            console.log('[SCORM 1.2] Skipping suspend_data tracking during intercept window');
         }
     }
 
@@ -533,16 +484,14 @@ if (pendingSlideNavigation) {
         try {
             // v2.0.87: Always write furthestSlide (tag navigation may have inflated DB values).
             origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
-            console.log('[SCORM 1.2] Post-intercept: wrote lesson_location:', furthestSlide);
+            var furthestScore = null;
             if (slidescount > 1) {
-                var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
+                furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                 origLMSSetValue12.call(window.API, 'cmi.core.score.raw', String(furthestScore));
-                console.log('[SCORM 1.2] Post-intercept: wrote score:', furthestScore);
             }
+            console.log('[SCORM 1.2] Post-intercept write: location=' + furthestSlide + ' score=' + furthestScore);
             window.API.LMSCommit('');
-        } catch (e) {
-            console.log('[SCORM 1.2] Post-intercept write error:', e.message);
-        }
+        } catch (e) {}
     }, INTERCEPT_WINDOW_MS + 2000);
 }
 
@@ -556,20 +505,16 @@ if (!pendingSlideNavigation && furthestSlide !== null) {
             var locSlide = parseInt(currentLoc, 10);
             if (isNaN(locSlide) || locSlide < furthestSlide) {
                 origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
-                console.log('[SCORM 1.2] Resume post-init: wrote lesson_location:', furthestSlide);
             }
             if (slidescount > 1) {
                 var currentScore = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
                 var furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
                 if (!currentScore || parseFloat(currentScore) < furthestScore) {
                     origLMSSetValue12.call(window.API, 'cmi.core.score.raw', String(furthestScore));
-                    console.log('[SCORM 1.2] Resume post-init: corrected score to', furthestScore);
                 }
             }
             window.API.LMSCommit('');
-        } catch (e) {
-            console.log('[SCORM 1.2] Resume post-init write error:', e.message);
-        }
+        } catch (e) {}
     }, INTERCEPT_WINDOW_MS + 2000);
 }
 

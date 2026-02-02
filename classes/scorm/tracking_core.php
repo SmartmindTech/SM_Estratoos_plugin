@@ -102,8 +102,6 @@ class tracking_core {
             furthestSlide = parseInt(storedFurthest, 10);
             if (isNaN(furthestSlide) || furthestSlide < 1) {
                 furthestSlide = null;
-            } else {
-                console.log('[SCORM Plugin] Restored furthest slide from storage:', furthestSlide);
             }
         }
     } catch (e) {
@@ -121,8 +119,6 @@ class tracking_core {
         if (directSlide !== null && lastSlide !== null && directSlide < lastSlide &&
             furthestSlide !== null && directSlide < furthestSlide &&
             !pendingSlideNavigation && (Date.now() - pageLoadTime) < INTERCEPT_WINDOW_MS) {
-            console.log('[SCORM Progress] Suppressed stale vendor poll during resume:', directSlide,
-                '(keeping:', lastSlide, ', furthest:', furthestSlide, ')');
             currentSlide = lastSlide;
             directSlide = null; // Prevent backward movement
         }
@@ -132,10 +128,8 @@ class tracking_core {
             // v2.0.59: Only allow lastSlide to decrease from directSlide (suspend_data).
             // Lesson_location (poll-based) can be stale during resume init, causing a brief dip.
             if (directSlide !== null || lastSlide === null || currentSlide > lastSlide) {
-                console.log('[SCORM Progress] Slide updated:', lastSlide, '->', currentSlide, '(source:', directSlide ? 'directSlide' : (slideSource || 'unknown'), ')');
                 lastSlide = currentSlide;
             } else {
-                console.log('[SCORM Progress] Suppressed backward movement from poll:', currentSlide, '(keeping:', lastSlide, ')');
                 currentSlide = lastSlide;
             }
         }
@@ -156,7 +150,7 @@ class tracking_core {
                     sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                     localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                 } catch (e) {}
-                console.log('[SCORM] Furthest slide updated:', furthestSlide);
+                console.log('[SCORM Tracking] Furthest updated → ' + furthestSlide);
 
                 // v2.0.66: Write grade to Moodle for SCORMs that don't manage their own scores.
                 // Uses the same furthest-slide-based percentage strategy as Storyline score correction.
@@ -172,8 +166,6 @@ class tracking_core {
                         originalScormSetValue('cmi.core.score.min', '0');
                         originalScormSetValue('cmi.core.score.max', '100');
                     }
-                    console.log('[SCORM] Grade written to Moodle:', gradePercent + '%',
-                        '(' + furthestSlide + '/' + slidescount + ')');
                     if (originalScormCommit) {
                         originalScormCommit();
                     }
@@ -216,6 +208,7 @@ class tracking_core {
         }
 
         // Send to parent (SmartLearning app).
+        console.log('[SCORM Tracking] Position: slide=' + currentSlide + '/' + (slidescount || '?') + ' furthest=' + furthestSlide + ' source=' + (directSlide ? 'direct' : slideSource || 'unknown'));
         if (window.parent && window.parent !== window) {
             window.parent.postMessage(message, '*');
         }
@@ -255,13 +248,10 @@ class tracking_core {
             // For older versions without navId, generate one (backwards compatibility)
             if (pendingSlideNavigation.navId) {
                 ourNavigationId = pendingSlideNavigation.navId;
-                console.log('[SCORM Navigation] Using navId from embed_renderer:', ourNavigationId);
             } else {
                 // Fallback for older embed_renderer versions
                 ourNavigationId = interceptStartTime + '_' + Math.random().toString(36).substr(2, 9);
-                console.log('[SCORM Navigation] Generated fallback navId:', ourNavigationId);
             }
-            console.log('[SCORM Navigation] Found pending navigation:', pendingSlideNavigation, 'navId:', ourNavigationId);
 
             // CRITICAL: Initialize furthestSlide from the passed value
             // SessionStorage is origin-specific, so the frontend passes furthest via the embed URL
@@ -270,7 +260,6 @@ class tracking_core {
                 var passedFurthest = parseInt(pendingSlideNavigation.furthest, 10);
                 if (!isNaN(passedFurthest) && passedFurthest > 0) {
                     furthestSlide = passedFurthest;
-                    console.log('[SCORM Navigation] Initialized furthestSlide from navigation data:', furthestSlide);
                 }
             }
 
@@ -286,10 +275,9 @@ class tracking_core {
                 navId: ourNavigationId,
                 timestamp: interceptStartTime
             }));
-            console.log('[SCORM Navigation] Confirmed as current active navigation');
         }
     } catch (e) {
-        console.log('[SCORM Navigation] Error reading pending navigation:', e.message);
+        // Error reading pending navigation
     }
 
     function isOurNavigationStillActive() {
@@ -300,7 +288,6 @@ class tracking_core {
             if (currentNav) {
                 var parsed = JSON.parse(currentNav);
                 if (parsed.navId && parsed.navId !== ourNavigationId) {
-                    console.log('[SCORM Navigation] Our navigation SUPERSEDED - newer navigation active:', parsed.navId, '(ours:', ourNavigationId, ')');
                     return false;
                 }
             }
@@ -316,44 +303,16 @@ class tracking_core {
                     // Check if it's a different target
                     if (pendingSlideNavigation && startingParsed.targetSlide !== null &&
                         startingParsed.targetSlide !== pendingSlideNavigation.slide) {
-                        console.log('[SCORM Navigation] Our navigation SUPERSEDED - newer navigation starting:',
-                            startingParsed.targetSlide, 'at', startingParsed.timestamp,
-                            '(ours:', pendingSlideNavigation.slide, 'at', interceptStartTime, ')');
                         return false;
                     }
                 }
             }
         } catch (e) {
-            console.log('[SCORM Navigation] Error checking active navigation:', e.message);
+            // Error checking active navigation
         }
         return true;
     }
 
-// === TOOL DETECTION LOGGING ===
-    // Log which SCORM tools are detected
-    setTimeout(function() {
-        console.log('[SCORM Multi-Tool Support] Checking for supported authoring tools...');
-
-        var detected = [];
-
-        // Check for each tool
-        if (findStorylinePlayer()) detected.push('Articulate Storyline');
-        if (findISpringPlayer()) detected.push('iSpring');
-        if (findCaptivatePlayer()) detected.push('Adobe Captivate');
-        if (findRise360Player()) detected.push('Articulate Rise 360');
-        if (findLectoraPlayer()) detected.push('Lectora');
-
-        // Report what's being used for tracking
-        if (detected.length > 0) {
-            console.log('[SCORM Multi-Tool Support] Detected: ' + detected.join(', '));
-        } else if (lastSlide !== null && lastSlide > 0) {
-            console.log('[SCORM Multi-Tool Support] Using SCORM API tracking (score/suspend_data). Current slide: ' + lastSlide);
-        } else if (findGenericScormContent()) {
-            console.log('[SCORM Multi-Tool Support] Using Generic HTML5 SCORM detection as fallback');
-        } else {
-            console.log('[SCORM Multi-Tool Support] No specific authoring tool detected. Using SCORM API tracking.');
-        }
-    }, 5000);
 JSEOF;
     }
 }

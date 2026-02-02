@@ -79,7 +79,6 @@ function getGenericTotalSlides(playerInfo) {
             if (typeof win[totalVarNames[i]] !== 'undefined' && !isNaN(win[totalVarNames[i]])) {
                 var total = parseInt(win[totalVarNames[i]], 10);
                 if (total > 1) {
-                    console.log('[Generic] Total from variable ' + totalVarNames[i] + ':', total);
                     return total;
                 }
             }
@@ -93,7 +92,6 @@ function getGenericTotalSlides(playerInfo) {
             for (var i = 0; i < countSelectors.length; i++) {
                 var elements = doc.querySelectorAll(countSelectors[i]);
                 if (elements.length > 1) {
-                    console.log('[Generic] Total from DOM count (' + countSelectors[i] + '):', elements.length);
                     return elements.length;
                 }
             }
@@ -106,7 +104,6 @@ function getGenericTotalSlides(playerInfo) {
                 if (!isNaN(val) && val > maxVal) maxVal = val;
             }
             if (maxVal > 1) {
-                console.log('[Generic] Total from max data attribute:', maxVal);
                 return maxVal;
             }
         }
@@ -143,7 +140,6 @@ function getGenericCurrentPosition(playerInfo) {
         for (var i = 0; i < varNames.length; i++) {
             if (typeof win[varNames[i]] !== 'undefined' && !isNaN(win[varNames[i]])) {
                 var rawVal = parseInt(win[varNames[i]], 10);
-                console.log('[Generic] Variable ' + varNames[i] + ':', rawVal);
                 // Convert 0-indexed to 1-indexed for display.
                 // Variables ending in "Index" are always 0-indexed.
                 // For others (currentSlide, currentPage, slideNum, pageNum),
@@ -175,7 +171,6 @@ function getGenericCurrentPosition(playerInfo) {
                 // Try to get index from data attribute
                 var dataSlide = elem.getAttribute('data-slide') || elem.getAttribute('data-page') || elem.getAttribute('data-index');
                 if (dataSlide) {
-                    console.log('[Generic] Data attribute:', dataSlide);
                     return parseInt(dataSlide, 10);
                 }
 
@@ -183,7 +178,6 @@ function getGenericCurrentPosition(playerInfo) {
                 var classes = elem.className;
                 var match = classes.match(/(?:slide|page)[_\-]?(\d+)/i);
                 if (match) {
-                    console.log('[Generic] Class match:', match[1]);
                     return parseInt(match[1], 10);
                 }
 
@@ -192,7 +186,6 @@ function getGenericCurrentPosition(playerInfo) {
                     var siblings = elem.parentElement.children;
                     for (var j = 0; j < siblings.length; j++) {
                         if (siblings[j] === elem) {
-                            console.log('[Generic] Sibling index:', j + 1);
                             return j + 1;
                         }
                     }
@@ -205,19 +198,17 @@ function getGenericCurrentPosition(playerInfo) {
         if (hash) {
             var match = hash.match(/(?:slide|page|section|chapter)[_\-\/]?(\d+)/i);
             if (match) {
-                console.log('[Generic] Hash match:', match[1]);
                 return parseInt(match[1], 10);
             }
             // Try just number in hash
             match = hash.match(/#(\d+)/);
             if (match) {
-                console.log('[Generic] Hash number:', match[1]);
                 return parseInt(match[1], 10);
             }
         }
 
     } catch (e) {
-        console.log('[Generic] Error detecting position:', e.message);
+        // Error detecting position
     }
 
     return null;
@@ -246,7 +237,6 @@ setTimeout(function() {
             var detectedTotal = getGenericTotalSlides(content);
             var totalJustUpdated = false;
             if (detectedTotal !== null && detectedTotal > slidescount) {
-                console.log('[Generic] Total slides detected:', detectedTotal, '(was:', slidescount, ')');
                 slidescount = detectedTotal;
                 totalJustUpdated = true;
             }
@@ -254,7 +244,6 @@ setTimeout(function() {
             // v2.0.67: If total just updated but API has position, re-send current position
             // with the new total so SmartLearning receives correct totalSlides and progress.
             if (totalJustUpdated && apiHasPosition) {
-                console.log('[Generic] Total updated, re-sending API position:', lastSlide, '/', slidescount);
                 sendProgressUpdate(null, null, null, lastSlide);
                 return;
             }
@@ -285,7 +274,6 @@ setTimeout(function() {
                         var csM = checkSD.match(/\bcs=(\d+)/);
                         if (csM) {
                             lastCaptivateCs = parseInt(csM[1], 10);
-                            console.log('[Generic] Detected Captivate suspend_data (cs=' + lastCaptivateCs + '), skipping generic position detection');
                         }
                     }
                 } catch(e) {}
@@ -309,8 +297,6 @@ setTimeout(function() {
                 (slidescount === 0 || currentPosition <= slidescount)) {
                 genericSlideIndex = currentPosition;
                 if (currentPosition !== lastSlide || totalJustUpdated) {
-                    console.log('[Generic] Position update:', currentPosition, '/', slidescount,
-                        totalJustUpdated ? '(total updated)' : '');
                     sendProgressUpdate(null, null, null, currentPosition);
                 }
             }
@@ -332,16 +318,14 @@ function navigateViaGenericApi(targetSlide) {
         if (window.API && window.API.LMSSetValue) {
             // Try setting lesson_location to trigger navigation
             window.API.LMSSetValue('cmi.core.lesson_location', String(targetSlide));
-            console.log('[SCORM Navigation] Set cmi.core.lesson_location to:', targetSlide);
             // Note: This alone won't cause navigation, but some content may respond
         }
         if (window.API_1484_11 && window.API_1484_11.SetValue) {
             window.API_1484_11.SetValue('cmi.location', String(targetSlide));
-            console.log('[SCORM Navigation] Set cmi.location to:', targetSlide);
         }
         return typeof originalScormSetValue === 'function';
     } catch (e) {
-        console.log('[SCORM Navigation] SCORM API navigation error:', e.message);
+        // SCORM API navigation error
         return false;
     }
 }
@@ -351,22 +335,18 @@ function navigateViaGenericApi(targetSlide) {
 function navigateGenericInnerFrame(iframeWin, targetSlide) {
     if (iframeWin.goToSlide) {
         iframeWin.goToSlide(targetSlide - 1);
-        console.log('[SCORM Navigation] Inner iframe goToSlide called');
         return true;
     }
     if (iframeWin.gotoSlide) {
         iframeWin.gotoSlide(targetSlide - 1);
-        console.log('[SCORM Navigation] Inner iframe gotoSlide called');
         return true;
     }
     if (iframeWin.setSlide) {
         iframeWin.setSlide(targetSlide - 1);
-        console.log('[SCORM Navigation] Inner iframe setSlide called');
         return true;
     }
     if (iframeWin.jumpToSlide) {
         iframeWin.jumpToSlide(targetSlide - 1);
-        console.log('[SCORM Navigation] Inner iframe jumpToSlide called');
         return true;
     }
     return false;
