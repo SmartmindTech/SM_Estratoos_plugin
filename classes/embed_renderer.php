@@ -118,13 +118,130 @@ class embed_renderer {
      *
      * This is used for activities that need full Moodle session/JS support.
      * Redirecting instead of using iframe avoids cross-origin cookie issues.
+     *
+     * For quiz, book, and lesson: if targetSlide is set, constructs a
+     * position-aware URL that lands directly on the correct page/chapter/page.
      */
     private function redirect_to_activity(): string {
         global $CFG;
 
         $url = $CFG->wwwroot . '/mod/' . $this->activityType . '/view.php?id=' . $this->cm->id;
+
+        // If target position specified, construct position-aware URL.
+        if ($this->targetSlide !== null && $this->targetSlide > 0) {
+            switch ($this->activityType) {
+                case 'quiz':
+                    $positionurl = $this->get_quiz_position_url($this->targetSlide);
+                    if ($positionurl) {
+                        $url = $positionurl;
+                    }
+                    break;
+                case 'book':
+                    $positionurl = $this->get_book_position_url($this->targetSlide);
+                    if ($positionurl) {
+                        $url = $positionurl;
+                    }
+                    break;
+                case 'lesson':
+                    $positionurl = $this->get_lesson_position_url($this->targetSlide);
+                    if ($positionurl) {
+                        $url = $positionurl;
+                    }
+                    break;
+            }
+        }
+
         header('Location: ' . $url);
         exit;
+    }
+
+    /**
+     * Get a position-aware URL for a quiz attempt page.
+     *
+     * Finds the user's active (in-progress) attempt and builds a URL
+     * to the specific page number. Position 1 = page 0, position 2 = page 1, etc.
+     *
+     * @param int $position Target position (1-based).
+     * @return string|null URL string, or null if no active attempt.
+     */
+    private function get_quiz_position_url(int $position): ?string {
+        global $DB, $CFG, $USER;
+
+        // Find user's active attempt.
+        $attempt = $DB->get_record_sql(
+            "SELECT id FROM {quiz_attempts}
+             WHERE quiz = :quizid AND userid = :userid AND state = 'inprogress'
+             ORDER BY attempt DESC LIMIT 1",
+            ['quizid' => (int)$this->cm->instance, 'userid' => $USER->id]
+        );
+
+        if (!$attempt) {
+            return null;
+        }
+
+        // Position is 1-based, quiz pages are 0-based.
+        $page = $position - 1;
+        return $CFG->wwwroot . '/mod/quiz/attempt.php?attempt=' . $attempt->id
+            . '&cmid=' . $this->cm->id . '&page=' . $page;
+    }
+
+    /**
+     * Get a position-aware URL for a book chapter.
+     *
+     * Queries visible chapters ordered by pagenum and indexes into the list
+     * to find the chapter ID at the given position.
+     *
+     * @param int $position Target position (1-based).
+     * @return string|null URL string, or null if position is out of range.
+     */
+    private function get_book_position_url(int $position): ?string {
+        global $DB, $CFG;
+
+        $chapters = $DB->get_records('book_chapters',
+            ['bookid' => (int)$this->cm->instance, 'hidden' => 0],
+            'pagenum ASC',
+            'id'
+        );
+
+        $chapters = array_values($chapters);
+        $index = $position - 1;
+
+        if (!isset($chapters[$index])) {
+            return null;
+        }
+
+        return $CFG->wwwroot . '/mod/book/view.php?id=' . $this->cm->id
+            . '&chapterid=' . $chapters[$index]->id;
+    }
+
+    /**
+     * Get a position-aware URL for a lesson page.
+     *
+     * Queries content pages (excluding endofbranch, cluster, endofcluster)
+     * and indexes into the list to find the page ID at the given position.
+     *
+     * @param int $position Target position (1-based).
+     * @return string|null URL string, or null if position is out of range.
+     */
+    private function get_lesson_position_url(int $position): ?string {
+        global $DB, $CFG;
+
+        $pages = $DB->get_records_sql(
+            "SELECT id FROM {lesson_pages}
+             WHERE lessonid = :lessonid AND qtype NOT IN (21, 30, 31)
+             ORDER BY ordering ASC",
+            ['lessonid' => (int)$this->cm->instance]
+        );
+
+        $pages = array_values($pages);
+        $index = $position - 1;
+
+        if (!isset($pages[$index])) {
+            return null;
+        }
+
+        return $CFG->wwwroot . '/mod/lesson/view.php?id=' . $this->cm->id
+            . '&pageid=' . $pages[$index]->id;
     }
 
     /**

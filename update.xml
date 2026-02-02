@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012896</version>
+        <version>2025012898</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.96</release>
+        <release>2.0.98</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.96/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.98/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.96</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.98</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.96 - Fix iSpring Modern Navigation + Suspend Data Parsing for Rise 360/iSpring Base64</h3>
+            <h3>Version 2.0.98 - Activity Position Tracking for Quiz, Book, and Lesson</h3>
 
-            <h4>Bug Fixes</h4>
+            <h4>New Feature</h4>
             <ul>
-                <li>Fix iSpring LZ-String resume navigation: add iSpring.LMS.instance() discovery chain to navigateViaISpring (mirrors getISpringCurrentSlide detection) so post-load correction actually navigates content to furthest slide</li>
-                <li>Fix Rise 360 suspend_data parsing: add bookmark field support to extractSlideFromParsedData and plain JSON modification to modifySuspendDataForSlide</li>
-                <li>Fix iSpring Base64 suspend_data modification: add Base64-encoded JSON decode/modify/re-encode path in modifySuspendDataForSlide</li>
+                <li>Real-time position tracking for quiz (pages), book (chapters), and lesson (pages) activities via postMessage — enables position bar, tagging, and go-back button in SmartLearning</li>
+                <li>Position-aware redirect URLs in embed renderer: clicking a tag navigates directly to the correct quiz page, book chapter, or lesson page</li>
+                <li>New activity/tracking_js class generates per-activity tracking JS that reuses the scorm-progress message format for full frontend compatibility (zero frontend changes needed)</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.97: Extend embed mode to all activity types (hide Moodle chrome for quiz, assignment, lesson, book, etc.)</li>
+                <li>v2.0.96: Fix iSpring modern navigation + suspend_data parsing for Rise 360/iSpring Base64</li>
                 <li>v2.0.95: Fix refresh resume for all vendors via LMSInitialize wrapper + iSpring post-load navigation</li>
                 <li>v2.0.94: Fix suspend_data corruption + resume format for iSpring/Rise 360</li>
-                <li>v2.0.93: Fix iSpring LZ-String position tracking + persist location format for resume</li>
-                <li>v2.0.92: Fix resume format for iSpring/Rise 360 + Storyline retry backing store correction</li>
             </ul>
             ]]>
         </releasenotes>

@@ -36,6 +36,7 @@
  *   local_sm_estratoos_plugin_get_scorm_slidecount()    → scorm\slidecount::detect()
  *   local_sm_estratoos_plugin_get_postmessage_tracking_js() → scorm\tracking_js::get_script()
  *   local_sm_estratoos_plugin_get_embed_css_js()        → scorm\embed_assets::get_css_js()
+ *   local_sm_estratoos_plugin_get_activity_embed_css_js() → activity_embed_assets::get_css_js()
  *   local_sm_estratoos_plugin_render_navbar_output()    → hooks\navbar_hooks::render_navbar_output()
  *   local_sm_estratoos_plugin_before_standard_top_of_body_html() → hooks\navbar_hooks::before_standard_top_of_body_html()
  *
@@ -109,19 +110,21 @@ function local_sm_estratoos_plugin_extend_settings_navigation(settings_navigatio
 }
 
 // ============================================================
-// SCORM PAGE HOOK
-// Called before the footer on every page — injects SCORM tracking
-// and embed assets when on the SCORM player page.
+// PAGE HOOKS
+// Called before the footer on every page — injects SCORM tracking,
+// embed assets for SCORM, and embed assets for other activities.
 // ============================================================
 
 /**
- * Before footer hook: inject SCORM tracking JS and embed CSS on the SCORM player page.
+ * Before footer hook: inject embed CSS and SCORM tracking JS.
  *
  * Flow:
  *   1. Check if current page is /mod/scorm/player.php
- *   2. If yes AND embed cookie is set → inject embed CSS/JS (hides Moodle nav)
+ *   2. If yes AND embed cookie is set → inject SCORM embed CSS/JS (hides SCORM nav)
  *   3. If yes → always inject PostMessage tracking JS (real-time progress)
- *   4. For site admins → run update checker
+ *   4. If NOT SCORM AND embed cookie is set AND page is /mod/* → inject activity embed CSS
+ *      (quiz pages get special treatment: right drawer kept for question navigation)
+ *   5. For site admins → run update checker
  */
 function local_sm_estratoos_plugin_before_footer() {
     global $CFG, $PAGE, $DB;
@@ -158,6 +161,53 @@ function local_sm_estratoos_plugin_before_footer() {
         }
 
         echo \local_sm_estratoos_plugin\scorm\tracking_js::get_script($cmid, $scormid, $slidescount);
+    }
+
+    // ============================================================
+    // NON-SCORM ACTIVITY EMBED MODE
+    // Hide Moodle Boost chrome for all /mod/ pages when in embed mode.
+    // Quiz pages get special treatment: right drawer kept for question navigation.
+    // ============================================================
+    if (!$isscormplayer && !empty($_COOKIE['sm_estratoos_embed'])) {
+        if (strpos($pagepath, '/mod/') !== false) {
+            $isQuizPage = (strpos($pagepath, '/mod/quiz/') !== false);
+            if ($isQuizPage) {
+                echo \local_sm_estratoos_plugin\activity_embed_assets::get_quiz_css_js();
+            } else {
+                echo \local_sm_estratoos_plugin\activity_embed_assets::get_css_js();
+            }
+
+            // Activity position tracking JS for quiz, book, and lesson.
+            // Sends scorm-progress postMessages for frontend position bar, tagging, go-back.
+            $cmid = optional_param('id', 0, PARAM_INT);
+            if (!$cmid) {
+                $cmid = optional_param('cmid', 0, PARAM_INT);
+            }
+
+            if ($cmid > 0) {
+                $cm = get_coursemodule_from_id('', $cmid);
+                if ($cm) {
+                    switch ($cm->modname) {
+                        case 'quiz':
+                            // Only on attempt.php and review.php (not view.php).
+                            if (strpos($pagepath, '/attempt.php') !== false
+                                || strpos($pagepath, '/review.php') !== false) {
+                                echo \local_sm_estratoos_plugin\activity\tracking_js::get_quiz_script(
+                                    $cmid, (int)$cm->instance);
+                            }
+                            break;
+                        case 'book':
+                            echo \local_sm_estratoos_plugin\activity\tracking_js::get_book_script(
+                                $cmid, (int)$cm->instance);
+                            break;
+                        case 'lesson':
+                            echo \local_sm_estratoos_plugin\activity\tracking_js::get_lesson_script(
+                                $cmid, (int)$cm->instance);
+                            break;
+                    }
+                }
+            }
+        }
     }
 
     // Update check for site administrators.
