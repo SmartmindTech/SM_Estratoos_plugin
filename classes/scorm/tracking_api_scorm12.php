@@ -344,6 +344,7 @@ window.API.LMSSetValue = function(element, value) {
     // doesn't re-report the boosted DB value as a position change.
     if (element === 'cmi.core.lesson_location' && valueToWrite !== lastWrittenLocation) {
         lastKnownLocationFormat = valueToWrite; // v2.0.92: Track format for boost
+        try { localStorage.setItem('scorm_location_format_' + cmid, valueToWrite); } catch(e) {}
         lastWrittenLocation = valueToWrite;
         lastLocation = dbWriteValue;
         lastApiChangeTime = Date.now();

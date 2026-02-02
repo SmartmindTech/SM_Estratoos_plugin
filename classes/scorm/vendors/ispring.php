@@ -86,6 +86,10 @@ function findISpringPlayer() {
             if (iframeDoc.querySelector('#slide-container, .slide-container, #slides-container, .slides-wrapper')) {
                 return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
             }
+            // v2.0.93: Check for iSpring.LMS (modern LZ-String variant, lowercase 'i')
+            if (iframeWin.iSpring && iframeWin.iSpring.LMS) {
+                return { iframe: iframes[i], window: iframeWin, document: iframeDoc };
+            }
             // Check nested iframes (iSpring often uses nested structure)
             var nestedIframes = iframeDoc.querySelectorAll('iframe');
             for (var j = 0; j < nestedIframes.length; j++) {
@@ -93,7 +97,8 @@ function findISpringPlayer() {
                     var nestedWin = nestedIframes[j].contentWindow;
                     var nestedDoc = nestedWin.document;
                     if (nestedWin.iSpringPresentationAPI || nestedWin.g_oPresentation ||
-                        nestedWin.gotoSlide || nestedWin.player) {
+                        nestedWin.gotoSlide || nestedWin.player ||
+                        (nestedWin.iSpring && nestedWin.iSpring.LMS)) {
                         return { iframe: nestedIframes[j], window: nestedWin, document: nestedDoc };
                     }
                 } catch (e) {
@@ -151,7 +156,32 @@ function getISpringCurrentSlide(playerInfo) {
             }
         }
 
-        // Method 5: Look for iSpring-specific DOM elements
+        // Method 5: iSpring.LMS.instance() — modern iSpring LZ-String variant.
+        // The instance exposes a property chain: instance.X.view().playbackController().currentSlideIndex()
+        // where X is a minified property name. We walk all properties to find the chain.
+        if (win.iSpring && win.iSpring.LMS && typeof win.iSpring.LMS.instance === 'function') {
+            try {
+                var instance = win.iSpring.LMS.instance();
+                if (instance) {
+                    for (var key in instance) {
+                        try {
+                            var prop = instance[key];
+                            if (prop && typeof prop === 'object' && typeof prop.view === 'function') {
+                                var view = prop.view();
+                                if (view && typeof view.playbackController === 'function') {
+                                    var ctrl = view.playbackController();
+                                    if (ctrl && typeof ctrl.currentSlideIndex === 'function') {
+                                        return ctrl.currentSlideIndex() + 1; // 0-based to 1-based
+                                    }
+                                }
+                            }
+                        } catch (e) {}
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // Method 6: Look for iSpring-specific DOM elements
         var slideElements = win.document.querySelectorAll('.ispring-slide, .slide-wrapper, [data-slide-index]');
         for (var i = 0; i < slideElements.length; i++) {
             var elem = slideElements[i];

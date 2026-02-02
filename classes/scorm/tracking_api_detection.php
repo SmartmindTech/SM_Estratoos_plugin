@@ -68,6 +68,11 @@ function computeFurthestFromApi(apiObj, getValueFn, locElement, scoreElement) {
     try {
         var loc = getValueFn.call(apiObj, locElement);
         var scr = getValueFn.call(apiObj, scoreElement);
+        // v2.0.93: Capture vendor location format for boost on refresh
+        if (loc && loc.length > 0 && !/^\d+$/.test(loc)) {
+            lastKnownLocationFormat = loc;
+            try { localStorage.setItem('scorm_location_format_' + cmid, loc); } catch(e) {}
+        }
         var parsedLoc = loc ? parseSlideNumber(loc) : null;
         var parsedScore = scr ? parseFloat(scr) : null;
         var dbFurthest = furthestSlide || 0; // v2.0.88: Start from existing value (may be from localStorage)
@@ -204,12 +209,26 @@ var initialRetryInterval = setInterval(function() {
             if (window.API && window.API.LMSGetValue) {
                 var loc = window.API.LMSGetValue.call(window.API, 'cmi.core.lesson_location');
                 var scr = window.API.LMSGetValue.call(window.API, 'cmi.core.score.raw');
-                if (loc) { retryParsedLocation = parseSlideNumber(loc); if (retryParsedLocation === null || retryParsedLocation < 1) retryParsedLocation = null; }
+                if (loc) {
+                    retryParsedLocation = parseSlideNumber(loc); if (retryParsedLocation === null || retryParsedLocation < 1) retryParsedLocation = null;
+                    // v2.0.93: Capture vendor location format for boost on refresh
+                    if (loc.length > 0 && !/^\d+$/.test(loc) && !lastKnownLocationFormat) {
+                        lastKnownLocationFormat = loc;
+                        try { localStorage.setItem('scorm_location_format_' + cmid, loc); } catch(e) {}
+                    }
+                }
                 if (scr) { retryParsedScore = parseFloat(scr); if (isNaN(retryParsedScore) || retryParsedScore <= 0) retryParsedScore = null; }
             } else if (window.API_1484_11 && window.API_1484_11.GetValue) {
                 var loc2 = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.location');
                 var scr2 = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.score.raw');
-                if (loc2) { retryParsedLocation = parseSlideNumber(loc2); if (retryParsedLocation === null || retryParsedLocation < 1) retryParsedLocation = null; }
+                if (loc2) {
+                    retryParsedLocation = parseSlideNumber(loc2); if (retryParsedLocation === null || retryParsedLocation < 1) retryParsedLocation = null;
+                    // v2.0.93: Capture vendor location format for boost on refresh
+                    if (loc2.length > 0 && !/^\d+$/.test(loc2) && !lastKnownLocationFormat) {
+                        lastKnownLocationFormat = loc2;
+                        try { localStorage.setItem('scorm_location_format_' + cmid, loc2); } catch(e) {}
+                    }
+                }
                 if (scr2) { retryParsedScore = parseFloat(scr2); if (isNaN(retryParsedScore) || retryParsedScore <= 0) retryParsedScore = null; }
             }
         } catch (e) {}

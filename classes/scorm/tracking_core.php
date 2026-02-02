@@ -94,7 +94,14 @@ class tracking_core {
     // v2.0.92: Track the last vendor-format lesson_location value for format-aware boost.
     // When the content writes e.g. "slide_2" (iSpring) or "section_1" (Rise 360), we store
     // the format so the boost can construct "slide_3" or "section_2" instead of numeric "3"/"2".
+    // Persisted to localStorage so it survives page refresh (pre-init needs it before LMSInitialize).
     var lastKnownLocationFormat = null;
+    try {
+        var storedFormat = localStorage.getItem('scorm_location_format_' + cmid);
+        if (storedFormat && storedFormat.length > 0 && !/^\d+$/.test(storedFormat)) {
+            lastKnownLocationFormat = storedFormat;
+        }
+    } catch (e) {}
 
     // v2.0.92: Unwrapped GetValue reference for retry loop backing store correction.
     // Set by wrapScorm12Api/wrapScorm2004Api. Bypasses read interceptors to get raw DB values.

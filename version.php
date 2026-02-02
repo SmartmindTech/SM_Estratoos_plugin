@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012892;  // YYYYMMDDXX format.
+$plugin->version = 2025012893;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.92';  // Fix resume format for iSpring/Rise 360 + Storyline retry backing store correction.
+$plugin->release = '2.0.93';  // Fix iSpring LZ-String position tracking + persist location format for resume.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

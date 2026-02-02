@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012892</version>
+        <version>2025012893</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.92</release>
+        <release>2.0.93</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,33 +29,31 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.92/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.93/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.92</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.93</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.92 - Fix Resume Format for iSpring/Rise 360 + Storyline Retry Backing Store Correction</h3>
+            <h3>Version 2.0.93 - Fix iSpring LZ-String Position Tracking + Persist Location Format for Resume</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix iSpring/Rise 360 resume going to slide 0: lesson_location boost now preserves vendor text format (e.g. "slide_3" not "3", "section_2" not "3")</li>
-                <li>Fix Rise 360 position bar off-by-one: parseSlideNumber now handles 0-based section_ prefix (section_0=1, section_1=2)</li>
-                <li>Fix Storyline resume going to previous slide: retry loop now corrects backing store when computing furthestSlide after LMSInitialize</li>
-                <li>Fix position bar dropping to 1/N during tag navigation: extend vendor poller suppression to cover tag navigation intercept window</li>
-                <li>Add formatLocationValue helper for format-aware lesson_location boost across all write paths</li>
-                <li>Replace remaining parseInt with parseSlideNumber in resume read interceptors, proactive writes, and LMSInitialize wrappers</li>
-                <li>Persist furthestSlide to localStorage/sessionStorage from retry loop (was missing)</li>
+                <li>Fix iSpring LZ-String SCORM position bar not updating: add iSpring.LMS detection (lowercase 'i') to findISpringPlayer and walk instance property chain to find currentSlideIndex() for real-time slide tracking</li>
+                <li>Fix iSpring Base64 / Rise 360 not resuming to furthest slide on refresh: persist lastKnownLocationFormat to localStorage so formatLocationValue uses vendor format ("slide_3", "section_1") instead of numeric ("3") after page reload</li>
+                <li>Restore lastKnownLocationFormat from localStorage on page load (tracking_core.php)</li>
+                <li>Persist lastKnownLocationFormat to localStorage on every lesson_location write (SCORM 1.2 + 2004)</li>
+                <li>Capture vendor location format in computeFurthestFromApi and retry loop (tracking_api_detection.php) so format is available even before first LMSSetValue</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.92: Fix resume format for iSpring/Rise 360 + Storyline retry backing store correction</li>
                 <li>v2.0.91: Fix Storyline resume + remaining parseInt issues for iSpring/Rise 360</li>
-                <li>v2.0.90: Fix position bar counter for iSpring/Rise 360 (parseSlideNumber in step 6A) and Captivate (isApiWrite bypass)</li>
+                <li>v2.0.90: Fix position bar counter for iSpring/Rise 360 and Captivate</li>
                 <li>v2.0.89: Refactor SCORM logs: remove ~300 verbose logs, add 12 targeted position-tracking logs</li>
-                <li>v2.0.88: Fix stale localStorage causing wrong position counter</li>
             </ul>
             ]]>
         </releasenotes>
