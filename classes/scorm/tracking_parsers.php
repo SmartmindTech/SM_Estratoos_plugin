@@ -71,11 +71,17 @@ function parseSlideFromSuspendData(data) {
                     // Not JSON, search for patterns in decompressed string.
                 }
 
-                // Search for resume patterns in decompressed text.
-                var slideNum = extractSlideFromText(decompressed);
-                if (slideNum !== null) {
-                    slideSource = 'suspend_data';
-                    return slideNum;
+                // v2.0.94: Only apply text regex patterns for confirmed Storyline data.
+                // Other vendors (iSpring) use LZ+Base64 with different JSON structures
+                // where regex patterns like "slide":N could match wrong fields.
+                var isStorylineSd = /"resume"\s*:\s*"\d+_\d+"/.test(decompressed) ||
+                    /"n"\s*:\s*"Resume"/i.test(decompressed);
+                if (isStorylineSd) {
+                    var slideNum = extractSlideFromText(decompressed);
+                    if (slideNum !== null) {
+                        slideSource = 'suspend_data';
+                        return slideNum;
+                    }
                 }
             }
         } catch (e) {
@@ -275,65 +281,77 @@ function modifySuspendDataForSlide(originalData, targetSlide) {
         try {
             var decompressed = LZString.decompressFromBase64(originalData);
             if (decompressed && decompressed.length > 0) {
-                var modified = decompressed;
-                var anyChange = false;
+                // v2.0.94: Only apply Storyline-specific regexes if the decompressed JSON
+                // is confirmed to be Storyline. Other vendors (iSpring) also use LZ+Base64
+                // but have completely different JSON structures. Applying Storyline regexes
+                // (e.g. /"l":\d+/) to iSpring's JSON corrupts its internal state.
+                // Storyline signature: "resume":"X_Y" format or d-array {"n":"Resume","v":"X_Y"}
+                var isStoryline = /"resume"\s*:\s*"\d+_\d+"/.test(decompressed) ||
+                    /"n"\s*:\s*"Resume"/i.test(decompressed);
 
-                // 1. Modify "l" field - last slide position (0-indexed)
-                modified = modified.replace(
-                    /"l"\s*:\s*(\d+)/g,
-                    function(match, oldValue) {
-                        if (parseInt(oldValue) !== targetIndex) {
-                            anyChange = true;
-                            return '"l":' + targetIndex;
+                if (isStoryline) {
+                    var modified = decompressed;
+                    var anyChange = false;
+
+                    // 1. Modify "l" field - last slide position (0-indexed)
+                    modified = modified.replace(
+                        /"l"\s*:\s*(\d+)/g,
+                        function(match, oldValue) {
+                            if (parseInt(oldValue) !== targetIndex) {
+                                anyChange = true;
+                                return '"l":' + targetIndex;
+                            }
+                            return match;
                         }
-                        return match;
-                    }
-                );
+                    );
 
-                // 2. Modify "resume" field - scene_slide format "0_7"
-                // Keep the scene number, only change the slide number
-                modified = modified.replace(
-                    /"resume"\s*:\s*"(\d+)_(\d+)"/g,
-                    function(match, scene, slide) {
-                        if (parseInt(slide) !== targetIndex) {
-                            anyChange = true;
-                            return '"resume":"' + scene + '_' + targetIndex + '"';
+                    // 2. Modify "resume" field - scene_slide format "0_7"
+                    // Keep the scene number, only change the slide number
+                    modified = modified.replace(
+                        /"resume"\s*:\s*"(\d+)_(\d+)"/g,
+                        function(match, scene, slide) {
+                            if (parseInt(slide) !== targetIndex) {
+                                anyChange = true;
+                                return '"resume":"' + scene + '_' + targetIndex + '"';
+                            }
+                            return match;
                         }
-                        return match;
-                    }
-                );
+                    );
 
-                // 3. Modify d-array Resume variable - {"n":"Resume","v":"0_7"}
-                modified = modified.replace(
-                    /("n"\s*:\s*"Resume"\s*,\s*"v"\s*:\s*")(\d+)_(\d+)(")/gi,
-                    function(match, prefix, scene, slide, suffix) {
-                        if (parseInt(slide) !== targetIndex) {
-                            anyChange = true;
-                            return prefix + scene + '_' + targetIndex + suffix;
+                    // 3. Modify d-array Resume variable - {"n":"Resume","v":"0_7"}
+                    modified = modified.replace(
+                        /("n"\s*:\s*"Resume"\s*,\s*"v"\s*:\s*")(\d+)_(\d+)(")/gi,
+                        function(match, prefix, scene, slide, suffix) {
+                            if (parseInt(slide) !== targetIndex) {
+                                anyChange = true;
+                                return prefix + scene + '_' + targetIndex + suffix;
+                            }
+                            return match;
                         }
-                        return match;
-                    }
-                );
+                    );
 
-                // 4. Modify reverse d-array - {"v":"0_7","n":"Resume"}
-                modified = modified.replace(
-                    /("v"\s*:\s*")(\d+)_(\d+)("\s*,\s*"n"\s*:\s*"Resume")/gi,
-                    function(match, prefix, scene, slide, suffix) {
-                        if (parseInt(slide) !== targetIndex) {
-                            anyChange = true;
-                            return prefix + scene + '_' + targetIndex + suffix;
+                    // 4. Modify reverse d-array - {"v":"0_7","n":"Resume"}
+                    modified = modified.replace(
+                        /("v"\s*:\s*")(\d+)_(\d+)("\s*,\s*"n"\s*:\s*"Resume")/gi,
+                        function(match, prefix, scene, slide, suffix) {
+                            if (parseInt(slide) !== targetIndex) {
+                                anyChange = true;
+                                return prefix + scene + '_' + targetIndex + suffix;
+                            }
+                            return match;
                         }
-                        return match;
-                    }
-                );
+                    );
 
-                if (anyChange) {
-                    // Re-compress with LZ-String
-                    var recompressed = LZString.compressToBase64(modified);
-                    if (recompressed) {
-                        return recompressed;
+                    if (anyChange) {
+                        // Re-compress with LZ-String
+                        var recompressed = LZString.compressToBase64(modified);
+                        if (recompressed) {
+                            return recompressed;
+                        }
                     }
                 }
+                // Non-Storyline LZ+Base64 (e.g. iSpring): skip modification.
+                // We cannot safely modify their internal JSON structure.
             }
         } catch (e) {
             // LZ error

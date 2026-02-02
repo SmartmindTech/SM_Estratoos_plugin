@@ -82,11 +82,21 @@ if (!pendingSlideNavigation && furthestSlide !== null && window.API.LMSGetValue 
                 var corrected = modifySuspendDataForSlide(resumeSD, furthestSlide);
                 if (corrected !== resumeSD) {
                     window.API.LMSSetValue.call(window.API, 'cmi.suspend_data', corrected);
-                    // v2.0.92: Preserve vendor format for lesson_location boost
-                    window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location',
-                        formatLocationValue(window.API.LMSGetValue.call(window.API, 'cmi.core.lesson_location'), furthestSlide));
                 }
             }
+        }
+        // v2.0.94: Always correct lesson_location for resume, not gated behind suspend_data.
+        // For vendors whose suspend_data can't be modified (iSpring Base64, Rise 360),
+        // lesson_location is the primary resume mechanism.
+        var resumeLoc = window.API.LMSGetValue.call(window.API, 'cmi.core.lesson_location');
+        var resumeLocSlide = resumeLoc ? parseSlideNumber(resumeLoc) : null;
+        if (resumeLocSlide === null || resumeLocSlide < furthestSlide) {
+            window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location',
+                formatLocationValue(lastKnownLocationFormat || resumeLoc, furthestSlide));
+        } else if (lastKnownLocationFormat && /^\d+$/.test(resumeLoc)) {
+            // v2.0.94: Correct slide but wrong format (numeric "5" vs vendor "slide_5")
+            window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location',
+                formatLocationValue(lastKnownLocationFormat, resumeLocSlide));
         }
     } catch (e) {}
 }
@@ -217,7 +227,12 @@ if (window.API.LMSGetValue && (pendingSlideNavigation || furthestSlide !== null)
             if (withinResumeWindow) {
                 var locSlide = parseSlideNumber(result); // v2.0.92: parseSlideNumber for vendor formats
                 if (locSlide !== null && locSlide < furthestSlide) {
-                    return formatLocationValue(result, furthestSlide); // v2.0.92: preserve vendor format
+                    return formatLocationValue(lastKnownLocationFormat || result, furthestSlide);
+                }
+                // v2.0.94: Correct format mismatch even when slide number matches.
+                // DB may have numeric "5" from pre-v2.0.92, but vendor expects "slide_5".
+                if (locSlide !== null && lastKnownLocationFormat && /^\d+$/.test(result)) {
+                    return formatLocationValue(lastKnownLocationFormat, locSlide);
                 }
             }
         }
