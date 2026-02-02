@@ -307,8 +307,8 @@ window.API.LMSSetValue = function(element, value) {
     // Track the actual value (valueToWrite) for position bar updates.
     var dbWriteValue = valueToWrite;
     if (element === 'cmi.core.lesson_location' && furthestSlide !== null) {
-        var locSlide = parseInt(valueToWrite, 10);
-        if (!isNaN(locSlide)) {
+        var locSlide = parseSlideNumber(valueToWrite);
+        if (locSlide !== null) {
             if (pendingSlideNavigation && locSlide > furthestSlide) {
                 // v2.0.87: Cap at furthestSlide during tag navigation to prevent DB inflation.
                 dbWriteValue = String(furthestSlide);

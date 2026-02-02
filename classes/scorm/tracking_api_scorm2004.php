@@ -287,8 +287,8 @@ window.API_1484_11.SetValue = function(element, value) {
     // v2.0.87: During tag navigation, cap at furthestSlide to prevent DB inflation.
     var dbWriteValue2004 = valueToWrite;
     if (element === 'cmi.location' && furthestSlide !== null) {
-        var locSlide2004 = parseInt(valueToWrite, 10);
-        if (!isNaN(locSlide2004)) {
+        var locSlide2004 = parseSlideNumber(valueToWrite);
+        if (locSlide2004 !== null) {
             if (pendingSlideNavigation && locSlide2004 > furthestSlide) {
                 // v2.0.87: Cap at furthestSlide during tag navigation to prevent DB inflation.
                 dbWriteValue2004 = String(furthestSlide);

@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012890;  // YYYYMMDDXX format.
+$plugin->version = 2025012891;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.90';  // Fix position bar counter not updating for iSpring, Rise 360, and Captivate.
+$plugin->release = '2.0.91';  // Fix Storyline resume + remaining parseInt issues for iSpring/Rise 360.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

@@ -68,7 +68,7 @@ function computeFurthestFromApi(apiObj, getValueFn, locElement, scoreElement) {
     try {
         var loc = getValueFn.call(apiObj, locElement);
         var scr = getValueFn.call(apiObj, scoreElement);
-        var parsedLoc = loc ? parseInt(loc, 10) : null;
+        var parsedLoc = loc ? parseSlideNumber(loc) : null;
         var parsedScore = scr ? parseFloat(scr) : null;
         var dbFurthest = furthestSlide || 0; // v2.0.88: Start from existing value (may be from localStorage)
         if (parsedLoc && !isNaN(parsedLoc) && parsedLoc >= 1) {
@@ -142,6 +142,20 @@ if (typeof window.API_1484_11 === 'undefined' || !window.API_1484_11) {
     })();
 }
 
+// v2.0.91: Compute furthestSlide before immediate wrap (API may already exist).
+// The defineProperty trap calls computeFurthestFromApi, but if the API already exists
+// (assigned before our IIFE), the trap was never set. Without this, furthestSlide
+// is null when wrapScormApi runs, causing pre-init backing store modification to skip.
+if (!apiWrapped) {
+    if (window.API && window.API.LMSGetValue) {
+        computeFurthestFromApi(window.API, window.API.LMSGetValue,
+            'cmi.core.lesson_location', 'cmi.core.score.raw');
+    } else if (window.API_1484_11 && window.API_1484_11.GetValue) {
+        computeFurthestFromApi(window.API_1484_11, window.API_1484_11.GetValue,
+            'cmi.location', 'cmi.score.raw');
+    }
+}
+
 // Try to wrap immediately (API may already exist), then retry with intervals as fallback.
 if (!apiWrapped && !wrapScormApi()) {
     var attempts = 0;
@@ -190,12 +204,12 @@ var initialRetryInterval = setInterval(function() {
             if (window.API && window.API.LMSGetValue) {
                 var loc = window.API.LMSGetValue.call(window.API, 'cmi.core.lesson_location');
                 var scr = window.API.LMSGetValue.call(window.API, 'cmi.core.score.raw');
-                if (loc) { retryParsedLocation = parseInt(loc, 10); if (isNaN(retryParsedLocation) || retryParsedLocation < 1) retryParsedLocation = null; }
+                if (loc) { retryParsedLocation = parseSlideNumber(loc); if (retryParsedLocation === null || retryParsedLocation < 1) retryParsedLocation = null; }
                 if (scr) { retryParsedScore = parseFloat(scr); if (isNaN(retryParsedScore) || retryParsedScore <= 0) retryParsedScore = null; }
             } else if (window.API_1484_11 && window.API_1484_11.GetValue) {
                 var loc2 = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.location');
                 var scr2 = window.API_1484_11.GetValue.call(window.API_1484_11, 'cmi.score.raw');
-                if (loc2) { retryParsedLocation = parseInt(loc2, 10); if (isNaN(retryParsedLocation) || retryParsedLocation < 1) retryParsedLocation = null; }
+                if (loc2) { retryParsedLocation = parseSlideNumber(loc2); if (retryParsedLocation === null || retryParsedLocation < 1) retryParsedLocation = null; }
                 if (scr2) { retryParsedScore = parseFloat(scr2); if (isNaN(retryParsedScore) || retryParsedScore <= 0) retryParsedScore = null; }
             }
         } catch (e) {}

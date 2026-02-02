@@ -164,25 +164,27 @@ function extractSlideFromParsedData(parsed) {
     if (parsed.current !== undefined) return parseInt(parsed.current, 10);
     if (parsed.position !== undefined) return parseInt(parsed.position, 10);
 
-    // Articulate Storyline "resume" format (e.g., "1_6" = scene 1, slide 6).
+    // Articulate Storyline "resume" format (e.g., "0_14" = scene 0, slide 14).
+    // v2.0.91: Storyline uses 0-based indexing; add +1 for 1-based (consistent with extractSlideFromText).
     // NOTE: This is the FURTHEST progress, not current position. Only use as fallback.
     if (parsed.resume !== undefined) {
         var resume = String(parsed.resume);
-        // Format: scene_slide or just slide number.
+        // Format: scene_slide or just slide number (0-based).
         var match = resume.match(/^(\d+)_(\d+)$/);
         if (match) {
-            // scene_slide format - return the slide number.
-            return parseInt(match[2], 10);
+            // scene_slide format - return the slide number (0-based to 1-based).
+            return parseInt(match[2], 10) + 1;
         }
         match = resume.match(/^(\d+)$/);
-        if (match) return parseInt(match[1], 10);
+        if (match) return parseInt(match[1], 10) + 1;
     }
 
     // Nested structures.
     if (parsed.v && parsed.v.current !== undefined) return parseInt(parsed.v.current, 10);
     if (parsed.data && parsed.data.slide !== undefined) return parseInt(parsed.data.slide, 10);
 
-    // Storyline "d" array format: [{n: "Resume", v: "1_6"}, ...].
+    // Storyline "d" array format: [{n: "Resume", v: "0_14"}, ...].
+    // v2.0.91: Add +1 for 0-based to 1-based conversion (consistent with extractSlideFromText).
     if (parsed.d && Array.isArray(parsed.d)) {
         for (var i = 0; i < parsed.d.length; i++) {
             var item = parsed.d[i];
@@ -190,10 +192,10 @@ function extractSlideFromParsedData(parsed) {
                 var resume = String(item.v);
                 var match = resume.match(/^(\d+)_(\d+)$/);
                 if (match) {
-                    return parseInt(match[2], 10);
+                    return parseInt(match[2], 10) + 1;
                 }
                 match = resume.match(/^(\d+)$/);
-                if (match) return parseInt(match[1], 10);
+                if (match) return parseInt(match[1], 10) + 1;
             }
         }
     }
