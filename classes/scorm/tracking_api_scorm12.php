@@ -101,10 +101,11 @@ if (!pendingSlideNavigation && furthestSlide !== null && window.API.LMSGetValue 
     } catch (e) {}
 }
 
-// v2.0.72: When sessionStorage is empty (furthestSlide null), determine furthest
-// from score.raw. Wrap LMSInitialize so the correction runs after the content
-// iframe is loaded (TOTAL_SLIDES available) but before the content reads CMI data.
-if (!pendingSlideNavigation && furthestSlide === null) {
+// v2.0.72: Wrap LMSInitialize so corrections run after DB data is loaded.
+// v2.0.95: Always install (removed `furthestSlide === null` gate). Pre-init writes
+// fail because Moodle's API returns empty before LMSInitialize. This wrapper is the
+// only mechanism that can correct data AFTER the API is functional.
+if (!pendingSlideNavigation) {
     var origLMSInitialize12 = window.API.LMSInitialize;
     window.API.LMSInitialize = function(param) {
         var result = origLMSInitialize12.call(window.API, param);
@@ -171,6 +172,29 @@ if (!pendingSlideNavigation && furthestSlide === null) {
                     }
                 }
             } catch (e) {}
+        }
+
+        // v2.0.95: Post-init lesson_location correction for refresh resume.
+        // Pre-init writes (lines 76-101) fail because Moodle's API returns empty before LMSInitialize.
+        // Now that LMSInitialize loaded DB data, capture format and correct lesson_location.
+        if (furthestSlide !== null && furthestSlide >= 1) {
+            try {
+                var postInitLoc = origLMSGetValue12.call(window.API, 'cmi.core.lesson_location');
+                // Capture vendor format from real DB value (first time seeing populated data)
+                if (postInitLoc && postInitLoc.length > 0 && !/^\d+$/.test(postInitLoc) && !lastKnownLocationFormat) {
+                    lastKnownLocationFormat = postInitLoc;
+                    try { localStorage.setItem('scorm_location_format_' + cmid, postInitLoc); } catch(e) {}
+                }
+                var postInitLocSlide = postInitLoc ? parseSlideNumber(postInitLoc) : null;
+                if (postInitLocSlide === null || postInitLocSlide < furthestSlide) {
+                    origLMSSetValue12.call(window.API, 'cmi.core.lesson_location',
+                        formatLocationValue(lastKnownLocationFormat || postInitLoc, furthestSlide));
+                } else if (lastKnownLocationFormat && /^\d+$/.test(postInitLoc)) {
+                    // Correct format mismatch: DB has numeric "2" but vendor expects "section_1"
+                    origLMSSetValue12.call(window.API, 'cmi.core.lesson_location',
+                        formatLocationValue(lastKnownLocationFormat, postInitLocSlide));
+                }
+            } catch(e) {}
         }
 
         return result;

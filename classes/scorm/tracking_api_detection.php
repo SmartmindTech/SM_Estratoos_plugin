@@ -306,6 +306,28 @@ var initialRetryInterval = setInterval(function() {
                     localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
                 } catch(e) {}
             }
+            // v2.0.95: Even when furthestSlide didn't change, capture vendor format
+            // and correct format mismatch. The pre-init writes failed (API not initialized),
+            // so this is our backup to ensure the format is known for read interceptors.
+            if (newFurthest >= 1 && newFurthest === furthestSlide && originalUnwrappedGetValue) {
+                try {
+                    var fmtEl = scormApiVersion === '1.2' ? 'cmi.core.lesson_location' : 'cmi.location';
+                    var rawLoc = originalUnwrappedGetValue(fmtEl);
+                    // Capture non-numeric format from DB value
+                    if (rawLoc && rawLoc.length > 0 && !/^\d+$/.test(rawLoc) && !lastKnownLocationFormat) {
+                        lastKnownLocationFormat = rawLoc;
+                        try { localStorage.setItem('scorm_location_format_' + cmid, rawLoc); } catch(e) {}
+                    }
+                    // Correct numeric DB value to vendor format if format is known
+                    if (rawLoc && /^\d+$/.test(rawLoc) && lastKnownLocationFormat && originalScormSetValue) {
+                        var rawSlide = parseSlideNumber(rawLoc);
+                        if (rawSlide !== null) {
+                            originalScormSetValue(fmtEl, formatLocationValue(lastKnownLocationFormat, rawSlide));
+                            if (originalScormCommit) originalScormCommit();
+                        }
+                    }
+                } catch(e) {}
+            }
         }
     }
 

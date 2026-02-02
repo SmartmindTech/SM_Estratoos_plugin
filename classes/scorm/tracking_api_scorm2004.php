@@ -101,7 +101,10 @@ if (!pendingSlideNavigation && furthestSlide !== null && window.API_1484_11.GetV
 }
 
 // v2.0.72: Score-based resume correction for SCORM 2004.
-if (!pendingSlideNavigation && furthestSlide === null) {
+// v2.0.95: Always install (removed `furthestSlide === null` gate). Pre-init writes
+// fail because Moodle's API returns empty before Initialize. This wrapper is the
+// only mechanism that can correct data AFTER the API is functional.
+if (!pendingSlideNavigation) {
     var origInitialize2004 = window.API_1484_11.Initialize;
     window.API_1484_11.Initialize = function(param) {
         var result = origInitialize2004.call(window.API_1484_11, param);
@@ -159,6 +162,29 @@ if (!pendingSlideNavigation && furthestSlide === null) {
                     }
                 }
             } catch (e) {}
+        }
+
+        // v2.0.95: Post-init location correction for refresh resume.
+        // Pre-init writes (lines 75-101) fail because Moodle's API returns empty before Initialize.
+        // Now that Initialize loaded DB data, capture format and correct location.
+        if (furthestSlide !== null && furthestSlide >= 1) {
+            try {
+                var postInitLoc2004 = origGetValue2004.call(window.API_1484_11, 'cmi.location');
+                // Capture vendor format from real DB value (first time seeing populated data)
+                if (postInitLoc2004 && postInitLoc2004.length > 0 && !/^\d+$/.test(postInitLoc2004) && !lastKnownLocationFormat) {
+                    lastKnownLocationFormat = postInitLoc2004;
+                    try { localStorage.setItem('scorm_location_format_' + cmid, postInitLoc2004); } catch(e) {}
+                }
+                var postInitLocSlide2004 = postInitLoc2004 ? parseSlideNumber(postInitLoc2004) : null;
+                if (postInitLocSlide2004 === null || postInitLocSlide2004 < furthestSlide) {
+                    origSetValue2004ref.call(window.API_1484_11, 'cmi.location',
+                        formatLocationValue(lastKnownLocationFormat || postInitLoc2004, furthestSlide));
+                } else if (lastKnownLocationFormat && /^\d+$/.test(postInitLoc2004)) {
+                    // Correct format mismatch: DB has numeric "2" but vendor expects "section_1"
+                    origSetValue2004ref.call(window.API_1484_11, 'cmi.location',
+                        formatLocationValue(lastKnownLocationFormat, postInitLocSlide2004));
+                }
+            } catch(e) {}
         }
 
         return result;

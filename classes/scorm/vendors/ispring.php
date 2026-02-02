@@ -215,7 +215,29 @@ setTimeout(function() {
             }
         }
     }, 1000);
-}, 2000); // v2.0.86: Reduced from 4000ms for faster initial position detection
+}, 500); // v2.0.95: Reduced from 2000ms for faster initial position detection
+
+// v2.0.95: Post-load resume correction for iSpring.
+// iSpring uses its own suspend_data (LZ/Base64) for resume — we can't modify it.
+// After content loads, check if it started at the wrong slide and navigate via player API.
+if (!pendingSlideNavigation && furthestSlide !== null && furthestSlide > 1) {
+    var iSpringResumeCheckCount = 0;
+    var iSpringResumeInterval = setInterval(function() {
+        iSpringResumeCheckCount++;
+        if (iSpringResumeCheckCount > 15) { clearInterval(iSpringResumeInterval); return; }
+        var playerInfo = findISpringPlayer();
+        if (playerInfo) {
+            var currentSlide = getISpringCurrentSlide(playerInfo);
+            if (currentSlide !== null) {
+                clearInterval(iSpringResumeInterval);
+                if (currentSlide < furthestSlide) {
+                    console.log('[SCORM Tracking] iSpring resume correction: slide ' + currentSlide + ' → ' + furthestSlide);
+                    navigateViaISpring(furthestSlide);
+                }
+            }
+        }
+    }, 500);
+}
 
 window.addEventListener('beforeunload', function() {
     if (iSpringCheckInterval) {
