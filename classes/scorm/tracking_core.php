@@ -109,14 +109,16 @@ class tracking_core {
     }
 
 // === PROGRESS REPORTING ===
-    function sendProgressUpdate(location, status, score, directSlide) {
+    function sendProgressUpdate(location, status, score, directSlide, isApiWrite) {
         var currentSlide = directSlide || parseSlideNumber(location) || lastSlide;
 
         // v2.0.87: Suppress stale vendor poller reads during resume initialization.
         // Vendor pollers (iSpring, Storyline, etc.) can read the player's initial/loading
         // state (slide 1) before content has fully resumed to the correct position.
         // During the first 10s, suppress directSlide backward movement below furthestSlide.
-        if (directSlide !== null && lastSlide !== null && directSlide < lastSlide &&
+        // v2.0.90: Skip suppress for isApiWrite — SCORM API writes (step 6A/6C/6D) are
+        // authoritative and must not be blocked. Only vendor pollers should be suppressed.
+        if (directSlide !== null && !isApiWrite && lastSlide !== null && directSlide < lastSlide &&
             furthestSlide !== null && directSlide < furthestSlide &&
             !pendingSlideNavigation && (Date.now() - pageLoadTime) < INTERCEPT_WINDOW_MS) {
             currentSlide = lastSlide;

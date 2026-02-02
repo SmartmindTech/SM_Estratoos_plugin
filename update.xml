@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012889</version>
+        <version>2025012890</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.89</release>
+        <release>2.0.90</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.89/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.90/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.89</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.90</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.89 - Refactor SCORM Logs</h3>
+            <h3>Version 2.0.90 - Fix Position Bar Counter</h3>
 
-            <h4>Changes</h4>
+            <h4>Bug Fixes</h4>
             <ul>
-                <li>Remove ~300 verbose console.log statements from all 12 SCORM tracking files</li>
-                <li>Add 12 targeted position-tracking logs with consistent prefixes: [SCORM Tracking], [SCORM 1.2], [SCORM 2004]</li>
-                <li>Logs now trace full position bar flow: init → API writes → poll → sendProgressUpdate</li>
+                <li>Fix position bar counter stuck for iSpring and Rise 360: replace parseInt with parseSlideNumber to handle text-format locations like "slide_3" and "section_1"</li>
+                <li>Fix Captivate position bar stuck for first 10s: add isApiWrite parameter to sendProgressUpdate so SCORM API writes bypass the v2.0.87 stale-poller suppress logic</li>
+                <li>Pass isApiWrite=true for all SCORM API write paths (step 6A lesson_location, 6C score.raw, 6D suspend_data) in both SCORM 1.2 and 2004</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v2.0.88: Fix stale localStorage causing wrong position counter; always compute furthestSlide from DB via Math.max</li>
+                <li>v2.0.89: Refactor SCORM logs: remove ~300 verbose logs, add 12 targeted position-tracking logs</li>
+                <li>v2.0.88: Fix stale localStorage causing wrong position counter</li>
                 <li>v2.0.87: Enforce 8-flow behavior for all SCORM vendors; fix tag navigation progress inflation and resume position bar drop</li>
                 <li>v2.0.86: Always set defineProperty traps; compute furthestSlide in trap; reduce vendor delays</li>
-                <li>v2.0.85: Fix resume correction suspend_data in LMSInitialize wrapper</li>
             </ul>
             ]]>
         </releasenotes>

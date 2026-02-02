@@ -339,8 +339,8 @@ window.API.LMSSetValue = function(element, value) {
         lastLocation = dbWriteValue;
         lastApiChangeTime = Date.now();
         console.log('[SCORM 1.2] location: ' + valueToWrite + ' (db=' + dbWriteValue + ', furthest=' + furthestSlide + ')');
-        var parsedSlide = parseInt(valueToWrite, 10);
-        sendProgressUpdate(null, lastStatus, null, isNaN(parsedSlide) ? null : parsedSlide);
+        var parsedSlide = parseSlideNumber(valueToWrite);
+        sendProgressUpdate(null, lastStatus, null, parsedSlide, true);
         // v2.0.65: If user naturally navigated away from tag target, disable the
         // lesson_location read interceptor. Otherwise the poll picks up the stale
         // intercepted value and pushes position back up.
@@ -389,7 +389,7 @@ window.API.LMSSetValue = function(element, value) {
             // During intercept window, we have a pending navigation target, so don't override with score.
             if (slideSource !== 'suspend_data' && lastSlide === null && !inInterceptWindow) {
                 slideSource = 'score';
-                sendProgressUpdate(null, lastStatus, valueToWrite, calculatedSlide);
+                sendProgressUpdate(null, lastStatus, valueToWrite, calculatedSlide, true);
             } else {
                 // Don't change currentSlide, but send update with furthestSlide for progress bar.
                 // v2.0.82: Pass null instead of lastLocation — it's boosted to furthest
@@ -465,7 +465,7 @@ window.API.LMSSetValue = function(element, value) {
                 // Send position update — skip if Captivate periodic commit (cs is stale)
                 if (!isCaptivatePeriodicCommit && slideNum !== lastSlide) {
                     console.log('[SCORM 1.2] suspend_data slide: ' + slideNum + ' (furthest=' + furthestSlide + ')');
-                    sendProgressUpdate(lastLocation, lastStatus, null, slideNum);
+                    sendProgressUpdate(lastLocation, lastStatus, null, slideNum, true);
                 }
             }
         }
