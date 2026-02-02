@@ -232,7 +232,8 @@ if (!pendingSlideNavigation && furthestSlide !== null && furthestSlide > 1) {
                 clearInterval(iSpringResumeInterval);
                 if (currentSlide < furthestSlide) {
                     console.log('[SCORM Tracking] iSpring resume correction: slide ' + currentSlide + ' → ' + furthestSlide);
-                    navigateViaISpring(furthestSlide);
+                    var navResult = navigateViaISpring(furthestSlide);
+                    console.log('[SCORM Tracking] iSpring resume nav result: ' + navResult);
                 }
             }
         }
@@ -327,7 +328,43 @@ function navigateViaISpring(targetSlide) {
             }
         }
 
-        // Method 8: Try clicking slide thumbnail/navigation
+        // v2.0.96: Method 8: iSpring.LMS.instance() — modern LZ-String variant.
+        // Uses the same discovery chain as getISpringCurrentSlide Method 5.
+        // The playbackController that exposes currentSlideIndex() likely has gotoSlide() too.
+        if (win.iSpring && win.iSpring.LMS && typeof win.iSpring.LMS.instance === 'function') {
+            try {
+                var inst = win.iSpring.LMS.instance();
+                if (inst) {
+                    for (var navKey in inst) {
+                        try {
+                            var navProp = inst[navKey];
+                            if (navProp && typeof navProp === 'object' && typeof navProp.view === 'function') {
+                                var navView = navProp.view();
+                                if (navView && typeof navView.playbackController === 'function') {
+                                    var navCtrl = navView.playbackController();
+                                    if (navCtrl) {
+                                        var navMethods = ['gotoSlide', 'goToSlide', 'navigateToSlide'];
+                                        for (var m = 0; m < navMethods.length; m++) {
+                                            if (typeof navCtrl[navMethods[m]] === 'function') {
+                                                navCtrl[navMethods[m]](targetSlide - 1);
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                }
+                                // Try navigation directly on view object
+                                if (navView && typeof navView.gotoSlide === 'function') { navView.gotoSlide(targetSlide - 1); return true; }
+                                if (navView && typeof navView.goToSlide === 'function') { navView.goToSlide(targetSlide - 1); return true; }
+                            }
+                            // Try navigation on instance property
+                            if (navProp && typeof navProp.gotoSlide === 'function') { navProp.gotoSlide(targetSlide - 1); return true; }
+                        } catch (e) {}
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // Method 9: Try clicking slide thumbnail/navigation
         var slideNavItems = doc.querySelectorAll('.slide-thumbnail, .slide-nav-item, [data-slide-index], .outline-item, .toc-item');
         if (slideNavItems.length >= targetSlide) {
             var targetItem = slideNavItems[targetSlide - 1];
@@ -338,7 +375,7 @@ function navigateViaISpring(targetSlide) {
             }
         }
 
-        // Method 9: Try dispatching custom events that iSpring might listen to
+        // Method 10: Try dispatching custom events that iSpring might listen to
         var slideEvent = new CustomEvent('gotoSlide', { detail: { slideIndex: targetSlide - 1 } });
         doc.dispatchEvent(slideEvent);
         win.dispatchEvent(slideEvent);
@@ -373,6 +410,27 @@ function navigateISpringInnerFrame(iframeWin, targetSlide) {
         if (iframeWin.ISPRING && iframeWin.ISPRING.gotoSlide) {
             iframeWin.ISPRING.gotoSlide(targetSlide - 1);
             return true;
+        }
+        // v2.0.96: iSpring.LMS.instance() — modern variant
+        if (iframeWin.iSpring && iframeWin.iSpring.LMS && typeof iframeWin.iSpring.LMS.instance === 'function') {
+            var inst = iframeWin.iSpring.LMS.instance();
+            if (inst) {
+                for (var k in inst) {
+                    try {
+                        var p = inst[k];
+                        if (p && typeof p === 'object' && typeof p.view === 'function') {
+                            var v = p.view();
+                            if (v && typeof v.playbackController === 'function') {
+                                var c = v.playbackController();
+                                if (c && typeof c.gotoSlide === 'function') { c.gotoSlide(targetSlide - 1); return true; }
+                                if (c && typeof c.goToSlide === 'function') { c.goToSlide(targetSlide - 1); return true; }
+                            }
+                            if (v && typeof v.gotoSlide === 'function') { v.gotoSlide(targetSlide - 1); return true; }
+                        }
+                        if (p && typeof p.gotoSlide === 'function') { p.gotoSlide(targetSlide - 1); return true; }
+                    } catch (e) {}
+                }
+            }
         }
     } catch (e) {
         // Inner iframe iSpring navigation error

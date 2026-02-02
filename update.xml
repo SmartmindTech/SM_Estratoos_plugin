@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012895</version>
+        <version>2025012896</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.95</release>
+        <release>2.0.96</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.95/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.96/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.95</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.96</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.95 - Fix Refresh Resume for iSpring LZ-String/Base64 + Rise 360</h3>
+            <h3>Version 2.0.96 - Fix iSpring Modern Navigation + Suspend Data Parsing for Rise 360/iSpring Base64</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix refresh resume for all vendors: LMSInitialize wrapper now always installed (was gated behind furthestSlide === null); corrects lesson_location after DB data loads but before content reads it</li>
-                <li>Fix iSpring LZ-String/Base64 resume: post-load navigation via iSpring player API when content resumes at wrong slide from its own suspend_data</li>
-                <li>Fix retry loop skipping format correction: captures vendor format and corrects numeric DB values even when furthestSlide matches localStorage</li>
-                <li>Improve iSpring position bar responsiveness: reduced poller initial delay from 2000ms to 500ms</li>
+                <li>Fix iSpring LZ-String resume navigation: add iSpring.LMS.instance() discovery chain to navigateViaISpring (mirrors getISpringCurrentSlide detection) so post-load correction actually navigates content to furthest slide</li>
+                <li>Fix Rise 360 suspend_data parsing: add bookmark field support to extractSlideFromParsedData and plain JSON modification to modifySuspendDataForSlide</li>
+                <li>Fix iSpring Base64 suspend_data modification: add Base64-encoded JSON decode/modify/re-encode path in modifySuspendDataForSlide</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.95: Fix refresh resume for all vendors via LMSInitialize wrapper + iSpring post-load navigation</li>
                 <li>v2.0.94: Fix suspend_data corruption + resume format for iSpring/Rise 360</li>
                 <li>v2.0.93: Fix iSpring LZ-String position tracking + persist location format for resume</li>
                 <li>v2.0.92: Fix resume format for iSpring/Rise 360 + Storyline retry backing store correction</li>
-                <li>v2.0.91: Fix Storyline resume + remaining parseInt issues for iSpring/Rise 360</li>
             </ul>
             ]]>
         </releasenotes>

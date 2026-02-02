@@ -170,6 +170,13 @@ function extractSlideFromParsedData(parsed) {
     if (parsed.current !== undefined) return parseInt(parsed.current, 10);
     if (parsed.position !== undefined) return parseInt(parsed.position, 10);
 
+    // v2.0.96: Rise 360 bookmark: "section_0" (0-based via parseSlideNumber) or numeric
+    if (parsed.bookmark !== undefined) {
+        var bm = String(parsed.bookmark);
+        var bmSlide = parseSlideNumber(bm);
+        if (bmSlide !== null) return bmSlide;
+    }
+
     // Articulate Storyline "resume" format (e.g., "0_14" = scene 0, slide 14).
     // v2.0.91: Storyline uses 0-based indexing; add +1 for 1-based (consistent with extractSlideFromText).
     // NOTE: This is the FURTHEST progress, not current position. Only use as fallback.
@@ -350,11 +357,29 @@ function modifySuspendDataForSlide(originalData, targetSlide) {
                         }
                     }
                 }
-                // Non-Storyline LZ+Base64 (e.g. iSpring): skip modification.
-                // We cannot safely modify their internal JSON structure.
+                // Non-Storyline LZ+Base64 (e.g. iSpring): skip LZ modification.
+                // We cannot safely modify their internal LZ-compressed JSON structure.
             }
         } catch (e) {
             // LZ error
+        }
+
+        // v2.0.96: Try plain Base64 decode → JSON → modify → re-encode.
+        // Handles simple Base64-encoded JSON (e.g. iSpring Base64 simulator).
+        try {
+            var b64decoded = atob(originalData);
+            var b64parsed = JSON.parse(b64decoded);
+            var b64modified = false;
+            if (b64parsed.slide !== undefined) { b64parsed.slide = targetIndex; b64modified = true; }
+            if (b64parsed.currentSlide !== undefined) { b64parsed.currentSlide = targetIndex; b64modified = true; }
+            if (b64parsed.position !== undefined) { b64parsed.position = targetIndex; b64modified = true; }
+            if (b64parsed.bookmark !== undefined) {
+                b64parsed.bookmark = formatLocationValue(b64parsed.bookmark, targetSlide);
+                b64modified = true;
+            }
+            if (b64modified) return btoa(JSON.stringify(b64parsed));
+        } catch (e) {
+            // Not valid Base64 JSON
         }
     }
 
@@ -370,6 +395,23 @@ function modifySuspendDataForSlide(originalData, targetSlide) {
             }
         );
         if (modified !== originalData) return modified;
+    }
+
+    // v2.0.96: Plain JSON: try to parse and modify known fields.
+    // Handles Rise 360 JSON ({"bookmark":"section_0",...}) and other simple JSON formats.
+    try {
+        var jsonParsed = JSON.parse(originalData);
+        var jsonModified = false;
+        if (jsonParsed.bookmark !== undefined) {
+            jsonParsed.bookmark = formatLocationValue(jsonParsed.bookmark, targetSlide);
+            jsonModified = true;
+        }
+        if (jsonParsed.slide !== undefined) { jsonParsed.slide = targetIndex; jsonModified = true; }
+        if (jsonParsed.currentSlide !== undefined) { jsonParsed.currentSlide = targetIndex; jsonModified = true; }
+        if (jsonParsed.position !== undefined) { jsonParsed.position = targetIndex; jsonModified = true; }
+        if (jsonModified) return JSON.stringify(jsonParsed);
+    } catch (e) {
+        // Not valid JSON
     }
 
     return originalData;
