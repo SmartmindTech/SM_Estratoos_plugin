@@ -53,6 +53,11 @@ class tracking_core {
         if (/^\d+$/.test(location)) {
             return parseInt(location, 10);
         }
+        // v2.0.92: Rise 360 uses 0-based section numbering (section_0 = first section).
+        // Must be handled before the generic trailing-number match to add +1.
+        if (/^section_\d+$/i.test(location)) {
+            return parseInt(location.replace(/^section_/i, ''), 10) + 1;
+        }
         // Trailing number: "slide_5", "scene1_slide5"
         var match = location.match(/(\d+)$/);
         if (match) {
@@ -86,6 +91,38 @@ class tracking_core {
     // The cs field stays stale (unchanged) during periodic commits, causing wrong position updates.
     var lastCaptivateCs = null;
 
+    // v2.0.92: Track the last vendor-format lesson_location value for format-aware boost.
+    // When the content writes e.g. "slide_2" (iSpring) or "section_1" (Rise 360), we store
+    // the format so the boost can construct "slide_3" or "section_2" instead of numeric "3"/"2".
+    var lastKnownLocationFormat = null;
+
+    // v2.0.92: Unwrapped GetValue reference for retry loop backing store correction.
+    // Set by wrapScorm12Api/wrapScorm2004Api. Bypasses read interceptors to get raw DB values.
+    var originalUnwrappedGetValue = null;
+
+    // v2.0.92: Construct a location value preserving the vendor's text format.
+    // Uses the offset between the raw number in the reference and the parsed 1-based slide
+    // to correctly map targetSlide back to the vendor's numbering scheme.
+    // E.g., formatLocationValue("slide_2", 3) → "slide_3" (iSpring, offset=0)
+    //        formatLocationValue("section_1", 3) → "section_2" (Rise 360, offset=-1)
+    function formatLocationValue(referenceLocation, targetSlide) {
+        if (!referenceLocation) return String(targetSlide);
+        var str = String(referenceLocation);
+        if (/^\d+$/.test(str)) return String(targetSlide);
+
+        var match = str.match(/^(.*\D)(\d+)$/);
+        if (match) {
+            var prefix = match[1];
+            var rawNum = parseInt(match[2], 10);
+            var parsedSlide = parseSlideNumber(str);
+            if (parsedSlide !== null) {
+                var offset = rawNum - parsedSlide;
+                return prefix + (targetSlide + offset);
+            }
+        }
+        return String(targetSlide);
+    }
+
     // Track the furthest slide reached (from score)
     // IMPORTANT: Initialize from sessionStorage/localStorage to prevent reset on iframe reload!
     // sessionStorage persists within the same tab, localStorage persists across tabs/refreshes.
@@ -118,11 +155,17 @@ class tracking_core {
         // During the first 10s, suppress directSlide backward movement below furthestSlide.
         // v2.0.90: Skip suppress for isApiWrite — SCORM API writes (step 6A/6C/6D) are
         // authoritative and must not be blocked. Only vendor pollers should be suppressed.
+        // v2.0.92: Also suppress during tag navigation. Vendor pollers (e.g. Storyline
+        // GetPlayer().GetVar) can read the temporary init position (slide 1) before
+        // content processes the modified suspend_data. During tag navigation, suppress
+        // values below the tag target; during resume, suppress values below furthestSlide.
         if (directSlide !== null && !isApiWrite && lastSlide !== null && directSlide < lastSlide &&
             furthestSlide !== null && directSlide < furthestSlide &&
-            !pendingSlideNavigation && (Date.now() - pageLoadTime) < INTERCEPT_WINDOW_MS) {
-            currentSlide = lastSlide;
-            directSlide = null; // Prevent backward movement
+            (Date.now() - pageLoadTime) < INTERCEPT_WINDOW_MS) {
+            if (!pendingSlideNavigation || directSlide < pendingSlideNavigation.slide) {
+                currentSlide = lastSlide;
+                directSlide = null; // Prevent backward movement
+            }
         }
 
         // Update lastSlide if we have a new value.

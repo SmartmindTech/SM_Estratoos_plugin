@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012891</version>
+        <version>2025012892</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.91</release>
+        <release>2.0.92</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,33 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.91/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.92/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.91</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.92</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.91 - Fix Storyline Resume + Remaining parseInt Issues</h3>
+            <h3>Version 2.0.92 - Fix Resume Format for iSpring/Rise 360 + Storyline Retry Backing Store Correction</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fix Storyline resume going to previous slide instead of furthest: compute furthestSlide before immediate wrapScormApi so pre-init backing store modification fires</li>
-                <li>Fix Storyline off-by-one: add +1 to extractSlideFromParsedData for 0-based Storyline resume formats (consistent with extractSlideFromText)</li>
-                <li>Fix iSpring/Rise 360 furthest computation: use parseSlideNumber instead of parseInt in computeFurthestFromApi and initial retry loop</li>
-                <li>Fix iSpring/Rise 360 lesson_location boost: use parseSlideNumber so DB value is boosted to furthest for text-format locations</li>
+                <li>Fix iSpring/Rise 360 resume going to slide 0: lesson_location boost now preserves vendor text format (e.g. "slide_3" not "3", "section_2" not "3")</li>
+                <li>Fix Rise 360 position bar off-by-one: parseSlideNumber now handles 0-based section_ prefix (section_0=1, section_1=2)</li>
+                <li>Fix Storyline resume going to previous slide: retry loop now corrects backing store when computing furthestSlide after LMSInitialize</li>
+                <li>Fix position bar dropping to 1/N during tag navigation: extend vendor poller suppression to cover tag navigation intercept window</li>
+                <li>Add formatLocationValue helper for format-aware lesson_location boost across all write paths</li>
+                <li>Replace remaining parseInt with parseSlideNumber in resume read interceptors, proactive writes, and LMSInitialize wrappers</li>
+                <li>Persist furthestSlide to localStorage/sessionStorage from retry loop (was missing)</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.91: Fix Storyline resume + remaining parseInt issues for iSpring/Rise 360</li>
                 <li>v2.0.90: Fix position bar counter for iSpring/Rise 360 (parseSlideNumber in step 6A) and Captivate (isApiWrite bypass)</li>
                 <li>v2.0.89: Refactor SCORM logs: remove ~300 verbose logs, add 12 targeted position-tracking logs</li>
                 <li>v2.0.88: Fix stale localStorage causing wrong position counter</li>
-                <li>v2.0.87: Enforce 8-flow behavior for all SCORM vendors; fix tag navigation progress inflation and resume position bar drop</li>
             </ul>
             ]]>
         </releasenotes>

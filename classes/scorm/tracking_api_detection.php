@@ -244,9 +244,48 @@ var initialRetryInterval = setInterval(function() {
             if (newFurthest >= 1 && newFurthest !== furthestSlide) {
                 furthestSlide = newFurthest;
                 console.log('[SCORM Tracking] Retry furthest=' + furthestSlide + ' (location=' + retryParsedLocation + ', score=' + retryParsedScore + '%)');
+                // v2.0.92: Persist to storage (retry loop didn't persist before)
+                try {
+                    sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                    localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                } catch(e) {}
+
+                // v2.0.92: Correct backing store. The pre-init modification was skipped because
+                // furthestSlide was null at wrap time (LMSGetValue returns empty before LMSInitialize).
+                // Now that we know furthestSlide, correct the data for content that hasn't read it yet.
+                if (originalScormSetValue && originalUnwrappedGetValue) {
+                    try {
+                        var locEl = scormApiVersion === '1.2' ? 'cmi.core.lesson_location' : 'cmi.location';
+                        var sdEl = 'cmi.suspend_data';
+                        // Correct lesson_location
+                        var curLoc = originalUnwrappedGetValue(locEl);
+                        var curLocSlide = curLoc ? parseSlideNumber(curLoc) : null;
+                        if (curLocSlide === null || curLocSlide < furthestSlide) {
+                            originalScormSetValue(locEl, formatLocationValue(lastKnownLocationFormat || curLoc, furthestSlide));
+                        }
+                        // Correct suspend_data
+                        var curSD = originalUnwrappedGetValue(sdEl);
+                        if (curSD && curSD.length > 5) {
+                            var sdSlide = parseSlideFromSuspendData(curSD);
+                            if (sdSlide !== null && sdSlide < furthestSlide) {
+                                var fixedSD = modifySuspendDataForSlide(curSD, furthestSlide);
+                                if (fixedSD !== curSD) {
+                                    originalScormSetValue(sdEl, fixedSD);
+                                    lastSuspendData = fixedSD;
+                                }
+                            }
+                        }
+                        if (originalScormCommit) originalScormCommit();
+                    } catch(e) {}
+                }
             } else if (furthestSlide === null && newFurthest >= 1) {
                 furthestSlide = newFurthest;
                 console.log('[SCORM Tracking] Retry furthest=' + furthestSlide + ' (location=' + retryParsedLocation + ', score=' + retryParsedScore + '%)');
+                // v2.0.92: Persist to storage
+                try {
+                    sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                    localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide));
+                } catch(e) {}
             }
         }
     }

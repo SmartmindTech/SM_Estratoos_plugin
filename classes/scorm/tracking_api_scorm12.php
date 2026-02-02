@@ -42,6 +42,8 @@ if (typeof window.API === 'undefined' || !window.API || !window.API.LMSSetValue)
 // Save original references before any wrapping (needed for scheduled writes)
 var origLMSGetValue12 = window.API.LMSGetValue;
 var origLMSSetValue12 = window.API.LMSSetValue;
+// v2.0.92: Expose unwrapped GetValue for retry loop backing store correction (detection.php).
+originalUnwrappedGetValue = function(el) { return origLMSGetValue12.call(window.API, el); };
 
 // CRITICAL FIX v2.0.51: Directly modify the backing store BEFORE wrapping.
 // Storyline does NOT call LMSGetValue('cmi.suspend_data') during initialization.
@@ -58,8 +60,9 @@ if (pendingSlideNavigation && window.API.LMSGetValue && window.API.LMSSetValue) 
                 window.API.LMSSetValue.call(window.API, 'cmi.suspend_data', modifiedSD);
             }
         }
-        // 2. Set lesson_location directly in the backing store
-        window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location', String(pendingSlideNavigation.slide));
+        // 2. Set lesson_location directly in the backing store (v2.0.92: preserve vendor format)
+        window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location',
+            formatLocationValue(window.API.LMSGetValue.call(window.API, 'cmi.core.lesson_location'), pendingSlideNavigation.slide));
     } catch (e) {}
 }
 
@@ -79,7 +82,9 @@ if (!pendingSlideNavigation && furthestSlide !== null && window.API.LMSGetValue 
                 var corrected = modifySuspendDataForSlide(resumeSD, furthestSlide);
                 if (corrected !== resumeSD) {
                     window.API.LMSSetValue.call(window.API, 'cmi.suspend_data', corrected);
-                    window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+                    // v2.0.92: Preserve vendor format for lesson_location boost
+                    window.API.LMSSetValue.call(window.API, 'cmi.core.lesson_location',
+                        formatLocationValue(window.API.LMSGetValue.call(window.API, 'cmi.core.lesson_location'), furthestSlide));
                 }
             }
         }
@@ -103,7 +108,7 @@ if (!pendingSlideNavigation && furthestSlide === null) {
             var scoreStr = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
             var locationStr = origLMSGetValue12.call(window.API, 'cmi.core.lesson_location');
             var score = parseFloat(scoreStr);
-            var location = parseInt(locationStr, 10);
+            var location = parseSlideNumber(locationStr); // v2.0.92: parseSlideNumber for vendor formats
 
             if (!isNaN(score) && score > 0 && score <= 100) {
                 // Detect total slides (content iframe should be loaded now)
@@ -114,9 +119,10 @@ if (!pendingSlideNavigation && furthestSlide === null) {
                     var furthestFromScore = Math.round((score / 100) * total);
                     slidescount = total;
 
-                    if (!isNaN(location) && furthestFromScore > location) {
+                    if (location !== null && furthestFromScore > location) {
                         furthestSlide = furthestFromScore;
-                        origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+                        // v2.0.92: Preserve vendor format for lesson_location
+                        origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', formatLocationValue(locationStr, furthestSlide));
                         var sd = origLMSGetValue12.call(window.API, 'cmi.suspend_data');
                         if (sd && sd.length > 5) {
                             var fixed = modifySuspendDataForSlide(sd, furthestSlide);
@@ -126,7 +132,7 @@ if (!pendingSlideNavigation && furthestSlide === null) {
                             }
                         }
                         try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
-                    } else if (!isNaN(location) && location >= 1) {
+                    } else if (location !== null && location >= 1) {
                         furthestSlide = Math.max(location, furthestFromScore || 0);
                         try { sessionStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); localStorage.setItem('scorm_furthest_slide_' + cmid, String(furthestSlide)); } catch (e) {}
                     }
@@ -209,9 +215,9 @@ if (window.API.LMSGetValue && (pendingSlideNavigation || furthestSlide !== null)
         if (element === 'cmi.core.lesson_location' && furthestSlide !== null && !pendingSlideNavigation) {
             var withinResumeWindow = (Date.now() - resumeInterceptStartTime) < INTERCEPT_WINDOW_MS;
             if (withinResumeWindow) {
-                var locSlide = parseInt(result, 10);
-                if (!isNaN(locSlide) && locSlide < furthestSlide) {
-                    return String(furthestSlide);
+                var locSlide = parseSlideNumber(result); // v2.0.92: parseSlideNumber for vendor formats
+                if (locSlide !== null && locSlide < furthestSlide) {
+                    return formatLocationValue(result, furthestSlide); // v2.0.92: preserve vendor format
                 }
             }
         }
@@ -311,9 +317,11 @@ window.API.LMSSetValue = function(element, value) {
         if (locSlide !== null) {
             if (pendingSlideNavigation && locSlide > furthestSlide) {
                 // v2.0.87: Cap at furthestSlide during tag navigation to prevent DB inflation.
-                dbWriteValue = String(furthestSlide);
+                // v2.0.92: Preserve vendor format (e.g. "slide_3" not "3")
+                dbWriteValue = formatLocationValue(lastKnownLocationFormat || valueToWrite, furthestSlide);
             } else if (locSlide < furthestSlide) {
-                dbWriteValue = String(furthestSlide);
+                // v2.0.92: Preserve vendor format for lesson_location boost
+                dbWriteValue = formatLocationValue(lastKnownLocationFormat || valueToWrite, furthestSlide);
             }
         }
     }
@@ -335,6 +343,7 @@ window.API.LMSSetValue = function(element, value) {
     // (DB value, may be boosted by v2.0.74). Set lastLocation = dbWriteValue so the poll
     // doesn't re-report the boosted DB value as a position change.
     if (element === 'cmi.core.lesson_location' && valueToWrite !== lastWrittenLocation) {
+        lastKnownLocationFormat = valueToWrite; // v2.0.92: Track format for boost
         lastWrittenLocation = valueToWrite;
         lastLocation = dbWriteValue;
         lastApiChangeTime = Date.now();
@@ -483,7 +492,10 @@ if (pendingSlideNavigation) {
         if (furthestSlide === null) return;
         try {
             // v2.0.87: Always write furthestSlide (tag navigation may have inflated DB values).
-            origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+            // v2.0.92: Preserve vendor format for lesson_location
+            var currentLoc12Post = origLMSGetValue12.call(window.API, 'cmi.core.lesson_location');
+            origLMSSetValue12.call(window.API, 'cmi.core.lesson_location',
+                formatLocationValue(lastKnownLocationFormat || currentLoc12Post, furthestSlide));
             var furthestScore = null;
             if (slidescount > 1) {
                 furthestScore = Math.min(Math.round((furthestSlide / slidescount) * 10000) / 100, 100);
@@ -502,9 +514,11 @@ if (!pendingSlideNavigation && furthestSlide !== null) {
         if (furthestSlide === null) return;
         try {
             var currentLoc = origLMSGetValue12.call(window.API, 'cmi.core.lesson_location');
-            var locSlide = parseInt(currentLoc, 10);
-            if (isNaN(locSlide) || locSlide < furthestSlide) {
-                origLMSSetValue12.call(window.API, 'cmi.core.lesson_location', String(furthestSlide));
+            var locSlide = parseSlideNumber(currentLoc); // v2.0.92: parseSlideNumber for vendor formats
+            if (locSlide === null || locSlide < furthestSlide) {
+                // v2.0.92: Preserve vendor format for lesson_location
+                origLMSSetValue12.call(window.API, 'cmi.core.lesson_location',
+                    formatLocationValue(lastKnownLocationFormat || currentLoc, furthestSlide));
             }
             if (slidescount > 1) {
                 var currentScore = origLMSGetValue12.call(window.API, 'cmi.core.score.raw');
