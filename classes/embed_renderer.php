@@ -177,6 +177,11 @@ class embed_renderer {
             ['quizid' => (int)$this->cm->instance, 'userid' => $USER->id]
         );
 
+        // If no active attempt but targetSlide is specified, try to start a new attempt.
+        if (!$attempt && $this->targetSlide !== null && $this->targetSlide > 0) {
+            $attempt = $this->start_quiz_attempt();
+        }
+
         if ($attempt) {
             // Active attempt exists - redirect to attempt.php.
             $url = $CFG->wwwroot . '/mod/quiz/attempt.php?attempt=' . $attempt->id
@@ -200,6 +205,59 @@ class embed_renderer {
 
         header('Location: ' . $url);
         exit;
+    }
+
+    /**
+     * Start a new quiz attempt for the current user.
+     *
+     * Uses Moodle's quiz API to properly start an attempt, respecting all
+     * quiz settings (max attempts, time limits, access rules, etc.).
+     *
+     * @return object|null The new attempt record, or null if unable to start.
+     */
+    private function start_quiz_attempt(): ?object {
+        global $DB, $USER;
+
+        try {
+            require_once(__DIR__ . '/../../../mod/quiz/locallib.php');
+            require_once(__DIR__ . '/../../../mod/quiz/attemptlib.php');
+
+            // Load quiz and course module.
+            $quiz = $DB->get_record('quiz', ['id' => $this->cm->instance], '*', MUST_EXIST);
+            $course = $DB->get_record('course', ['id' => $this->cm->course], '*', MUST_EXIST);
+
+            // Create quiz object using Moodle's quiz API.
+            $quizobj = \quiz::create($this->cm->instance, $USER->id);
+
+            // Check if user can start a new attempt.
+            $accessmanager = $quizobj->get_access_manager(time());
+            $messages = $accessmanager->prevent_new_attempt(
+                $quizobj->get_num_attempts_allowed(),
+                $quizobj->get_last_finished_attempt()
+            );
+
+            if (!empty($messages)) {
+                // User cannot start a new attempt (max attempts reached, etc.)
+                return null;
+            }
+
+            // Start the attempt.
+            $attemptnumber = $DB->count_records('quiz_attempts', [
+                'quiz' => $quiz->id,
+                'userid' => $USER->id
+            ]) + 1;
+
+            $attempt = quiz_prepare_and_start_new_attempt($quizobj, $attemptnumber, null);
+
+            if ($attempt) {
+                return (object)['id' => $attempt->id];
+            }
+        } catch (\Exception $e) {
+            // Log error but don't break - will fall back to view.php.
+            debugging('SmartMind: Failed to start quiz attempt: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+
+        return null;
     }
 
     /**

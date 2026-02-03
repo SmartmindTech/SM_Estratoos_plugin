@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025020300</version>
+        <version>2025020301</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.0</release>
+        <release>2.1.1</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,42 +29,34 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.0/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.1/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.0</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.1</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.0 - Quiz Redirect + SmartLearning CSS + Forum/Label Support</h3>
+            <h3>Version 2.1.1 - Auto-Start Quiz Attempt on Tag Navigation</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Quiz embed now redirects directly to attempt.php when targetSlide or furthestSlide parameter is present, bypassing the view.php transient page</li>
-                <li>Removed whole-activity progress message from quiz view.php to prevent incorrect position tracking during tag navigation</li>
+                <li>Quiz tag navigation now auto-starts a new attempt when no in-progress attempt exists, ensuring direct navigation to the tagged question</li>
+                <li>Respects quiz access rules (max attempts, time windows) when auto-starting attempts</li>
             </ul>
 
-            <h4>New Features</h4>
+            <h4>Previous Version (v2.1.0)</h4>
             <ul>
-                <li>Forum redirect support: Forums now include displayHint='redirect-forum' and redirectPath for SmartLearning forum page integration</li>
-                <li>Label inline display: Labels include displayHint='inline-content' for direct content display in course view</li>
-                <li>Course content API returns displayHint field for frontend rendering decisions</li>
+                <li>Quiz embed redirects directly to attempt.php with targetSlide/furthestSlide</li>
+                <li>Forum redirect support with displayHint='redirect-forum' and redirectPath</li>
+                <li>Label inline display with displayHint='inline-content'</li>
+                <li>SmartLearning design system CSS for all embedded activities</li>
             </ul>
 
-            <h4>Improvements</h4>
+            <h4>Earlier Versions</h4>
             <ul>
-                <li>Apply SmartLearning design system CSS to all embedded activities for visual consistency</li>
-                <li>CSS custom properties matching SmartLearning design tokens (colors, spacing, radius, shadows)</li>
-                <li>Quiz-specific styles: question cards, answer options hover states, navigation block</li>
-                <li>Book/Lesson-specific styles: centered content with max-width, improved typography</li>
-            </ul>
-
-            <h4>Previous Versions</h4>
-            <ul>
-                <li>v2.0.99: Whole-activity tagging + activity-progress message type + hide hamburger menu</li>
-                <li>v2.0.98: Activity position tracking for quiz, book, lesson + embed mode for all activities</li>
-                <li>v2.0.96: Fix iSpring modern navigation + suspend_data parsing</li>
+                <li>v2.0.99: Whole-activity tagging + activity-progress message type</li>
+                <li>v2.0.98: Activity position tracking for quiz, book, lesson</li>
             </ul>
             ]]>
         </releasenotes>
