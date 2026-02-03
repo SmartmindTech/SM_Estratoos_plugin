@@ -676,6 +676,9 @@ button[aria-controls="theme_boost-drawers-primary"],
 body {
     margin-top: 0 !important;
     padding-top: 0 !important;
+    /* Allow body to scroll for page/lesson content */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
 }
 
 /* Remove drawer margin/padding displacement */
@@ -697,18 +700,17 @@ body {
 
 /* page-content fills available space */
 #page-content {
-    padding-bottom: 0 !important;
+    padding-bottom: 20px !important;
 }
 
-/* Ensure page takes full height */
+/* Page wrapper - don't force min-height that prevents scrolling */
 #page {
-    min-height: 100vh !important;
+    min-height: auto !important;
 }
 
-/* region-main fills width and scrolls only when needed */
+/* region-main - let content flow, don't create scroll context here */
 #region-main {
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
+    overflow: visible !important;
 }
 
 /* --- BOOK SPECIFIC --- */
@@ -729,47 +731,69 @@ body {
     word-wrap: break-word !important;
 }
 
-/* --- PAGE SPECIFIC --- */
-/* Ensure page module content scrolls vertically */
-/* Full viewport height for page content - no artificial max-height */
-html.sm-activity-embed-mode,
+/* --- PAGE AND LESSON SCROLL FIX --- */
+/* Enable proper scrolling for page and lesson content in iframe */
+html,
 body.sm-activity-embed-mode {
     height: 100% !important;
-    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
+/* Allow body to scroll */
+body.sm-activity-embed-mode {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Main page wrapper */
 body.sm-activity-embed-mode #page {
-    min-height: 100vh !important;
-    display: flex !important;
-    flex-direction: column !important;
+    min-height: auto !important;
+    height: auto !important;
 }
 
+body.sm-activity-embed-mode #page-wrapper {
+    min-height: auto !important;
+}
+
+/* Page content area */
 body.sm-activity-embed-mode #page-content {
-    flex: 1 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    padding-bottom: 20px !important;
 }
 
+/* Region main - let content flow naturally */
 body.sm-activity-embed-mode #region-main {
-    height: 100% !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    overflow: visible !important;
+    height: auto !important;
 }
 
+body.sm-activity-embed-mode #region-main-box {
+    overflow: visible !important;
+}
+
+/* Page module content - remove any height restrictions */
 .page-content-container,
 #page-mod-page-content,
 .mod_page .generalbox,
-body.sm-activity-embed-mode .box.generalbox {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+body.sm-activity-embed-mode .box.generalbox,
+body.sm-activity-embed-mode .generalbox {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+}
+
+/* Lesson content */
+body.sm-activity-embed-mode .lesson-content,
+body.sm-activity-embed-mode #lesson-content,
+body.sm-activity-embed-mode .mod_lesson .generalbox {
+    overflow: visible !important;
     max-height: none !important;
     height: auto !important;
 }
 
 /* Page content inside region-main */
 #region-main-box .generalbox.box {
-    overflow-y: visible !important;
-    overflow-x: hidden !important;
+    overflow: visible !important;
 }
 
 /* --- GENERAL CONTENT OVERFLOW --- */
