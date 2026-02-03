@@ -191,16 +191,16 @@ function local_sm_estratoos_plugin_before_footer() {
                 if ($cm) {
                     switch ($cm->modname) {
                         case 'quiz':
-                            // Only on attempt.php and review.php (not view.php).
+                            // Only send position tracking on attempt.php and review.php.
+                            // Do NOT send from view.php - it's a transient page that redirects
+                            // to attempt.php, and sending whole-activity from there would
+                            // incorrectly override position tracking during tag navigation.
                             if (strpos($pagepath, '/attempt.php') !== false
                                 || strpos($pagepath, '/review.php') !== false) {
                                 echo \local_sm_estratoos_plugin\activity\tracking_js::get_quiz_script(
                                     $cmid, (int)$cm->instance);
-                            } else {
-                                // Quiz view.php — whole-activity tagging.
-                                echo \local_sm_estratoos_plugin\activity\tracking_js::get_whole_activity_script(
-                                    $cmid, 'quiz');
                             }
+                            // No else - quiz view.php doesn't send any progress message.
                             break;
                         case 'book':
                             echo \local_sm_estratoos_plugin\activity\tracking_js::get_book_script(

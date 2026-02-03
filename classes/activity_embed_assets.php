@@ -48,11 +48,13 @@ class activity_embed_assets {
      *
      * Hides: navbar, page header, secondary navigation, drawers, footer, toasts.
      * Keeps: #region-main (activity content), prev/next buttons.
+     * Applies: SmartLearning theme styling for visual consistency.
      *
      * @return string HTML containing <style> and <script> blocks.
      */
     public static function get_css_js() {
-        return self::get_base_css() . self::get_drawer_hide_css() . self::get_base_js(false);
+        return self::get_smartlearning_theme_css() . self::get_base_css()
+            . self::get_drawer_hide_css() . self::get_base_js(false);
     }
 
     /**
@@ -60,11 +62,396 @@ class activity_embed_assets {
      *
      * Same as get_css_js() but re-shows the right drawer containing the quiz
      * question navigation panel (#mod_quiz_navblock).
+     * Applies: SmartLearning theme styling for visual consistency.
      *
      * @return string HTML containing <style> and <script> blocks.
      */
     public static function get_quiz_css_js() {
-        return self::get_base_css() . self::get_quiz_drawer_css() . self::get_base_js(true);
+        return self::get_smartlearning_theme_css() . self::get_base_css()
+            . self::get_quiz_drawer_css() . self::get_base_js(true);
+    }
+
+    /**
+     * SmartLearning theme CSS — applies consistent styling to embedded activities.
+     *
+     * Defines CSS custom properties matching the SmartLearning design system
+     * and overrides Moodle Boost styles for visual consistency.
+     *
+     * @return string HTML <style> block.
+     */
+    private static function get_smartlearning_theme_css() {
+        return <<<HTML
+<style type="text/css">
+/* ============================================================
+ * SmartLearning Theme Styles
+ * Applies SmartLearning design system to embedded Moodle activities.
+ * CSS custom properties match inboxfrontend/assets/scss/abstracts/_variables.scss
+ * ============================================================ */
+
+/* --- CSS CUSTOM PROPERTIES (Design Tokens) --- */
+:root {
+    /* Primary Colors */
+    --sl-primary: #007bff;
+    --sl-primary-dark: #0056b3;
+    --sl-primary-light: #40b5ff;
+    --sl-primary-rgb: 0, 123, 255;
+
+    /* Semantic Colors */
+    --sl-secondary: #6c757d;
+    --sl-success: #28a745;
+    --sl-danger: #dc3545;
+    --sl-warning: #ffc107;
+    --sl-info: #17a2b8;
+
+    /* Background & Text */
+    --sl-bg: #ffffff;
+    --sl-bg-secondary: #f8f9fa;
+    --sl-bg-tertiary: #f1f3f5;
+    --sl-text: #111827;
+    --sl-text-secondary: #6b7280;
+    --sl-text-muted: #9ca3af;
+    --sl-border: #e5e7eb;
+
+    /* Gray Scale */
+    --sl-gray-50: #f9fafb;
+    --sl-gray-100: #f3f4f6;
+    --sl-gray-200: #e5e7eb;
+    --sl-gray-300: #d1d5db;
+    --sl-gray-400: #9ca3af;
+    --sl-gray-500: #6b7280;
+    --sl-gray-600: #4b5563;
+    --sl-gray-700: #374151;
+    --sl-gray-800: #1f2937;
+    --sl-gray-900: #111827;
+
+    /* Typography */
+    --sl-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    --sl-font-size-xs: 0.75rem;
+    --sl-font-size-sm: 0.875rem;
+    --sl-font-size-base: 1rem;
+    --sl-font-size-lg: 1.125rem;
+    --sl-font-size-xl: 1.25rem;
+
+    /* Spacing */
+    --sl-spacing-xs: 0.25rem;
+    --sl-spacing-sm: 0.5rem;
+    --sl-spacing-md: 1rem;
+    --sl-spacing-lg: 1.5rem;
+    --sl-spacing-xl: 2rem;
+
+    /* Border Radius */
+    --sl-radius-sm: 0.25rem;
+    --sl-radius-md: 0.375rem;
+    --sl-radius-lg: 0.5rem;
+    --sl-radius-xl: 0.75rem;
+    --sl-radius-full: 9999px;
+
+    /* Shadows */
+    --sl-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --sl-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --sl-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+    /* Transitions */
+    --sl-transition-fast: 150ms ease-in-out;
+    --sl-transition-base: 200ms ease-in-out;
+}
+
+/* --- GLOBAL TYPOGRAPHY --- */
+body.sm-activity-embed-mode {
+    font-family: var(--sl-font-family) !important;
+    font-size: var(--sl-font-size-base) !important;
+    color: var(--sl-text) !important;
+    background-color: var(--sl-bg) !important;
+    line-height: 1.5 !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+body.sm-activity-embed-mode h1,
+body.sm-activity-embed-mode h2,
+body.sm-activity-embed-mode h3,
+body.sm-activity-embed-mode h4,
+body.sm-activity-embed-mode h5,
+body.sm-activity-embed-mode h6 {
+    font-family: var(--sl-font-family) !important;
+    color: var(--sl-text) !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+}
+
+/* --- BUTTONS --- */
+body.sm-activity-embed-mode .btn-primary,
+body.sm-activity-embed-mode .btn.btn-primary {
+    background-color: var(--sl-primary) !important;
+    border-color: var(--sl-primary) !important;
+    color: #fff !important;
+    font-weight: 500 !important;
+    border-radius: var(--sl-radius-md) !important;
+    padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
+    transition: all var(--sl-transition-fast) !important;
+}
+
+body.sm-activity-embed-mode .btn-primary:hover,
+body.sm-activity-embed-mode .btn.btn-primary:hover {
+    background-color: var(--sl-primary-dark) !important;
+    border-color: var(--sl-primary-dark) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--sl-shadow-md) !important;
+}
+
+body.sm-activity-embed-mode .btn-secondary,
+body.sm-activity-embed-mode .btn.btn-secondary {
+    background-color: var(--sl-bg-secondary) !important;
+    border-color: var(--sl-border) !important;
+    color: var(--sl-text) !important;
+    font-weight: 500 !important;
+    border-radius: var(--sl-radius-md) !important;
+}
+
+body.sm-activity-embed-mode .btn-secondary:hover,
+body.sm-activity-embed-mode .btn.btn-secondary:hover {
+    background-color: var(--sl-gray-200) !important;
+    border-color: var(--sl-gray-300) !important;
+}
+
+/* --- CARDS --- */
+body.sm-activity-embed-mode .card {
+    background-color: var(--sl-bg) !important;
+    border: 1px solid var(--sl-border) !important;
+    border-radius: var(--sl-radius-lg) !important;
+    box-shadow: var(--sl-shadow-sm) !important;
+}
+
+body.sm-activity-embed-mode .card-header {
+    background-color: var(--sl-bg-secondary) !important;
+    border-bottom: 1px solid var(--sl-border) !important;
+    padding: var(--sl-spacing-md) var(--sl-spacing-lg) !important;
+}
+
+body.sm-activity-embed-mode .card-body {
+    padding: var(--sl-spacing-lg) !important;
+}
+
+/* --- FORMS --- */
+body.sm-activity-embed-mode .form-control,
+body.sm-activity-embed-mode input[type="text"],
+body.sm-activity-embed-mode input[type="number"],
+body.sm-activity-embed-mode textarea,
+body.sm-activity-embed-mode select {
+    border: 1px solid var(--sl-border) !important;
+    border-radius: var(--sl-radius-md) !important;
+    padding: var(--sl-spacing-sm) var(--sl-spacing-md) !important;
+    font-size: var(--sl-font-size-sm) !important;
+    transition: border-color var(--sl-transition-fast), box-shadow var(--sl-transition-fast) !important;
+}
+
+body.sm-activity-embed-mode .form-control:focus,
+body.sm-activity-embed-mode input:focus,
+body.sm-activity-embed-mode textarea:focus,
+body.sm-activity-embed-mode select:focus {
+    border-color: var(--sl-primary) !important;
+    box-shadow: 0 0 0 3px rgba(var(--sl-primary-rgb), 0.15) !important;
+    outline: none !important;
+}
+
+/* --- QUIZ SPECIFIC STYLES --- */
+body.sm-activity-embed-mode .que {
+    background-color: var(--sl-bg) !important;
+    border: 1px solid var(--sl-border) !important;
+    border-radius: var(--sl-radius-lg) !important;
+    margin-bottom: var(--sl-spacing-lg) !important;
+    box-shadow: var(--sl-shadow-sm) !important;
+}
+
+body.sm-activity-embed-mode .que .info {
+    background-color: var(--sl-bg-secondary) !important;
+    border-radius: var(--sl-radius-lg) var(--sl-radius-lg) 0 0 !important;
+    padding: var(--sl-spacing-md) !important;
+    border-bottom: 1px solid var(--sl-border) !important;
+}
+
+body.sm-activity-embed-mode .que .content {
+    padding: var(--sl-spacing-lg) !important;
+}
+
+body.sm-activity-embed-mode .que .qtext {
+    color: var(--sl-text) !important;
+    font-size: var(--sl-font-size-base) !important;
+    line-height: 1.6 !important;
+    margin-bottom: var(--sl-spacing-md) !important;
+}
+
+body.sm-activity-embed-mode .que .answer {
+    margin-top: var(--sl-spacing-md) !important;
+}
+
+body.sm-activity-embed-mode .que .answer label {
+    display: flex !important;
+    align-items: flex-start !important;
+    padding: var(--sl-spacing-sm) var(--sl-spacing-md) !important;
+    margin-bottom: var(--sl-spacing-xs) !important;
+    border-radius: var(--sl-radius-md) !important;
+    cursor: pointer !important;
+    transition: background-color var(--sl-transition-fast) !important;
+}
+
+body.sm-activity-embed-mode .que .answer label:hover {
+    background-color: var(--sl-bg-secondary) !important;
+}
+
+body.sm-activity-embed-mode .que .answer input[type="radio"],
+body.sm-activity-embed-mode .que .answer input[type="checkbox"] {
+    margin-right: var(--sl-spacing-sm) !important;
+    margin-top: 0.25em !important;
+}
+
+/* Quiz navigation block */
+body.sm-activity-embed-mode #mod_quiz_navblock {
+    background-color: var(--sl-bg) !important;
+}
+
+body.sm-activity-embed-mode #mod_quiz_navblock .qnbutton {
+    border-radius: var(--sl-radius-md) !important;
+    font-weight: 500 !important;
+}
+
+/* --- BOOK SPECIFIC STYLES --- */
+body.sm-activity-embed-mode .book_content {
+    padding: var(--sl-spacing-xl) !important;
+    max-width: 800px !important;
+    margin: 0 auto !important;
+}
+
+body.sm-activity-embed-mode .book_content h1,
+body.sm-activity-embed-mode .book_content h2,
+body.sm-activity-embed-mode .book_content h3 {
+    margin-top: var(--sl-spacing-xl) !important;
+    margin-bottom: var(--sl-spacing-md) !important;
+}
+
+body.sm-activity-embed-mode .book_content p {
+    margin-bottom: var(--sl-spacing-md) !important;
+    line-height: 1.7 !important;
+}
+
+/* Book navigation */
+body.sm-activity-embed-mode .book_navigation {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: var(--sl-spacing-lg) 0 !important;
+    border-top: 1px solid var(--sl-border) !important;
+    margin-top: var(--sl-spacing-xl) !important;
+}
+
+/* --- LESSON SPECIFIC STYLES --- */
+body.sm-activity-embed-mode .lesson-content {
+    padding: var(--sl-spacing-xl) !important;
+    max-width: 800px !important;
+    margin: 0 auto !important;
+}
+
+/* --- PAGE/RESOURCE SPECIFIC STYLES --- */
+body.sm-activity-embed-mode .page-content-container,
+body.sm-activity-embed-mode #region-main > .box {
+    padding: var(--sl-spacing-xl) !important;
+    max-width: 900px !important;
+    margin: 0 auto !important;
+}
+
+/* --- ALERTS --- */
+body.sm-activity-embed-mode .alert {
+    border-radius: var(--sl-radius-md) !important;
+    border: none !important;
+    padding: var(--sl-spacing-md) var(--sl-spacing-lg) !important;
+}
+
+body.sm-activity-embed-mode .alert-info {
+    background-color: rgba(23, 162, 184, 0.1) !important;
+    color: var(--sl-info) !important;
+}
+
+body.sm-activity-embed-mode .alert-success {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+    color: var(--sl-success) !important;
+}
+
+body.sm-activity-embed-mode .alert-warning {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+    color: #856404 !important;
+}
+
+body.sm-activity-embed-mode .alert-danger {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    color: var(--sl-danger) !important;
+}
+
+/* --- LINKS --- */
+body.sm-activity-embed-mode a {
+    color: var(--sl-primary) !important;
+    text-decoration: none !important;
+    transition: color var(--sl-transition-fast) !important;
+}
+
+body.sm-activity-embed-mode a:hover {
+    color: var(--sl-primary-dark) !important;
+    text-decoration: underline !important;
+}
+
+/* --- TABLES --- */
+body.sm-activity-embed-mode table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+}
+
+body.sm-activity-embed-mode th,
+body.sm-activity-embed-mode td {
+    padding: var(--sl-spacing-sm) var(--sl-spacing-md) !important;
+    border: 1px solid var(--sl-border) !important;
+}
+
+body.sm-activity-embed-mode th {
+    background-color: var(--sl-bg-secondary) !important;
+    font-weight: 600 !important;
+}
+
+body.sm-activity-embed-mode tr:nth-child(even) {
+    background-color: var(--sl-gray-50) !important;
+}
+
+/* --- PROGRESS BAR --- */
+body.sm-activity-embed-mode .progress {
+    height: 6px !important;
+    background-color: var(--sl-gray-200) !important;
+    border-radius: var(--sl-radius-full) !important;
+    overflow: hidden !important;
+}
+
+body.sm-activity-embed-mode .progress-bar {
+    background-color: var(--sl-primary) !important;
+    border-radius: var(--sl-radius-full) !important;
+}
+
+/* --- SCROLLBAR --- */
+body.sm-activity-embed-mode ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+body.sm-activity-embed-mode ::-webkit-scrollbar-track {
+    background: var(--sl-gray-100);
+    border-radius: var(--sl-radius-full);
+}
+
+body.sm-activity-embed-mode ::-webkit-scrollbar-thumb {
+    background: var(--sl-gray-400);
+    border-radius: var(--sl-radius-full);
+}
+
+body.sm-activity-embed-mode ::-webkit-scrollbar-thumb:hover {
+    background: var(--sl-gray-500);
+}
+</style>
+HTML;
     }
 
     /**

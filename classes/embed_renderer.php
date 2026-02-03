@@ -94,7 +94,7 @@ class embed_renderer {
             case 'scorm':
                 return $this->redirect_to_scorm();
             case 'quiz':
-                return $this->redirect_to_activity();
+                return $this->redirect_to_quiz();
             case 'assign':
                 return $this->redirect_to_activity();
             case 'lesson':
@@ -149,6 +149,53 @@ class embed_renderer {
                     }
                     break;
             }
+        }
+
+        header('Location: ' . $url);
+        exit;
+    }
+
+    /**
+     * Redirect to quiz - handles direct navigation to attempt page.
+     *
+     * Logic:
+     * 1. If targetSlide is set and active attempt exists → attempt.php?page=targetSlide-1
+     * 2. If furthestSlide is set and active attempt exists → attempt.php?page=furthestSlide-1
+     * 3. If active attempt exists (no position) → attempt.php (Moodle resumes at last page)
+     * 4. If no active attempt → view.php (user needs to start attempt)
+     *
+     * @return string Never returns - performs redirect and exits.
+     */
+    private function redirect_to_quiz(): string {
+        global $DB, $CFG, $USER;
+
+        // Find user's active (in-progress) attempt.
+        $attempt = $DB->get_record_sql(
+            "SELECT id FROM {quiz_attempts}
+             WHERE quiz = :quizid AND userid = :userid AND state = 'inprogress'
+             ORDER BY attempt DESC LIMIT 1",
+            ['quizid' => (int)$this->cm->instance, 'userid' => $USER->id]
+        );
+
+        if ($attempt) {
+            // Active attempt exists - redirect to attempt.php.
+            $url = $CFG->wwwroot . '/mod/quiz/attempt.php?attempt=' . $attempt->id
+                . '&cmid=' . $this->cm->id;
+
+            // Determine which page to navigate to.
+            if ($this->targetSlide !== null && $this->targetSlide > 0) {
+                // Direct navigation to specific position (tag click).
+                $page = $this->targetSlide - 1; // 1-based → 0-based.
+                $url .= '&page=' . $page;
+            } elseif ($this->furthestSlide !== null && $this->furthestSlide > 0) {
+                // Resume to furthest position (go-back button).
+                $page = $this->furthestSlide - 1;
+                $url .= '&page=' . $page;
+            }
+            // If no position specified, Moodle will resume at the last viewed page.
+        } else {
+            // No active attempt - redirect to view.php (user needs to start attempt).
+            $url = $CFG->wwwroot . '/mod/quiz/view.php?id=' . $this->cm->id;
         }
 
         header('Location: ' . $url);

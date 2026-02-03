@@ -403,6 +403,8 @@ class get_course_content extends external_api {
 
             case 'label':
                 // Labels have their content in the description field (intro).
+                // Mark as inline content - frontend should display directly and mark complete on view.
+                $moduledata['displayHint'] = 'inline-content';
                 break;
 
             case 'assign':
@@ -422,7 +424,9 @@ class get_course_content extends external_api {
                 break;
 
             case 'forum':
-                $moduledata['forum'] = self::get_forum_data($cm->instance);
+                $moduledata['forum'] = self::get_forum_data($cm->instance, $cm->course);
+                // Forums should redirect to SmartLearning forum page, not embed.
+                $moduledata['displayHint'] = 'redirect-forum';
                 break;
 
             case 'book':
@@ -2020,7 +2024,7 @@ class get_course_content extends external_api {
      * @param int $forumid Forum instance ID.
      * @return array Forum data.
      */
-    private static function get_forum_data(int $forumid): array {
+    private static function get_forum_data(int $forumid, int $courseid): array {
         global $DB;
 
         $forum = $DB->get_record('forum', ['id' => $forumid]);
@@ -2037,6 +2041,10 @@ class get_course_content extends external_api {
             'type' => $forum->type,
             'discussioncount' => $discussioncount,
             'timemodified' => $forum->timemodified,
+            // Redirect path for SmartLearning frontend - forums open in dedicated forum page.
+            'redirectPath' => '/forums/' . $courseid,
+            // Completion hint: forum is "accomplished" when user creates a discussion.
+            'completionHint' => 'create-discussion',
         ];
     }
 
@@ -2282,6 +2290,7 @@ class get_course_content extends external_api {
             'forum' => new external_value(PARAM_RAW, 'Forum data as JSON', VALUE_OPTIONAL),
             'book' => new external_value(PARAM_RAW, 'Book data as JSON', VALUE_OPTIONAL),
             'lesson' => new external_value(PARAM_RAW, 'Lesson data as JSON', VALUE_OPTIONAL),
+            'displayHint' => new external_value(PARAM_ALPHANUMEXT, 'Display hint for frontend: embed (default), redirect-forum, inline-content', VALUE_OPTIONAL),
         ]);
     }
 }

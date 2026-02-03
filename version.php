@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025012899;  // YYYYMMDDXX format.
+$plugin->version = 2025020300;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.0.99';  // Whole-activity tagging for all activity types (page, resource, assign, forum, etc.).
+$plugin->release = '2.1.0';  // Quiz embed redirect + SmartLearning CSS + forum redirect + label display.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
