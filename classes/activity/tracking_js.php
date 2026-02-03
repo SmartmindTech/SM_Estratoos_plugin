@@ -48,7 +48,8 @@ class tracking_js {
     /**
      * Generate tracking JS for quiz attempt/review pages.
      *
-     * Quiz position is page-based. Each page can contain multiple questions.
+     * Quiz position is based on ACTUAL questions (excluding description pages).
+     * Description/info pages share the same position as the next real question.
      * URL parameter: ?page=N (0-based).
      *
      * @param int $cmid Course module ID.
@@ -58,37 +59,91 @@ class tracking_js {
     public static function get_quiz_script(int $cmid, int $quizid): string {
         global $DB;
 
-        $quiz = $DB->get_record('quiz', ['id' => $quizid], 'id, questionsperpage');
-        if (!$quiz) {
+        // Get all quiz slots with their page numbers and question types.
+        // We need to identify which pages have only description questions.
+        // Moodle 4.0+ uses question_references, older uses quiz_slots.questionid directly.
+        $slots = $DB->get_records_sql(
+            "SELECT qs.id, qs.slot, qs.page, q.qtype
+             FROM {quiz_slots} qs
+             LEFT JOIN {question_references} qr ON qr.itemid = qs.id
+                 AND qr.component = 'mod_quiz' AND qr.questionarea = 'slot'
+             LEFT JOIN {question_bank_entries} qbe ON qbe.id = qr.questionbankentryid
+             LEFT JOIN {question_versions} qv ON qv.questionbankentryid = qbe.id
+             LEFT JOIN {question} q ON q.id = qv.questionid
+             WHERE qs.quizid = :quizid
+             ORDER BY qs.slot ASC",
+            ['quizid' => $quizid]
+        );
+
+        // Fallback for older Moodle versions without question_references
+        if (empty($slots)) {
+            $slots = $DB->get_records_sql(
+                "SELECT qs.id, qs.slot, qs.page, q.qtype
+                 FROM {quiz_slots} qs
+                 LEFT JOIN {question} q ON q.id = qs.questionid
+                 WHERE qs.quizid = :quizid
+                 ORDER BY qs.slot ASC",
+                ['quizid' => $quizid]
+            );
+        }
+
+        if (empty($slots)) {
             return '';
         }
 
-        $questioncount = $DB->count_records('quiz_slots', ['quizid' => $quizid]);
-        if ($questioncount <= 0) {
+        // Group slots by page and identify which pages have only descriptions
+        $pageinfo = [];
+        foreach ($slots as $slot) {
+            $page = (int)$slot->page;
+            if (!isset($pageinfo[$page])) {
+                $pageinfo[$page] = ['hasRealQuestion' => false, 'slots' => []];
+            }
+            $pageinfo[$page]['slots'][] = $slot;
+            // A page has a real question if any slot is NOT a description
+            if ($slot->qtype !== 'description' && $slot->qtype !== null) {
+                $pageinfo[$page]['hasRealQuestion'] = true;
+            }
+        }
+
+        // Build position map: description-only pages share position with next real question page
+        // Position 1 = first real question (and any preceding description pages)
+        // Position 2 = second real question (and any preceding description pages)
+        // etc.
+        $reversemap = []; // page => position
+        $itemmap = [];    // position => first page for that position
+        $position = 0;
+        $pendingDescPages = [];
+
+        ksort($pageinfo); // Ensure pages are in order
+        foreach ($pageinfo as $page => $info) {
+            if ($info['hasRealQuestion']) {
+                $position++;
+                // This page and all pending description pages get this position
+                $itemmap[$position] = $page;
+                $reversemap[$page] = $position;
+                foreach ($pendingDescPages as $descPage) {
+                    $reversemap[$descPage] = $position;
+                }
+                $pendingDescPages = [];
+            } else {
+                // Description-only page - wait for next real question
+                $pendingDescPages[] = $page;
+            }
+        }
+
+        // Handle trailing description pages (assign to last position)
+        if (!empty($pendingDescPages) && $position > 0) {
+            foreach ($pendingDescPages as $descPage) {
+                $reversemap[$descPage] = $position;
+            }
+        }
+
+        $totalpositions = $position;
+        if ($totalpositions <= 1) {
             return '';
         }
 
-        $perpage = (int)$quiz->questionsperpage;
-        if ($perpage <= 0) {
-            // All questions on one page — no position tracking.
-            return '';
-        }
-
-        $totalpages = (int)ceil($questioncount / $perpage);
-        if ($totalpages <= 1) {
-            return '';
-        }
-
-        // Build maps: position (1-based) ↔ page number (0-based).
-        $itemmap = [];
-        $reversemap = [];
-        for ($i = 1; $i <= $totalpages; $i++) {
-            $page = $i - 1; // 0-based page number.
-            $itemmap[$i] = $page;
-            $reversemap[$page] = $i;
-        }
-
-        return self::get_generic_script($cmid, 'quiz', $totalpages, $itemmap, $reversemap, 'page');
+        return self::get_generic_script($cmid, 'quiz', $totalpositions, $itemmap, $reversemap, 'page');
     }
 
     /**

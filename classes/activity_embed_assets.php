@@ -256,6 +256,42 @@ body.sm-activity-embed-mode button[type="submit"] {
     text-align: center !important;
 }
 
+/* Fix lesson buttons - remove any left border/stripe styling */
+body.sm-activity-embed-mode .mod_lesson button,
+body.sm-activity-embed-mode .mod_lesson input[type="submit"],
+body.sm-activity-embed-mode .mod_lesson .btn,
+body.sm-activity-embed-mode #page-mod-lesson-view button,
+body.sm-activity-embed-mode #page-mod-lesson-view input[type="submit"],
+body.sm-activity-embed-mode #page-mod-lesson-view .btn {
+    border-left: none !important;
+    border: none !important;
+    box-shadow: var(--sl-shadow-sm) !important;
+}
+
+/* Lesson answer buttons - primary style for Yes/Oui */
+body.sm-activity-embed-mode .mod_lesson .singlebutton:first-child button,
+body.sm-activity-embed-mode .mod_lesson .singlebutton:first-child input[type="submit"],
+body.sm-activity-embed-mode .mod_lesson form:first-of-type button,
+body.sm-activity-embed-mode .mod_lesson form:first-of-type input[type="submit"] {
+    background-color: var(--sl-primary) !important;
+    color: white !important;
+}
+
+/* Lesson answer buttons - secondary style for No/Non */
+body.sm-activity-embed-mode .mod_lesson .singlebutton:not(:first-child) button,
+body.sm-activity-embed-mode .mod_lesson .singlebutton:not(:first-child) input[type="submit"],
+body.sm-activity-embed-mode .mod_lesson form:not(:first-of-type) button,
+body.sm-activity-embed-mode .mod_lesson form:not(:first-of-type) input[type="submit"] {
+    background-color: var(--sl-bg) !important;
+    color: var(--sl-text) !important;
+    border: 1px solid var(--sl-border) !important;
+}
+
+body.sm-activity-embed-mode .mod_lesson .singlebutton:not(:first-child) button:hover,
+body.sm-activity-embed-mode .mod_lesson .singlebutton:not(:first-child) input[type="submit"]:hover {
+    background-color: var(--sl-gray-100) !important;
+}
+
 /* --- CARDS --- */
 body.sm-activity-embed-mode .card {
     background-color: var(--sl-bg) !important;
@@ -362,34 +398,65 @@ body.sm-activity-embed-mode .mod_quiz-timer,
 body.sm-activity-embed-mode #quiz-timer,
 body.sm-activity-embed-mode .quiz-timer,
 body.sm-activity-embed-mode [id*="quiz-time"],
-body.sm-activity-embed-mode .countdown-timer {
+body.sm-activity-embed-mode .countdown-timer,
+body.sm-activity-embed-mode .quiz_timer,
+body.sm-activity-embed-mode #quiz_timer,
+body.sm-activity-embed-mode .quiz-time-left-container,
+body.sm-activity-embed-mode [class*="quiz"][class*="timer"],
+body.sm-activity-embed-mode [id*="timer"] {
     position: relative !important;
+    position: static !important;
     top: auto !important;
     right: auto !important;
     left: auto !important;
     bottom: auto !important;
     z-index: auto !important;
+    float: none !important;
+    transform: none !important;
 }
 
-/* Quiz timer container - remove fixed positioning */
+/* Quiz timer container - remove fixed/sticky positioning */
 body.sm-activity-embed-mode .mod_quiz-countdown-timer,
-body.sm-activity-embed-mode #quiz-countdown-timer {
+body.sm-activity-embed-mode #quiz-countdown-timer,
+body.sm-activity-embed-mode .sticky-timer,
+body.sm-activity-embed-mode [class*="timer-container"],
+body.sm-activity-embed-mode #page-mod-quiz-attempt .quiz-timer,
+body.sm-activity-embed-mode #page-mod-quiz-attempt [class*="timer"] {
     position: static !important;
     float: none !important;
+    width: auto !important;
+    margin: 0 0 var(--sl-spacing-md) 0 !important;
+    display: inline-block !important;
+}
+
+/* Ensure timer parent doesn't create fixed context */
+body.sm-activity-embed-mode #page-mod-quiz-attempt #region-main > div:first-child,
+body.sm-activity-embed-mode #page-mod-quiz-review #region-main > div:first-child {
+    position: relative !important;
 }
 
 /* Make quiz questions wider - remove narrow constraints */
 body.sm-activity-embed-mode .que {
     max-width: none !important;
     width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
 }
 
 body.sm-activity-embed-mode .que .content {
     max-width: none !important;
+    flex: 1 !important;
+    min-width: 0 !important;
 }
 
 body.sm-activity-embed-mode .que .formulation {
     max-width: none !important;
+    width: 100% !important;
+}
+
+body.sm-activity-embed-mode .que .formulation.clearfix {
+    width: 100% !important;
 }
 
 /* Quiz attempt page - full width content */
@@ -400,29 +467,46 @@ body.sm-activity-embed-mode #page-mod-quiz-review #region-main {
     padding: var(--sl-spacing-md) !important;
 }
 
-/* Remove the narrow info panel constraint */
-body.sm-activity-embed-mode .que .info {
-    width: auto !important;
-    min-width: 100px !important;
-    max-width: 150px !important;
-    float: left !important;
+/* Remove Bootstrap container constraints */
+body.sm-activity-embed-mode #page-mod-quiz-attempt .container-fluid,
+body.sm-activity-embed-mode #page-mod-quiz-review .container-fluid,
+body.sm-activity-embed-mode #page-mod-quiz-attempt #region-main-box,
+body.sm-activity-embed-mode #page-mod-quiz-review #region-main-box {
+    max-width: none !important;
+    width: 100% !important;
+    padding-left: var(--sl-spacing-md) !important;
+    padding-right: var(--sl-spacing-md) !important;
 }
 
+/* The info panel (Question N, Points, etc.) */
+body.sm-activity-embed-mode .que .info {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    flex-shrink: 0 !important;
+    margin-right: var(--sl-spacing-md) !important;
+}
+
+/* The content panel takes remaining space */
 body.sm-activity-embed-mode .que .content {
-    margin-left: 160px !important;
-    width: auto !important;
+    flex: 1 1 auto !important;
+    width: calc(100% - 140px) !important;
+    margin-left: 0 !important;
 }
 
 /* For smaller screens, stack vertically */
 @media (max-width: 768px) {
+    body.sm-activity-embed-mode .que {
+        flex-direction: column !important;
+    }
     body.sm-activity-embed-mode .que .info {
-        float: none !important;
-        max-width: none !important;
         width: 100% !important;
+        max-width: none !important;
+        margin-right: 0 !important;
         margin-bottom: var(--sl-spacing-md) !important;
     }
     body.sm-activity-embed-mode .que .content {
-        margin-left: 0 !important;
+        width: 100% !important;
     }
 }
 
@@ -569,13 +653,16 @@ body.sm-activity-embed-mode table.progress_bar tr {
     border-spacing: 0 !important;
 }
 
-/* Lesson navigation buttons styling */
+/* Lesson navigation buttons styling - clean, no borders */
 body.sm-activity-embed-mode .lessonbutton,
-body.sm-activity-embed-mode .mod_lesson .singlebutton,
 body.sm-activity-embed-mode form[action*="lesson"] input[type="submit"] {
     background-color: var(--sl-primary) !important;
     color: white !important;
     border: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
     border-radius: var(--sl-radius-md) !important;
     padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
     font-weight: 500 !important;
@@ -585,11 +672,34 @@ body.sm-activity-embed-mode form[action*="lesson"] input[type="submit"] {
 }
 
 body.sm-activity-embed-mode .lessonbutton:hover,
-body.sm-activity-embed-mode .mod_lesson .singlebutton:hover,
 body.sm-activity-embed-mode form[action*="lesson"] input[type="submit"]:hover {
     background-color: var(--sl-primary-dark) !important;
     transform: translateY(-1px) !important;
     box-shadow: var(--sl-shadow-md) !important;
+}
+
+/* Lesson singlebutton containers - ensure no weird borders */
+body.sm-activity-embed-mode .mod_lesson .singlebutton {
+    display: inline-block !important;
+    margin-right: var(--sl-spacing-sm) !important;
+}
+
+body.sm-activity-embed-mode .mod_lesson .singlebutton button,
+body.sm-activity-embed-mode .mod_lesson .singlebutton input {
+    background-color: var(--sl-primary) !important;
+    color: white !important;
+    border: none !important;
+    border-left: none !important;
+    border-radius: var(--sl-radius-md) !important;
+    padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    box-shadow: var(--sl-shadow-sm) !important;
+}
+
+body.sm-activity-embed-mode .mod_lesson .singlebutton:hover button,
+body.sm-activity-embed-mode .mod_lesson .singlebutton:hover input {
+    background-color: var(--sl-primary-dark) !important;
 }
 
 /* Lesson question/answer area */
@@ -599,6 +709,37 @@ body.sm-activity-embed-mode .contents {
     border-radius: var(--sl-radius-lg) !important;
     padding: var(--sl-spacing-xl) !important;
     margin: var(--sl-spacing-lg) 0 !important;
+}
+
+/* AGGRESSIVE FIX: Reset ALL lesson button borders to prevent blue stripe */
+body.sm-activity-embed-mode #page-mod-lesson-view button,
+body.sm-activity-embed-mode #page-mod-lesson-view input[type="submit"],
+body.sm-activity-embed-mode #page-mod-lesson-view .btn,
+body.sm-activity-embed-mode .path-mod-lesson button,
+body.sm-activity-embed-mode .path-mod-lesson input[type="submit"],
+body.sm-activity-embed-mode .path-mod-lesson .btn {
+    border: none !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    border-style: none !important;
+    border-width: 0 !important;
+    outline: none !important;
+    box-shadow: var(--sl-shadow-sm) !important;
+    border-radius: var(--sl-radius-md) !important;
+    padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
+    min-width: 80px !important;
+}
+
+/* Button focus state - no weird borders */
+body.sm-activity-embed-mode #page-mod-lesson-view button:focus,
+body.sm-activity-embed-mode #page-mod-lesson-view input[type="submit"]:focus,
+body.sm-activity-embed-mode .path-mod-lesson button:focus,
+body.sm-activity-embed-mode .path-mod-lesson input[type="submit"]:focus {
+    outline: 2px solid var(--sl-primary) !important;
+    outline-offset: 2px !important;
+    border: none !important;
 }
 
 /* --- PAGE/RESOURCE SPECIFIC STYLES --- */

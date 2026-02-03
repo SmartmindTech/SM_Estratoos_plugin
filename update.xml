@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025020312</version>
+        <version>2025020314</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.12</release>
+        <release>2.1.14</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,34 +29,28 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.12/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.14/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.12</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.14</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.12 - Quiz Tag Navigation in Review Mode</h3>
-
-            <h4>New Features</h4>
-            <ul>
-                <li>Quiz tag navigation now uses REVIEW MODE (read-only)</li>
-                <li>Clicking tagged question shows it without starting new attempt</li>
-                <li>Progress reflects best/last grade based on quiz settings</li>
-                <li>Works even when max attempts exhausted</li>
-            </ul>
+            <h3>Version 2.1.14 - CSS Fixes</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fixed button CSS - outline buttons now styled consistently</li>
-                <li>Lesson position tracking keeps position on answer pages</li>
+                <li>Quiz timer now scrolls with content instead of floating over questions</li>
+                <li>Quiz questions now use full available width</li>
+                <li>Lesson buttons no longer have blue stripe/border artifact</li>
+                <li>Quiz description/info pages share position with following question</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.12: Quiz tag navigation uses review mode (read-only)</li>
                 <li>v2.1.11: Lesson SQL fix + page scroll + fallback protection</li>
-                <li>v2.1.10: Lesson position tracking via iframe wrapper</li>
             </ul>
             ]]>
         </releasenotes>
