@@ -164,6 +164,25 @@ function local_sm_estratoos_plugin_before_footer() {
     }
 
     // ============================================================
+    // EMBED MODE FALLBACK PROTECTION
+    // When embed cookie is set and user navigates away from /mod/ pages,
+    // show "Activity session ended" message instead of Moodle dashboard.
+    // ============================================================
+    if (!$isscormplayer && !empty($_COOKIE['sm_estratoos_embed'])) {
+        $isModPage = strpos($pagepath, '/mod/') !== false;
+        $isLocalEmbed = strpos($pagepath, '/local/sm_estratoos_plugin/') !== false;
+
+        // If NOT on an activity page, inject fallback protection to blank the page
+        if (!$isModPage && !$isLocalEmbed) {
+            echo '<script>
+(function() {
+    document.documentElement.innerHTML = \'<html><head><style>body{background:#f8f9fa;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#6c757d;}</style></head><body><div style="text-align:center;"><p>Activity session ended.</p><p style="font-size:0.875rem;">Please return to the course to continue.</p></div></body></html>\';
+})();
+</script>';
+        }
+    }
+
+    // ============================================================
     // NON-SCORM ACTIVITY EMBED MODE
     // Hide Moodle Boost chrome for all /mod/ pages when in embed mode.
     // Quiz pages get special treatment: right drawer kept for question navigation.
