@@ -253,9 +253,9 @@ HTML;
     public static function get_lesson_script(int $cmid, int $lessonid): string {
         global $DB;
 
-        // Note: lesson_pages uses prevpageid/nextpageid for ordering, not an ordering column
+        // Get page IDs and titles for matching
         $pages = $DB->get_records_sql(
-            "SELECT id FROM {lesson_pages}
+            "SELECT id, title FROM {lesson_pages}
              WHERE lessonid = :lessonid AND qtype NOT IN (21, 30, 31)
              ORDER BY id ASC",
             ['lessonid' => $lessonid]
@@ -265,17 +265,290 @@ HTML;
             return '';
         }
 
-        // Build maps: position (1-based) ↔ page ID.
+        // Build maps: position (1-based) ↔ page ID, and title → position
         $itemmap = [];
         $reversemap = [];
+        $titlemap = [];
         $pos = 1;
         foreach ($pages as $page) {
             $itemmap[$pos] = (int)$page->id;
             $reversemap[(int)$page->id] = $pos;
+            // Normalize title for matching (lowercase, trim)
+            $normalizedTitle = strtolower(trim($page->title));
+            $titlemap[$normalizedTitle] = $pos;
             $pos++;
         }
 
-        return self::get_generic_script($cmid, 'lesson', count($pages), $itemmap, $reversemap, 'pageid');
+        return self::get_lesson_script_with_titles($cmid, count($pages), $itemmap, $reversemap, $titlemap);
+    }
+
+    /**
+     * Generate lesson-specific tracking JS with title matching.
+     *
+     * @param int $cmid Course module ID.
+     * @param int $totalitems Total number of pages.
+     * @param array $itemmap Position → page ID.
+     * @param array $reversemap Page ID → position.
+     * @param array $titlemap Normalized title → position.
+     * @return string HTML <script> block.
+     */
+    private static function get_lesson_script_with_titles(
+        int $cmid,
+        int $totalitems,
+        array $itemmap,
+        array $reversemap,
+        array $titlemap
+    ): string {
+        $itemmapjson = json_encode((object)$itemmap);
+        $reversemapjson = json_encode((object)$reversemap);
+        $titlemapjson = json_encode((object)$titlemap);
+
+        return <<<HTML
+<script>
+// ============================================================
+// Lesson Position Tracking — cmid {$cmid}
+// Detects position from URL pageid or page title matching.
+// ============================================================
+(function() {
+    var cmid = {$cmid};
+    var totalItems = {$totalitems};
+    var itemMap = {$itemmapjson};
+    var reverseMap = {$reversemapjson};
+    var titleMap = {$titlemapjson};
+
+    // 1. Get furthest position from storage
+    var storageKey = 'activity_furthest_position_' + cmid;
+    var currentPosKey = 'activity_current_position_' + cmid;
+    var furthestPosition = 0;
+    var lastKnownPosition = 1;
+    try {
+        furthestPosition = parseInt(sessionStorage.getItem(storageKey)) || 0;
+        lastKnownPosition = parseInt(sessionStorage.getItem(currentPosKey)) || 1;
+    } catch (e) {}
+    if (furthestPosition <= 0) {
+        try {
+            furthestPosition = parseInt(localStorage.getItem(storageKey)) || 0;
+        } catch (e) {}
+    }
+
+    // 2. Detect current position
+    var params = new URLSearchParams(window.location.search);
+    var pageid = params.get('pageid');
+    var currentPosition = lastKnownPosition;
+    var pageInMap = false;
+
+    console.log('[lesson Tracking] URL:', window.location.href);
+    console.log('[lesson Tracking] pageid:', pageid);
+
+    // Check for END OF LESSON (pageid=-9)
+    if (pageid === '-9') {
+        console.log('[lesson Tracking] END OF LESSON detected');
+        currentPosition = totalItems;
+        pageInMap = true;
+    }
+    // Check for valid pageid in reverseMap
+    else if (pageid !== null && pageid !== '' && pageid !== '0') {
+        var key = parseInt(pageid);
+        if (key > 0 && reverseMap[key] !== undefined) {
+            currentPosition = reverseMap[key];
+            pageInMap = true;
+            console.log('[lesson Tracking] Found pageid', key, '→ position', currentPosition);
+        }
+    }
+
+    // If no pageid, try to match page title
+    if (!pageInMap) {
+        var pageTitle = null;
+
+        // Method 1: Look for lesson-{pageid} links (Moodle's page heading format)
+        var lessonLinks = document.querySelectorAll('a[id^="lesson-"]');
+        for (var i = 0; i < lessonLinks.length; i++) {
+            var linkId = lessonLinks[i].getAttribute('id');
+            var linkPageId = parseInt(linkId.replace('lesson-', ''));
+            if (linkPageId > 0 && reverseMap[linkPageId] !== undefined) {
+                currentPosition = reverseMap[linkPageId];
+                pageInMap = true;
+                console.log('[lesson Tracking] Found lesson link id:', linkId, '→ position', currentPosition);
+                break;
+            }
+        }
+
+        // Method 2: Look for page title in content area (not the main heading)
+        if (!pageInMap) {
+            // The .contents div usually contains the page content
+            var contentsDiv = document.querySelector('.contents');
+            if (contentsDiv) {
+                // Get the first significant text that might be the page title
+                var firstParagraph = contentsDiv.querySelector('p');
+                var firstHeading = contentsDiv.querySelector('h1, h2, h3, h4');
+                var titleElement = firstHeading || firstParagraph;
+
+                if (titleElement) {
+                    pageTitle = titleElement.textContent.trim().toLowerCase();
+                    console.log('[lesson Tracking] Content title found:', pageTitle);
+                }
+            }
+
+            // Method 3: Look for the actual page content as a title match
+            if (!pageTitle) {
+                // Try to find text in the main content that matches a page title
+                var mainContent = document.querySelector('#region-main .box.generalbox');
+                if (mainContent) {
+                    var contentText = mainContent.innerText.substring(0, 500).toLowerCase();
+                    console.log('[lesson Tracking] Checking content text (first 200 chars):', contentText.substring(0, 200));
+
+                    // Check if any page title appears in the content
+                    for (var title in titleMap) {
+                        if (contentText.indexOf(title) !== -1) {
+                            currentPosition = titleMap[title];
+                            pageInMap = true;
+                            console.log('[lesson Tracking] Content contains title:', title, '→ position', currentPosition);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Try matching the found title with flexible keyword matching
+            if (pageTitle && !pageInMap) {
+                if (titleMap[pageTitle] !== undefined) {
+                    currentPosition = titleMap[pageTitle];
+                    pageInMap = true;
+                    console.log('[lesson Tracking] Exact title match → position', currentPosition);
+                } else {
+                    // Try keyword matching - extract significant words from both
+                    for (var title in titleMap) {
+                        // Get keywords from the page title (remove common prefixes)
+                        var titleKeywords = title.replace(/^(pregunta|question|introduccion|introduction|conclusion)[:.]?\s*/i, '')
+                                                 .split(/\s+/)
+                                                 .filter(function(w) { return w.length > 2; });
+
+                        // Check if any keyword from title appears in content
+                        var matchFound = false;
+                        for (var k = 0; k < titleKeywords.length; k++) {
+                            if (pageTitle.indexOf(titleKeywords[k]) !== -1) {
+                                matchFound = true;
+                                break;
+                            }
+                        }
+
+                        // Also check direct containment
+                        if (!matchFound && (pageTitle.indexOf(title) !== -1 || title.indexOf(pageTitle) !== -1)) {
+                            matchFound = true;
+                        }
+
+                        if (matchFound) {
+                            currentPosition = titleMap[title];
+                            pageInMap = true;
+                            console.log('[lesson Tracking] Keyword match:', title, '→ position', currentPosition);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check for completion page
+        if (!pageInMap) {
+            var bodyText = document.body.innerText || '';
+            if (bodyText.indexOf('Félicitations') !== -1 ||
+                bodyText.indexOf('Congratulations') !== -1 ||
+                bodyText.indexOf('terminée') !== -1 ||
+                bodyText.indexOf('completed the lesson') !== -1) {
+                currentPosition = totalItems;
+                pageInMap = true;
+                console.log('[lesson Tracking] Completion text detected');
+            }
+        }
+    }
+
+    console.log('[lesson Tracking] Final: position=' + currentPosition + '/' + totalItems + ', pageInMap=' + pageInMap);
+
+    // 3. Update furthest (never decrease)
+    if (currentPosition > furthestPosition) {
+        furthestPosition = currentPosition;
+    }
+    try {
+        var storedFurthest = parseInt(sessionStorage.getItem(storageKey)) || 0;
+        if (storedFurthest > furthestPosition) {
+            furthestPosition = storedFurthest;
+        }
+        sessionStorage.setItem(storageKey, String(furthestPosition));
+        localStorage.setItem(storageKey, String(furthestPosition));
+        if (pageInMap) {
+            sessionStorage.setItem(currentPosKey, String(currentPosition));
+        }
+    } catch (e) {}
+
+    // 4. Send progress message
+    var progressPercent = totalItems > 0 ? Math.min(100, Math.round(furthestPosition / totalItems * 100)) : 0;
+    var currentPercent = totalItems > 0 ? Math.min(100, Math.round(currentPosition / totalItems * 100)) : 0;
+
+    function sendProgress() {
+        var message = {
+            type: 'activity-progress',
+            activityType: 'lesson',
+            cmid: cmid,
+            currentPosition: currentPosition,
+            totalPositions: totalItems,
+            furthestPosition: furthestPosition,
+            status: furthestPosition >= totalItems ? 'completed' : 'incomplete',
+            source: 'navigation',
+            timestamp: Date.now(),
+            progressPercent: progressPercent,
+            currentPercent: currentPercent
+        };
+        try { window.parent.postMessage(message, '*'); } catch (e) {}
+        try {
+            if (window.top !== window.parent) {
+                window.top.postMessage(message, '*');
+            }
+        } catch (e) {}
+    }
+
+    sendProgress();
+    setTimeout(sendProgress, 500);
+    setTimeout(sendProgress, 2000);
+
+    // 5. Listen for navigation requests
+    window.addEventListener('message', function(event) {
+        if (!event.data) return;
+        var isActivityNav = event.data.type === 'activity-navigate-to-position' && event.data.cmid === cmid;
+        var isLegacyNav = event.data.type === 'scorm-navigate-to-slide' && event.data.cmid === cmid;
+        if (isActivityNav || isLegacyNav) {
+            var targetPosition = event.data.position || event.data.slide;
+            if (targetPosition && itemMap[targetPosition] !== undefined) {
+                var targetPageId = itemMap[targetPosition];
+                var url = new URL(window.location.href);
+                url.pathname = url.pathname.replace(/continue\.php$/, 'view.php');
+                url.searchParams.set('pageid', String(targetPageId));
+                window.location.href = url.toString();
+            }
+        }
+    }, false);
+
+    // 6. Hide lesson end links
+    setTimeout(function() {
+        var links = document.querySelectorAll('a');
+        links.forEach(function(link) {
+            var href = link.getAttribute('href') || '';
+            var text = link.textContent || '';
+            if (href.indexOf('course/view.php') !== -1 ||
+                href.indexOf('grade/report') !== -1 ||
+                href.indexOf('pageid=0') !== -1 ||
+                text.indexOf('Revoir') !== -1 ||
+                text.indexOf('Retour') !== -1 ||
+                text.indexOf('Afficher') !== -1 ||
+                text.indexOf('Review') !== -1 ||
+                text.indexOf('Return') !== -1 ||
+                text.indexOf('View grades') !== -1) {
+                link.style.display = 'none';
+            }
+        });
+    }, 100);
+})();
+</script>
+HTML;
     }
 
     /**
@@ -342,31 +615,45 @@ HTML;
     var currentPosition = lastKnownPosition; // Default to last known, not 1
     var pageInMap = false;
 
-    // First, check if we have a valid pageid in the URL
-    if (paramValue !== null && paramValue !== '' && paramValue !== '0') {
+    // Debug logging
+    console.log('[' + modtype + ' Tracking] URL:', window.location.href);
+    console.log('[' + modtype + ' Tracking] urlParam:', urlParam, 'value:', paramValue);
+
+    // For lessons: special handling for Moodle's lesson navigation
+    if (modtype === 'lesson') {
+        // pageid=-9 means END OF LESSON in Moodle
+        if (paramValue === '-9') {
+            console.log('[' + modtype + ' Tracking] Detected END OF LESSON (pageid=-9)');
+            currentPosition = totalItems;
+            pageInMap = true;
+        }
+        // Check for completion page content (Félicitations, 100%, etc.)
+        else if (paramValue === null || paramValue === '' || paramValue === '0' || paramValue === '-9') {
+            var bodyText = document.body.innerText || '';
+            var hasCompletionText = bodyText.indexOf('Félicitations') !== -1 ||
+                bodyText.indexOf('Congratulations') !== -1 ||
+                bodyText.indexOf('terminée') !== -1 ||
+                bodyText.indexOf('completed') !== -1 ||
+                (bodyText.indexOf('100') !== -1 && bodyText.indexOf('%') !== -1);
+            if (hasCompletionText) {
+                console.log('[' + modtype + ' Tracking] Detected completion page via content');
+                currentPosition = totalItems;
+                pageInMap = true;
+            }
+        }
+    }
+
+    // Check if we have a valid pageid in the URL (positive number in reverseMap)
+    if (!pageInMap && paramValue !== null && paramValue !== '' && paramValue !== '0') {
         var key = isNaN(Number(paramValue)) ? paramValue : Number(paramValue);
-        if (reverseMap[key] !== undefined) {
+        console.log('[' + modtype + ' Tracking] Looking up key:', key, 'found:', reverseMap[key]);
+        if (key > 0 && reverseMap[key] !== undefined) {
             currentPosition = reverseMap[key];
             pageInMap = true;
         }
     }
 
-    // For lessons: detect completion page (no pageid + completion indicators)
-    if (modtype === 'lesson' && !pageInMap) {
-        var noPageId = (paramValue === null || paramValue === '0' || paramValue === '');
-        // Look for specific completion elements, not just text anywhere
-        var completionBox = document.querySelector('.box.generalbox.boxaligncenter');
-        var hasCompletionIndicator = completionBox && (
-            completionBox.innerHTML.indexOf('100') !== -1 ||
-            completionBox.innerHTML.indexOf('terminée') !== -1 ||
-            completionBox.innerHTML.indexOf('Félicitations') !== -1 ||
-            completionBox.innerHTML.indexOf('Congratulations') !== -1
-        );
-        if (noPageId && hasCompletionIndicator) {
-            currentPosition = totalItems;
-            pageInMap = true;
-        }
-    }
+    console.log('[' + modtype + ' Tracking] Final: currentPosition=' + currentPosition + ', pageInMap=' + pageInMap + ', furthest=' + furthestPosition);
 
     // 3. Update furthest if current is higher, save to storage.
     // IMPORTANT: furthest should NEVER decrease
