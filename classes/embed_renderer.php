@@ -98,7 +98,7 @@ class embed_renderer {
             case 'assign':
                 return $this->redirect_to_activity();
             case 'lesson':
-                return $this->redirect_to_activity();
+                return $this->render_lesson_iframe();
             case 'book':
                 return $this->redirect_to_activity();
             // Simple content types can be rendered inline.
@@ -992,6 +992,175 @@ class embed_renderer {
                 }
             }
         }, false);
+    })();
+    </script>
+</body>
+</html>';
+
+        return $html;
+    }
+
+    /**
+     * Render Lesson in an iframe with position tracking.
+     *
+     * Wraps the lesson view in an iframe and injects JavaScript to:
+     * 1. Track the current page position
+     * 2. Send position updates via PostMessage to the parent (SmartLearning)
+     *
+     * @return string HTML content
+     */
+    private function render_lesson_iframe(): string {
+        global $DB, $CFG;
+
+        $lesson = $DB->get_record('lesson', ['id' => $this->cm->instance], '*', MUST_EXIST);
+
+        // Get lesson pages (content pages only, exclude navigation pages)
+        // qtype: 20 = content page, 1-10 = question types, 21 = end of branch, 30 = cluster, 31 = end of cluster
+        $pages = $DB->get_records_sql(
+            "SELECT id, title, qtype FROM {lesson_pages}
+             WHERE lessonid = :lessonid AND qtype NOT IN (21, 30, 31)
+             ORDER BY ordering ASC",
+            ['lessonid' => (int)$this->cm->instance]
+        );
+        $pages = array_values($pages);
+        $totalPages = count($pages);
+
+        // Build initial URL (with position if specified)
+        $url = $CFG->wwwroot . '/mod/lesson/view.php?id=' . $this->cm->id;
+
+        if ($this->targetSlide !== null && $this->targetSlide > 0) {
+            $positionUrl = $this->get_lesson_position_url($this->targetSlide);
+            if ($positionUrl) {
+                $url = $positionUrl;
+            }
+        }
+
+        $cmid = (int)$this->cm->id;
+
+        $html = '<!DOCTYPE html>
+<html lang="' . current_language() . '">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>' . s($lesson->name) . '</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #lesson-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="lesson-frame" src="' . s($url) . '" allowfullscreen></iframe>
+    <script>
+    (function() {
+        var iframe = document.getElementById("lesson-frame");
+        var cmid = ' . $cmid . ';
+        var totalPages = ' . $totalPages . ';
+        var pageIdToIndex = ' . json_encode(array_combine(array_column($pages, 'id'), array_keys($pages))) . ';
+        var lastSentPosition = null;
+
+        // Send position update to parent (SmartLearning)
+        function sendPositionUpdate(currentPage, source) {
+            if (currentPage === lastSentPosition) return;
+            lastSentPosition = currentPage;
+
+            var progressPercent = totalPages > 0 ? Math.round((currentPage / totalPages) * 100) : 0;
+            var message = {
+                type: "activity-progress",
+                activityType: "lesson",
+                cmid: cmid,
+                currentPosition: currentPage,
+                totalPositions: totalPages,
+                furthestPosition: currentPage,
+                progressPercent: progressPercent,
+                currentPercent: progressPercent,
+                status: progressPercent >= 100 ? "completed" : "incomplete",
+                source: source || "lesson-tracker",
+                timestamp: Date.now()
+            };
+
+            // Send to parent window (SmartLearning iframe container)
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage(message, "*");
+                console.log("[Lesson Embed] Sent position:", currentPage, "/", totalPages);
+            }
+        }
+
+        // Extract page ID from URL
+        function getPageIdFromUrl(url) {
+            var match = url.match(/[?&]pageid=(\d+)/);
+            return match ? parseInt(match[1], 10) : null;
+        }
+
+        // Track page changes by monitoring iframe URL
+        function checkPosition() {
+            try {
+                var iframeUrl = iframe.contentWindow.location.href;
+                var pageId = getPageIdFromUrl(iframeUrl);
+
+                if (pageId !== null && pageIdToIndex[pageId] !== undefined) {
+                    // Convert 0-indexed to 1-indexed
+                    var currentPage = pageIdToIndex[pageId] + 1;
+                    sendPositionUpdate(currentPage, "url-tracker");
+                }
+            } catch (e) {
+                // Cross-origin or other error - ignore
+            }
+        }
+
+        // Monitor iframe load events
+        iframe.onload = function() {
+            checkPosition();
+
+            // Inject a mutation observer into the iframe to catch AJAX navigation
+            try {
+                var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                if (iframeDoc) {
+                    // Check position after any page changes
+                    var observer = new MutationObserver(function() {
+                        setTimeout(checkPosition, 100);
+                    });
+                    observer.observe(iframeDoc.body, { childList: true, subtree: true });
+
+                    // Also inject CSS to hide Moodle navigation
+                    var style = iframeDoc.createElement("style");
+                    style.id = "sm-lesson-embed-css";
+                    style.textContent = [
+                        "/* Hide Moodle navigation for clean embed */",
+                        "#page-header { display: none !important; }",
+                        ".navbar { display: none !important; }",
+                        "#nav-drawer { display: none !important; }",
+                        ".drawer-toggler { display: none !important; }",
+                        "#page-footer { display: none !important; }",
+                        "footer { display: none !important; }",
+                        ".secondary-navigation { display: none !important; }",
+                        "#page.drawers { padding-left: 0 !important; }",
+                        "#page-content { padding: 1rem !important; }"
+                    ].join("\\n");
+                    iframeDoc.head.appendChild(style);
+                }
+            } catch (e) {
+                // Cross-origin
+            }
+
+            // Poll for position changes (backup for AJAX navigation)
+            setInterval(checkPosition, 1000);
+        };
+
+        // Initial position message (whole activity if no pages detected yet)
+        if (totalPages > 0) {
+            sendPositionUpdate(1, "initial");
+        }
     })();
     </script>
 </body>

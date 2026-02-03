@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025020309</version>
+        <version>2025020310</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.9</release>
+        <release>2.1.10</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.9/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.10/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.9</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.10</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.9 - Hide Database Errors + Improved Lesson Progress Bar</h3>
+            <h3>Version 2.1.10 - Lesson Position Tracking</h3>
 
-            <h4>UI Improvements</h4>
+            <h4>New Features</h4>
             <ul>
-                <li>Hide raw database error messages in embedded activities</li>
-                <li>Modern lesson progress bar with gradient fill and animations</li>
-                <li>Improved progress container styling with SmartLearning theme</li>
-                <li>Better lesson navigation button styling</li>
+                <li>Lesson activities now use iframe wrapper for position tracking</li>
+                <li>Real-time page position updates sent to SmartLearning</li>
+                <li>Support for tag navigation to specific lesson pages</li>
+                <li>Automatic Moodle chrome hiding in embedded lessons</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.9: Hide database errors + improved lesson progress bar CSS</li>
                 <li>v2.1.8: Add progress tracking for H5P, wiki, glossary, database, workshop</li>
                 <li>v2.1.7: Fix quiz attempt API for Moodle 4.2+</li>
-                <li>v2.1.6: Fix quiz_settings class for Moodle 4.2+</li>
             </ul>
             ]]>
         </releasenotes>
