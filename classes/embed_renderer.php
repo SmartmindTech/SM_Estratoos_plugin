@@ -1142,7 +1142,7 @@ class embed_renderer {
                     lastKnownPosition = currentPage;
                     sendPositionUpdate(currentPage, "url-tracker");
                 }
-                // If page not in map (answer/feedback page), don't update position
+                // If page not in map (answer/feedback page), do not update position
                 // This keeps the counter at the last question position
             } catch (e) {
                 // Cross-origin or other error - ignore
