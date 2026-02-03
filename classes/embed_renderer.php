@@ -238,10 +238,15 @@ class embed_renderer {
             $quiz = $DB->get_record('quiz', ['id' => $this->cm->instance], '*', MUST_EXIST);
 
             // Create quiz object using Moodle's quiz API.
-            // Moodle 4.0+ uses mod_quiz\quiz namespace, older uses global quiz class.
-            if (class_exists('\\mod_quiz\\quiz')) {
+            // Moodle 4.2+ uses mod_quiz\quiz_settings, older uses global quiz class.
+            if (class_exists('\\mod_quiz\\quiz_settings')) {
+                // Moodle 4.2+ (quiz_settings replaced quiz class)
+                $quizobj = \mod_quiz\quiz_settings::create($this->cm->instance, $USER->id);
+            } else if (class_exists('\\mod_quiz\\quiz')) {
+                // Moodle 4.0-4.1 (mod_quiz\quiz namespace)
                 $quizobj = \mod_quiz\quiz::create($this->cm->instance, $USER->id);
             } else {
+                // Moodle 3.x (global quiz class)
                 $quizobj = \quiz::create($this->cm->instance, $USER->id);
             }
 
