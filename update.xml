@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025020307</version>
+        <version>2025020308</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.7</release>
+        <release>2.1.8</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,28 +29,31 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.7/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.8/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.7</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.8</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.7 - Fix Quiz Attempt API for Moodle 4.2+</h3>
+            <h3>Version 2.1.8 - Add Progress Tracking for Additional Activities</h3>
 
-            <h4>Bug Fixes</h4>
+            <h4>New Features</h4>
             <ul>
-                <li>Fixed "Call to undefined method get_last_finished_attempt()" error</li>
-                <li>Use quiz_get_user_attempts() function instead of deprecated class methods</li>
-                <li>Properly pass last attempt to quiz_prepare_and_start_new_attempt()</li>
+                <li>Add progress tracking for H5P activities (attempts, scores)</li>
+                <li>Add progress tracking for Wiki (pages, user edits)</li>
+                <li>Add progress tracking for Glossary (entries count)</li>
+                <li>Add progress tracking for Database activity (records, required entries)</li>
+                <li>Add progress tracking for Workshop (submission, peer assessment)</li>
+                <li>Support simple progress for Choice, Feedback, Survey, Chat, LTI</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.7: Fix quiz attempt API for Moodle 4.2+</li>
                 <li>v2.1.6: Fix quiz_settings class for Moodle 4.2+</li>
                 <li>v2.1.5: Quiz class fix + folder CSS + activity handling</li>
-                <li>v2.1.4: Label progress + manual completion + view tracking</li>
             </ul>
             ]]>
         </releasenotes>

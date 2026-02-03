@@ -147,6 +147,35 @@ class get_activity_progress extends external_api {
                     $progress = array_merge($progress, self::get_simple_progress($cm, $userid));
                     break;
 
+                case 'h5pactivity':
+                    $progress = array_merge($progress, self::get_h5p_progress($cm->instance, $userid));
+                    break;
+
+                case 'glossary':
+                    $progress = array_merge($progress, self::get_glossary_progress($cm->instance, $userid));
+                    break;
+
+                case 'wiki':
+                    $progress = array_merge($progress, self::get_wiki_progress($cm->instance, $userid));
+                    break;
+
+                case 'data':
+                    $progress = array_merge($progress, self::get_database_progress($cm->instance, $userid));
+                    break;
+
+                case 'workshop':
+                    $progress = array_merge($progress, self::get_workshop_progress($cm->instance, $userid));
+                    break;
+
+                case 'choice':
+                case 'feedback':
+                case 'survey':
+                case 'chat':
+                case 'lti':
+                    // These are simple participation-based activities
+                    $progress = array_merge($progress, self::get_simple_progress($cm, $userid));
+                    break;
+
                 default:
                     // Generic completion-only progress.
                     $progress['totalitems'] = 1;
@@ -763,6 +792,215 @@ class get_activity_progress extends external_api {
             }
         } catch (\Exception $e) {
             // Table may not exist in older Moodle versions.
+        }
+
+        return $progress;
+    }
+
+    /**
+     * Get H5P activity progress data.
+     */
+    private static function get_h5p_progress(int $h5pactivityid, int $userid): array {
+        global $DB;
+
+        $progress = [
+            'score' => null,
+            'maxscore' => null,
+            'attempts' => 0,
+            'totalitems' => 1,
+            'completeditems' => 0,
+        ];
+
+        $h5p = $DB->get_record('h5pactivity', ['id' => $h5pactivityid]);
+        if (!$h5p) {
+            return $progress;
+        }
+
+        $progress['maxscore'] = (float)($h5p->grade ?? 100);
+
+        // Get user attempts
+        try {
+            $attempts = $DB->get_records('h5pactivity_attempts', [
+                'h5pactivityid' => $h5pactivityid,
+                'userid' => $userid,
+            ], 'attempt DESC');
+
+            $progress['attempts'] = count($attempts);
+
+            if (!empty($attempts)) {
+                $latest = reset($attempts);
+                if ($latest->completion) {
+                    $progress['completeditems'] = 1;
+                    $progress['score'] = (float)$latest->scaled * 100;
+                }
+            }
+        } catch (\Exception $e) {
+            // Table may not exist
+        }
+
+        return $progress;
+    }
+
+    /**
+     * Get Glossary progress data.
+     */
+    private static function get_glossary_progress(int $glossaryid, int $userid): array {
+        global $DB;
+
+        $progress = [
+            'entriescount' => 0,
+            'userentriescount' => 0,
+            'totalitems' => 1,
+            'completeditems' => 0,
+        ];
+
+        // Count total entries
+        $totalentries = $DB->count_records('glossary_entries', ['glossaryid' => $glossaryid, 'approved' => 1]);
+        $progress['entriescount'] = $totalentries;
+
+        // Count user's entries
+        $userentries = $DB->count_records('glossary_entries', ['glossaryid' => $glossaryid, 'userid' => $userid]);
+        $progress['userentriescount'] = $userentries;
+
+        // User has participated if they added entries or viewed it (check completion)
+        if ($userentries > 0) {
+            $progress['completeditems'] = 1;
+        }
+
+        return $progress;
+    }
+
+    /**
+     * Get Wiki progress data.
+     */
+    private static function get_wiki_progress(int $wikiid, int $userid): array {
+        global $DB;
+
+        $progress = [
+            'pagescount' => 0,
+            'usereditscount' => 0,
+            'totalitems' => 1,
+            'completeditems' => 0,
+        ];
+
+        // Get wiki subwikis
+        $subwikis = $DB->get_records('wiki_subwikis', ['wikiid' => $wikiid]);
+        if (!empty($subwikis)) {
+            // Count pages across all subwikis
+            foreach ($subwikis as $sw) {
+                $progress['pagescount'] += $DB->count_records('wiki_pages', ['subwikiid' => $sw->id]);
+            }
+
+            // Count user's edits
+            try {
+                $usereditssql = "SELECT COUNT(DISTINCT wv.id)
+                                 FROM {wiki_versions} wv
+                                 JOIN {wiki_pages} wp ON wp.id = wv.pageid
+                                 JOIN {wiki_subwikis} ws ON ws.id = wp.subwikiid
+                                 WHERE ws.wikiid = :wikiid AND wv.userid = :userid";
+                $progress['usereditscount'] = (int)$DB->count_records_sql($usereditssql, ['wikiid' => $wikiid, 'userid' => $userid]);
+            } catch (\Exception $e) {
+                // Tables may not exist
+            }
+        }
+
+        // User has participated if they made edits
+        if ($progress['usereditscount'] > 0) {
+            $progress['completeditems'] = 1;
+        }
+
+        return $progress;
+    }
+
+    /**
+     * Get Database activity progress data.
+     */
+    private static function get_database_progress(int $dataid, int $userid): array {
+        global $DB;
+
+        $progress = [
+            'recordscount' => 0,
+            'userrecordscount' => 0,
+            'requiredentries' => 0,
+            'totalitems' => 1,
+            'completeditems' => 0,
+        ];
+
+        $data = $DB->get_record('data', ['id' => $dataid]);
+        if (!$data) {
+            return $progress;
+        }
+
+        $progress['requiredentries'] = (int)$data->requiredentries;
+
+        // Count total approved records
+        $progress['recordscount'] = $DB->count_records('data_records', ['dataid' => $dataid, 'approved' => 1]);
+
+        // Count user's records
+        $progress['userrecordscount'] = $DB->count_records('data_records', ['dataid' => $dataid, 'userid' => $userid]);
+
+        // If required entries is set, use that as the target
+        if ($progress['requiredentries'] > 0) {
+            $progress['totalitems'] = $progress['requiredentries'];
+            $progress['completeditems'] = min($progress['userrecordscount'], $progress['requiredentries']);
+        } else if ($progress['userrecordscount'] > 0) {
+            $progress['completeditems'] = 1;
+        }
+
+        return $progress;
+    }
+
+    /**
+     * Get Workshop progress data.
+     */
+    private static function get_workshop_progress(int $workshopid, int $userid): array {
+        global $DB;
+
+        $progress = [
+            'submitted' => false,
+            'assessed' => false,
+            'grade' => null,
+            'maxgrade' => null,
+            'totalitems' => 2, // Submit + assess peers
+            'completeditems' => 0,
+        ];
+
+        $workshop = $DB->get_record('workshop', ['id' => $workshopid]);
+        if (!$workshop) {
+            return $progress;
+        }
+
+        $progress['maxgrade'] = (float)$workshop->grade;
+
+        // Check if user submitted
+        $submission = $DB->get_record('workshop_submissions', [
+            'workshopid' => $workshopid,
+            'authorid' => $userid,
+        ]);
+
+        if ($submission) {
+            $progress['submitted'] = true;
+            $progress['completeditems']++;
+            $progress['grade'] = $submission->grade;
+        }
+
+        // Check if user assessed peers
+        $assessments = $DB->count_records('workshop_assessments', [
+            'submissionid' => $submission->id ?? 0,
+            'reviewerid' => $userid,
+        ]);
+
+        // Also check if user was assigned assessments
+        $assignedassessments = $DB->count_records_sql(
+            "SELECT COUNT(wa.id) FROM {workshop_assessments} wa
+             JOIN {workshop_submissions} ws ON ws.id = wa.submissionid
+             WHERE ws.workshopid = :workshopid AND wa.reviewerid = :userid",
+            ['workshopid' => $workshopid, 'userid' => $userid]
+        );
+
+        if ($assignedassessments > 0 || $assessments > 0) {
+            $progress['assessed'] = true;
+            $progress['completeditems']++;
         }
 
         return $progress;
