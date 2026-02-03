@@ -168,44 +168,61 @@ class embed_renderer {
     }
 
     /**
-     * Redirect to quiz - handles direct navigation to attempt page.
+     * Redirect to quiz - handles navigation to attempt or review page.
      *
-     * Logic:
-     * 1. If targetSlide is set and active attempt exists → attempt.php?page=targetSlide-1
-     * 2. If furthestSlide is set and active attempt exists → attempt.php?page=furthestSlide-1
-     * 3. If active attempt exists (no position) → attempt.php (Moodle resumes at last page)
-     * 4. If no active attempt → view.php (user needs to start attempt)
+     * Logic for TAG NAVIGATION (targetSlide is set):
+     * 1. Find the best finished attempt (based on quiz grading method)
+     * 2. Redirect to review.php (read-only) at the specific question
+     * 3. This preserves progress and allows viewing even if attempts exhausted
+     *
+     * Logic for NORMAL NAVIGATION (no targetSlide):
+     * 1. If active attempt exists → attempt.php (continue attempt)
+     * 2. If furthestSlide is set and active attempt → attempt.php?page=furthestSlide-1
+     * 3. If no active attempt → view.php (user needs to start attempt)
      *
      * @return string Never returns - performs redirect and exits.
      */
     private function redirect_to_quiz(): string {
         global $DB, $CFG, $USER;
 
+        $quizid = (int)$this->cm->instance;
+
+        // TAG NAVIGATION: When targetSlide is set, use REVIEW MODE (read-only)
+        // This shows the tagged question without affecting progress
+        if ($this->targetSlide !== null && $this->targetSlide > 0) {
+            $reviewAttempt = $this->get_best_finished_attempt($quizid);
+
+            if ($reviewAttempt) {
+                // Redirect to review.php (read-only view of completed attempt)
+                $page = $this->targetSlide - 1; // 1-based → 0-based
+                $url = $CFG->wwwroot . '/mod/quiz/review.php?attempt=' . $reviewAttempt->id
+                    . '&cmid=' . $this->cm->id
+                    . '&page=' . $page;
+
+                header('Location: ' . $url);
+                exit;
+            }
+
+            // No finished attempts - fall through to check for in-progress attempt
+            // or redirect to view.php
+        }
+
+        // NORMAL NAVIGATION: Continue or start attempt
         // Find user's active (in-progress) attempt.
         $attempt = $DB->get_record_sql(
             "SELECT id FROM {quiz_attempts}
              WHERE quiz = :quizid AND userid = :userid AND state = 'inprogress'
              ORDER BY attempt DESC LIMIT 1",
-            ['quizid' => (int)$this->cm->instance, 'userid' => $USER->id]
+            ['quizid' => $quizid, 'userid' => $USER->id]
         );
-
-        // If no active attempt but targetSlide is specified, try to start a new attempt.
-        if (!$attempt && $this->targetSlide !== null && $this->targetSlide > 0) {
-            $attempt = $this->start_quiz_attempt();
-        }
 
         if ($attempt) {
             // Active attempt exists - redirect to attempt.php.
             $url = $CFG->wwwroot . '/mod/quiz/attempt.php?attempt=' . $attempt->id
                 . '&cmid=' . $this->cm->id;
 
-            // Determine which page to navigate to.
-            if ($this->targetSlide !== null && $this->targetSlide > 0) {
-                // Direct navigation to specific position (tag click).
-                $page = $this->targetSlide - 1; // 1-based → 0-based.
-                $url .= '&page=' . $page;
-            } elseif ($this->furthestSlide !== null && $this->furthestSlide > 0) {
-                // Resume to furthest position (go-back button).
+            // If furthestSlide is set, navigate to that position (go-back button).
+            if ($this->furthestSlide !== null && $this->furthestSlide > 0) {
                 $page = $this->furthestSlide - 1;
                 $url .= '&page=' . $page;
             }
@@ -217,6 +234,70 @@ class embed_renderer {
 
         header('Location: ' . $url);
         exit;
+    }
+
+    /**
+     * Get the best finished attempt for review based on quiz grading method.
+     *
+     * Respects quiz settings for which attempt counts:
+     * - QUIZ_GRADEHIGHEST (1): Attempt with highest grade
+     * - QUIZ_GRADEAVERAGE (2): Any finished attempt (we use the last)
+     * - QUIZ_ATTEMPTFIRST (3): First finished attempt
+     * - QUIZ_ATTEMPTLAST (4): Last finished attempt
+     *
+     * @param int $quizid Quiz instance ID
+     * @return object|null Best attempt record with id and sumgrades, or null if none
+     */
+    private function get_best_finished_attempt(int $quizid): ?object {
+        global $DB, $USER;
+
+        // Get quiz grading method
+        $quiz = $DB->get_record('quiz', ['id' => $quizid], 'grademethod');
+        $grademethod = $quiz ? (int)$quiz->grademethod : 1; // Default to highest
+
+        // Get all finished attempts
+        $attempts = $DB->get_records_sql(
+            "SELECT id, attempt, sumgrades FROM {quiz_attempts}
+             WHERE quiz = :quizid AND userid = :userid AND state = 'finished'
+             ORDER BY attempt ASC",
+            ['quizid' => $quizid, 'userid' => $USER->id]
+        );
+
+        if (empty($attempts)) {
+            return null;
+        }
+
+        // Select attempt based on grading method
+        // Constants from mod/quiz/locallib.php
+        $QUIZ_GRADEHIGHEST = 1;
+        $QUIZ_GRADEAVERAGE = 2;
+        $QUIZ_ATTEMPTFIRST = 3;
+        $QUIZ_ATTEMPTLAST = 4;
+
+        switch ($grademethod) {
+            case $QUIZ_ATTEMPTFIRST:
+                // First attempt
+                return reset($attempts);
+
+            case $QUIZ_ATTEMPTLAST:
+            case $QUIZ_GRADEAVERAGE:
+                // Last attempt (or last for average since we just need one to review)
+                return end($attempts);
+
+            case $QUIZ_GRADEHIGHEST:
+            default:
+                // Highest grade
+                $best = null;
+                $bestgrade = -1;
+                foreach ($attempts as $att) {
+                    $grade = (float)($att->sumgrades ?? 0);
+                    if ($grade > $bestgrade) {
+                        $bestgrade = $grade;
+                        $best = $att;
+                    }
+                }
+                return $best ?: end($attempts);
+        }
     }
 
     /**

@@ -214,6 +214,48 @@ body.sm-activity-embed-mode .btn.btn-secondary:hover {
     border-color: var(--sl-gray-300) !important;
 }
 
+/* Outline buttons - make them match the primary style */
+body.sm-activity-embed-mode .btn-outline-primary,
+body.sm-activity-embed-mode .btn.btn-outline-primary {
+    background-color: transparent !important;
+    border: 2px solid var(--sl-primary) !important;
+    color: var(--sl-primary) !important;
+    font-weight: 500 !important;
+    border-radius: var(--sl-radius-md) !important;
+    padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
+}
+
+body.sm-activity-embed-mode .btn-outline-primary:hover,
+body.sm-activity-embed-mode .btn.btn-outline-primary:hover {
+    background-color: var(--sl-primary) !important;
+    color: #fff !important;
+}
+
+/* Generic buttons without specific class - style as secondary */
+body.sm-activity-embed-mode .btn:not(.btn-primary):not(.btn-secondary):not(.btn-outline-primary):not(.btn-link):not(.btn-icon) {
+    background-color: var(--sl-bg) !important;
+    border: 2px solid var(--sl-primary) !important;
+    color: var(--sl-primary) !important;
+    font-weight: 500 !important;
+    border-radius: var(--sl-radius-md) !important;
+    padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
+    transition: all var(--sl-transition-fast) !important;
+}
+
+body.sm-activity-embed-mode .btn:not(.btn-primary):not(.btn-secondary):not(.btn-outline-primary):not(.btn-link):not(.btn-icon):hover {
+    background-color: var(--sl-primary) !important;
+    color: #fff !important;
+}
+
+/* Lesson-specific button styling */
+body.sm-activity-embed-mode .lessonbutton,
+body.sm-activity-embed-mode .mod_lesson .btn,
+body.sm-activity-embed-mode input[type="submit"],
+body.sm-activity-embed-mode button[type="submit"] {
+    min-width: 80px !important;
+    text-align: center !important;
+}
+
 /* --- CARDS --- */
 body.sm-activity-embed-mode .card {
     background-color: var(--sl-bg) !important;
