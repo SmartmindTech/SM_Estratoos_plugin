@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025020302</version>
+        <version>2025020303</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.2</release>
+        <release>2.1.3</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,26 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.2/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.3/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.2</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.3</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.2 - Fix Quiz Attempt Start Path</h3>
+            <h3>Version 2.1.3 - Fix URL Embed + Scrollbar CSS</h3>
 
             <h4>Bug Fixes</h4>
             <ul>
-                <li>Fixed PHP path error when auto-starting quiz attempts - use $CFG->dirroot instead of relative paths</li>
+                <li>Fixed "Undefined constant RESOURCELIB_DISPLAY_EMBED" error on URL/External Link activities</li>
+                <li>Fixed unnecessary horizontal scrollbar in book content</li>
+                <li>Fixed missing vertical scrollbar in page content when content overflows</li>
+                <li>Improved overflow handling for all embedded activity content</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.2: Fix quiz attempt start path</li>
                 <li>v2.1.1: Auto-start quiz attempt on tag navigation</li>
                 <li>v2.1.0: Quiz redirect + SmartLearning CSS + forum/label support</li>
-                <li>v2.0.99: Whole-activity tagging + activity-progress message type</li>
             </ul>
             ]]>
         </releasenotes>

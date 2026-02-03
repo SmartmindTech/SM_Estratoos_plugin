@@ -573,9 +573,71 @@ body {
     min-height: 100vh !important;
 }
 
-/* region-main fills width and scrolls */
+/* region-main fills width and scrolls only when needed */
 #region-main {
-    overflow: auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
+/* --- BOOK SPECIFIC --- */
+/* Prevent horizontal scrollbar in book content */
+.book_content,
+#book-content,
+.book_toc,
+.generalbox.book_content {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    max-width: 100% !important;
+}
+
+/* Book chapter navigation arrows */
+.book_content pre,
+.book_content code {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+}
+
+/* --- PAGE SPECIFIC --- */
+/* Ensure page module content scrolls vertically */
+.page-content-container,
+#page-mod-page-content,
+.mod_page .generalbox {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    max-height: calc(100vh - 120px) !important;
+}
+
+/* Page content inside region-main */
+#region-main-box .generalbox.box {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* --- GENERAL CONTENT OVERFLOW --- */
+/* Prevent horizontal overflow in content areas */
+.activity-content,
+.activityinstance,
+#intro,
+.box.generalbox {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+
+/* Images should not overflow */
+img {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* Tables should scroll horizontally if needed */
+.table-responsive,
+table {
+    max-width: 100% !important;
+}
+
+table:not(.table-responsive table) {
+    display: block !important;
+    overflow-x: auto !important;
 }
 </style>
 HTML;

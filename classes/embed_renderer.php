@@ -1205,12 +1205,14 @@ JS;
      * @return string HTML content
      */
     private function render_url(): string {
-        global $DB;
+        global $CFG, $DB;
+
+        require_once($CFG->libdir . '/resourcelib.php');
 
         $url = $DB->get_record('url', ['id' => $this->cm->instance], '*', MUST_EXIST);
 
         // Check display mode.
-        if ($url->display == RESOURCELIB_DISPLAY_EMBED) {
+        if ($url->display == \RESOURCELIB_DISPLAY_EMBED) {
             $html = '<div class="embed-url-container" style="width:100%;height:100vh;">';
             $html .= '<iframe src="' . $url->externalurl . '" ';
             $html .= 'style="width:100%;height:100%;border:none;" ';
