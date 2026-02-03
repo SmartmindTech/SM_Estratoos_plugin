@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025012898</version>
+        <version>2025012899</version>
 
         <!-- Human-readable release version -->
-        <release>2.0.98</release>
+        <release>2.0.99</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.98/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.0.99/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.98</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.0.99</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.0.98 - Activity Position Tracking for Quiz, Book, and Lesson</h3>
+            <h3>Version 2.0.99 - Whole-Activity Tagging for All Activity Types</h3>
 
             <h4>New Feature</h4>
             <ul>
-                <li>Real-time position tracking for quiz (pages), book (chapters), and lesson (pages) activities via postMessage — enables position bar, tagging, and go-back button in SmartLearning</li>
-                <li>Position-aware redirect URLs in embed renderer: clicking a tag navigates directly to the correct quiz page, book chapter, or lesson page</li>
-                <li>New activity/tracking_js class generates per-activity tracking JS that reuses the scorm-progress message format for full frontend compatibility (zero frontend changes needed)</li>
+                <li>Enable tagging comments to any activity type: page, resource, URL, assignment, forum, folder, glossary, wiki, choice, feedback, survey, chat, workshop, LTI, H5P, and any custom activity type</li>
+                <li>Activities without position tracking (e.g., page, resource) report position 1/1 via postMessage for whole-activity tagging</li>
+                <li>New get_whole_activity_script() method in tracking_js class for activities that don't have multiple positions</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.0.98: Activity position tracking for quiz (pages), book (chapters), and lesson (pages) — position bar, tagging, go-back button</li>
                 <li>v2.0.97: Extend embed mode to all activity types (hide Moodle chrome for quiz, assignment, lesson, book, etc.)</li>
                 <li>v2.0.96: Fix iSpring modern navigation + suspend_data parsing for Rise 360/iSpring Base64</li>
                 <li>v2.0.95: Fix refresh resume for all vendors via LMSInitialize wrapper + iSpring post-load navigation</li>
-                <li>v2.0.94: Fix suspend_data corruption + resume format for iSpring/Rise 360</li>
             </ul>
             ]]>
         </releasenotes>

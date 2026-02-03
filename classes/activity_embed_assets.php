@@ -131,6 +131,21 @@ footer#page-footer {
     display: none !important;
 }
 
+/* Mobile menu toggle button (hamburger icon) */
+button[data-toggler="drawers"],
+.btn-icon.drawer-toggle,
+button.btn.drawertoggle,
+.drawertoggle,
+button[aria-controls="theme_boost-drawers-primary"],
+[data-action="toggle-drawer"] {
+    display: none !important;
+}
+
+/* Any button that looks like a drawer toggle */
+.btn.icon-no-margin[data-toggler] {
+    display: none !important;
+}
+
 /* Region main settings menu (gear icon) */
 #region-main-settings-menu {
     display: none !important;

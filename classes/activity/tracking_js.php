@@ -20,13 +20,13 @@
  * Generates tracking JS for quiz, book, and lesson activities that:
  *   1. Detects current position from URL parameters
  *   2. Tracks furthest position in sessionStorage
- *   3. Reports position via postMessage (reuses scorm-progress format)
- *   4. Listens for navigation requests (scorm-navigate-to-slide)
+ *   3. Reports position via postMessage using 'activity-progress' type
+ *   4. Listens for navigation requests (activity-navigate-to-position)
  *   5. Handles pending navigation from tag clicks
  *
- * The scorm-progress message format is reused for frontend compatibility — the
- * SmartLearning frontend already handles this format for position bar, tagging,
- * go-back button, and progress tracking.
+ * Uses 'activity-progress' message type (not 'scorm-progress') to clearly
+ * distinguish non-SCORM activities. The SmartLearning frontend handles both
+ * message types for position bar, tagging, go-back button, and progress tracking.
  *
  * @package    local_sm_estratoos_plugin
  * @copyright  2025 SmartMind Technologies
@@ -127,6 +127,60 @@ class tracking_js {
     }
 
     /**
+     * Generate tracking JS for whole-activity tagging.
+     *
+     * For activities without position tracking (page, resource, url, assign, forum,
+     * folder, label, etc.), this sends an activity-progress message with position 1/1.
+     * This enables tagging comments to the whole activity.
+     *
+     * @param int $cmid Course module ID.
+     * @param string $modtype Activity type name (for logging).
+     * @return string HTML <script> block.
+     */
+    public static function get_whole_activity_script(int $cmid, string $modtype): string {
+        return <<<HTML
+<script>
+// ============================================================
+// Whole-Activity Tagging ({$modtype}) — cmid {$cmid}
+// Reports position 1/1 for activities without position tracking.
+// Enables tagging comments to the whole activity.
+// ============================================================
+(function() {
+    var cmid = {$cmid};
+    var modtype = '{$modtype}';
+
+    function sendProgress() {
+        var message = {
+            type: 'activity-progress',
+            activityType: modtype,
+            cmid: cmid,
+            currentPosition: 1,
+            totalPositions: 1,
+            furthestPosition: 1,
+            status: 'completed',
+            source: 'whole-activity',
+            timestamp: Date.now(),
+            progressPercent: 100,
+            currentPercent: 100
+        };
+        try { window.parent.postMessage(message, '*'); } catch (e) {}
+        try {
+            if (window.top !== window.parent) {
+                window.top.postMessage(message, '*');
+            }
+        } catch (e) {}
+    }
+
+    // Send progress on load and after delays.
+    sendProgress();
+    setTimeout(sendProgress, 500);
+    setTimeout(sendProgress, 2000);
+})();
+</script>
+HTML;
+    }
+
+    /**
      * Generate tracking JS for lesson pages.
      *
      * Lesson position is page-based. URL parameter: ?pageid=N (DB ID).
@@ -168,8 +222,8 @@ class tracking_js {
      *
      * This JS runs inside the Moodle activity page (which is loaded in an iframe
      * from SmartLearning). It detects position, reports progress, and handles
-     * navigation — reusing the scorm-progress/scorm-navigate-to-slide message
-     * types for full frontend compatibility.
+     * navigation using 'activity-progress' and 'activity-navigate-to-position'
+     * message types.
      *
      * @param int $cmid Course module ID.
      * @param string $modtype Activity type ('quiz', 'book', 'lesson').
@@ -195,7 +249,7 @@ class tracking_js {
 // ============================================================
 // Activity Position Tracking ({$modtype}) — cmid {$cmid}
 // Detects position from URL, reports via postMessage, handles navigation.
-// Reuses scorm-progress format for SmartLearning frontend compatibility.
+// Uses activity-progress message type for non-SCORM activities.
 // ============================================================
 (function() {
     var cmid = {$cmid};
@@ -217,7 +271,7 @@ class tracking_js {
     }
 
     // 2. Track furthest position in sessionStorage + localStorage.
-    var storageKey = 'scorm_furthest_slide_' + cmid;
+    var storageKey = 'activity_furthest_position_' + cmid;
     var furthestPosition = 0;
     try {
         furthestPosition = parseInt(sessionStorage.getItem(storageKey)) || 0;
@@ -235,7 +289,7 @@ class tracking_js {
         localStorage.setItem(storageKey, String(furthestPosition));
     } catch (e) {}
 
-    // 3. Build and send progress message (scorm-progress format for frontend compatibility).
+    // 3. Build and send progress message (activity-progress for non-SCORM activities).
     var progressPercent = totalItems > 0
         ? Math.min(100, Math.round(furthestPosition / totalItems * 100)) : 0;
     var currentPercent = totalItems > 0
@@ -243,16 +297,14 @@ class tracking_js {
 
     function sendProgress() {
         var message = {
-            type: 'scorm-progress',
+            type: 'activity-progress',
+            activityType: modtype,
             cmid: cmid,
-            scormid: 0,
-            currentSlide: currentPosition,
-            totalSlides: totalItems,
-            furthestSlide: furthestPosition,
-            lessonLocation: String(currentPosition),
-            lessonStatus: furthestPosition >= totalItems ? 'completed' : 'incomplete',
-            score: null,
-            slideSource: 'navigation',
+            currentPosition: currentPosition,
+            totalPositions: totalItems,
+            furthestPosition: furthestPosition,
+            status: furthestPosition >= totalItems ? 'completed' : 'incomplete',
+            source: 'navigation',
             timestamp: Date.now(),
             progressPercent: progressPercent,
             currentPercent: currentPercent
@@ -270,11 +322,14 @@ class tracking_js {
     setTimeout(sendProgress, 500);
     setTimeout(sendProgress, 2000);
 
-    // 4. Listen for navigation requests from SmartLearning (scorm-navigate-to-slide).
+    // 4. Listen for navigation requests from SmartLearning.
+    // Accepts both 'activity-navigate-to-position' and legacy 'scorm-navigate-to-slide'.
     window.addEventListener('message', function(event) {
         if (!event.data) return;
-        if (event.data.type === 'scorm-navigate-to-slide' && event.data.cmid === cmid) {
-            var targetPosition = event.data.slide;
+        var isActivityNav = event.data.type === 'activity-navigate-to-position' && event.data.cmid === cmid;
+        var isLegacyNav = event.data.type === 'scorm-navigate-to-slide' && event.data.cmid === cmid;
+        if (isActivityNav || isLegacyNav) {
+            var targetPosition = event.data.position || event.data.slide;
             if (targetPosition && itemMap[targetPosition] !== undefined) {
                 var targetValue = itemMap[targetPosition];
                 try {
@@ -287,15 +342,19 @@ class tracking_js {
     }, false);
 
     // 5. Check sessionStorage for pending navigation (from tag click before iframe loaded).
+    // Supports both new and legacy storage keys.
     try {
-        var pendingKey = 'scorm_pending_navigation_' + cmid;
-        var pending = sessionStorage.getItem(pendingKey);
+        var pendingKey = 'activity_pending_navigation_' + cmid;
+        var legacyPendingKey = 'scorm_pending_navigation_' + cmid;
+        var pending = sessionStorage.getItem(pendingKey) || sessionStorage.getItem(legacyPendingKey);
         if (pending) {
             sessionStorage.removeItem(pendingKey);
+            sessionStorage.removeItem(legacyPendingKey);
             var navData = JSON.parse(pending);
-            if (navData.slide && navData.slide !== currentPosition && itemMap[navData.slide] !== undefined) {
+            var targetPos = navData.position || navData.slide;
+            if (targetPos && targetPos !== currentPosition && itemMap[targetPos] !== undefined) {
                 var url = new URL(window.location.href);
-                url.searchParams.set(urlParam, String(itemMap[navData.slide]));
+                url.searchParams.set(urlParam, String(itemMap[targetPos]));
                 window.location.href = url.toString();
             }
         }

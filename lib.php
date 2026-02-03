@@ -177,8 +177,10 @@ function local_sm_estratoos_plugin_before_footer() {
                 echo \local_sm_estratoos_plugin\activity_embed_assets::get_css_js();
             }
 
-            // Activity position tracking JS for quiz, book, and lesson.
-            // Sends scorm-progress postMessages for frontend position bar, tagging, go-back.
+            // Activity tracking JS for position bar, tagging, and go-back.
+            // - Quiz, book, lesson: Position-based tracking (page/chapter/page).
+            // - Other activities: Whole-activity tagging (position 1/1).
+            // All send scorm-progress postMessages for frontend compatibility.
             $cmid = optional_param('id', 0, PARAM_INT);
             if (!$cmid) {
                 $cmid = optional_param('cmid', 0, PARAM_INT);
@@ -194,6 +196,10 @@ function local_sm_estratoos_plugin_before_footer() {
                                 || strpos($pagepath, '/review.php') !== false) {
                                 echo \local_sm_estratoos_plugin\activity\tracking_js::get_quiz_script(
                                     $cmid, (int)$cm->instance);
+                            } else {
+                                // Quiz view.php — whole-activity tagging.
+                                echo \local_sm_estratoos_plugin\activity\tracking_js::get_whole_activity_script(
+                                    $cmid, 'quiz');
                             }
                             break;
                         case 'book':
@@ -203,6 +209,32 @@ function local_sm_estratoos_plugin_before_footer() {
                         case 'lesson':
                             echo \local_sm_estratoos_plugin\activity\tracking_js::get_lesson_script(
                                 $cmid, (int)$cm->instance);
+                            break;
+                        // Activities with whole-activity tagging (no position tracking).
+                        case 'page':
+                        case 'resource':
+                        case 'url':
+                        case 'assign':
+                        case 'forum':
+                        case 'folder':
+                        case 'label':
+                        case 'glossary':
+                        case 'wiki':
+                        case 'data':
+                        case 'choice':
+                        case 'feedback':
+                        case 'survey':
+                        case 'chat':
+                        case 'workshop':
+                        case 'lti':
+                        case 'h5pactivity':
+                            echo \local_sm_estratoos_plugin\activity\tracking_js::get_whole_activity_script(
+                                $cmid, $cm->modname);
+                            break;
+                        default:
+                            // Any other activity type — still enable whole-activity tagging.
+                            echo \local_sm_estratoos_plugin\activity\tracking_js::get_whole_activity_script(
+                                $cmid, $cm->modname);
                             break;
                     }
                 }
