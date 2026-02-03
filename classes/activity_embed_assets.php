@@ -247,49 +247,57 @@ body.sm-activity-embed-mode .btn:not(.btn-primary):not(.btn-secondary):not(.btn-
     color: #fff !important;
 }
 
-/* Lesson-specific button styling */
-body.sm-activity-embed-mode .lessonbutton,
-body.sm-activity-embed-mode .mod_lesson .btn,
-body.sm-activity-embed-mode input[type="submit"],
-body.sm-activity-embed-mode button[type="submit"] {
-    min-width: 80px !important;
-    text-align: center !important;
-}
+/* ============================================================
+ * LESSON BUTTONS - Clean styling with no weird borders/stripes
+ * ============================================================ */
 
-/* Fix lesson buttons - remove any left border/stripe styling */
-body.sm-activity-embed-mode .mod_lesson button,
-body.sm-activity-embed-mode .mod_lesson input[type="submit"],
-body.sm-activity-embed-mode .mod_lesson .btn,
+/* Reset ALL lesson buttons first - remove any borders */
+body.sm-activity-embed-mode .path-mod-lesson button,
+body.sm-activity-embed-mode .path-mod-lesson input[type="submit"],
+body.sm-activity-embed-mode .path-mod-lesson .btn,
 body.sm-activity-embed-mode #page-mod-lesson-view button,
 body.sm-activity-embed-mode #page-mod-lesson-view input[type="submit"],
 body.sm-activity-embed-mode #page-mod-lesson-view .btn {
-    border-left: none !important;
-    border: none !important;
+    border: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    border-style: none !important;
+    border-width: 0 !important;
+    border-color: transparent !important;
+    outline: none !important;
     box-shadow: var(--sl-shadow-sm) !important;
-}
-
-/* Lesson answer buttons - primary style for Yes/Oui */
-body.sm-activity-embed-mode .mod_lesson .singlebutton:first-child button,
-body.sm-activity-embed-mode .mod_lesson .singlebutton:first-child input[type="submit"],
-body.sm-activity-embed-mode .mod_lesson form:first-of-type button,
-body.sm-activity-embed-mode .mod_lesson form:first-of-type input[type="submit"] {
+    border-radius: var(--sl-radius-md) !important;
+    padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
+    min-width: 80px !important;
+    text-align: center !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
     background-color: var(--sl-primary) !important;
     color: white !important;
 }
 
-/* Lesson answer buttons - secondary style for No/Non */
-body.sm-activity-embed-mode .mod_lesson .singlebutton:not(:first-child) button,
-body.sm-activity-embed-mode .mod_lesson .singlebutton:not(:first-child) input[type="submit"],
-body.sm-activity-embed-mode .mod_lesson form:not(:first-of-type) button,
-body.sm-activity-embed-mode .mod_lesson form:not(:first-of-type) input[type="submit"] {
-    background-color: var(--sl-bg) !important;
-    color: var(--sl-text) !important;
-    border: 1px solid var(--sl-border) !important;
+/* Hover state for all lesson buttons */
+body.sm-activity-embed-mode .path-mod-lesson button:hover,
+body.sm-activity-embed-mode .path-mod-lesson input[type="submit"]:hover,
+body.sm-activity-embed-mode #page-mod-lesson-view button:hover,
+body.sm-activity-embed-mode #page-mod-lesson-view input[type="submit"]:hover {
+    background-color: var(--sl-primary-dark) !important;
+    transform: translateY(-1px) !important;
 }
 
-body.sm-activity-embed-mode .mod_lesson .singlebutton:not(:first-child) button:hover,
-body.sm-activity-embed-mode .mod_lesson .singlebutton:not(:first-child) input[type="submit"]:hover {
-    background-color: var(--sl-gray-100) !important;
+/* Singlebutton form wrapper - remove any borders from the form itself */
+body.sm-activity-embed-mode .path-mod-lesson .singlebutton,
+body.sm-activity-embed-mode .path-mod-lesson form,
+body.sm-activity-embed-mode #page-mod-lesson-view .singlebutton,
+body.sm-activity-embed-mode #page-mod-lesson-view form {
+    border: 0 !important;
+    border-left: 0 !important;
+    margin: 0 var(--sl-spacing-sm) 0 0 !important;
+    padding: 0 !important;
+    display: inline-block !important;
+    background: transparent !important;
 }
 
 /* --- CARDS --- */
@@ -393,19 +401,13 @@ body.sm-activity-embed-mode #mod_quiz_navblock .qnbutton {
     font-weight: 500 !important;
 }
 
-/* Quiz timer - should scroll with content, not be fixed */
-body.sm-activity-embed-mode .mod_quiz-timer,
+/* Quiz timer - should scroll with content, not be fixed/sticky */
+body.sm-activity-embed-mode #quiz-timer-wrapper,
 body.sm-activity-embed-mode #quiz-timer,
-body.sm-activity-embed-mode .quiz-timer,
-body.sm-activity-embed-mode [id*="quiz-time"],
-body.sm-activity-embed-mode .countdown-timer,
-body.sm-activity-embed-mode .quiz_timer,
-body.sm-activity-embed-mode #quiz_timer,
-body.sm-activity-embed-mode .quiz-time-left-container,
-body.sm-activity-embed-mode [class*="quiz"][class*="timer"],
-body.sm-activity-embed-mode [id*="timer"] {
-    position: relative !important;
+body.sm-activity-embed-mode .quiz-timer-inner,
+body.sm-activity-embed-mode #toggle-timer {
     position: static !important;
+    position: relative !important;
     top: auto !important;
     right: auto !important;
     left: auto !important;
@@ -415,47 +417,45 @@ body.sm-activity-embed-mode [id*="timer"] {
     transform: none !important;
 }
 
-/* Quiz timer container - remove fixed/sticky positioning */
-body.sm-activity-embed-mode .mod_quiz-countdown-timer,
-body.sm-activity-embed-mode #quiz-countdown-timer,
-body.sm-activity-embed-mode .sticky-timer,
-body.sm-activity-embed-mode [class*="timer-container"],
-body.sm-activity-embed-mode #page-mod-quiz-attempt .quiz-timer,
-body.sm-activity-embed-mode #page-mod-quiz-attempt [class*="timer"] {
-    position: static !important;
-    float: none !important;
-    width: auto !important;
-    margin: 0 0 var(--sl-spacing-md) 0 !important;
-    display: inline-block !important;
+/* Quiz timer wrapper - display as block, no special positioning */
+body.sm-activity-embed-mode #quiz-timer-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    margin-bottom: var(--sl-spacing-md) !important;
+    padding: var(--sl-spacing-sm) !important;
+    background-color: var(--sl-bg-secondary) !important;
+    border-radius: var(--sl-radius-md) !important;
 }
 
-/* Ensure timer parent doesn't create fixed context */
-body.sm-activity-embed-mode #page-mod-quiz-attempt #region-main > div:first-child,
-body.sm-activity-embed-mode #page-mod-quiz-review #region-main > div:first-child {
-    position: relative !important;
+/* Timer inner styling */
+body.sm-activity-embed-mode #quiz-timer {
+    background-color: var(--sl-primary) !important;
+    color: white !important;
+    padding: var(--sl-spacing-xs) var(--sl-spacing-sm) !important;
+    border-radius: var(--sl-radius-sm) !important;
+    font-weight: 500 !important;
 }
 
-/* Make quiz questions wider - remove narrow constraints */
+/* Hide/show button */
+body.sm-activity-embed-mode #toggle-timer {
+    margin-left: var(--sl-spacing-sm) !important;
+}
+
+/* Make quiz questions use full width */
 body.sm-activity-embed-mode .que {
     max-width: none !important;
     width: 100% !important;
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
 }
 
 body.sm-activity-embed-mode .que .content {
     max-width: none !important;
-    flex: 1 !important;
-    min-width: 0 !important;
+    width: auto !important;
+    overflow: visible !important;
 }
 
 body.sm-activity-embed-mode .que .formulation {
     max-width: none !important;
-    width: 100% !important;
-}
-
-body.sm-activity-embed-mode .que .formulation.clearfix {
     width: 100% !important;
 }
 
@@ -468,46 +468,20 @@ body.sm-activity-embed-mode #page-mod-quiz-review #region-main {
 }
 
 /* Remove Bootstrap container constraints */
-body.sm-activity-embed-mode #page-mod-quiz-attempt .container-fluid,
-body.sm-activity-embed-mode #page-mod-quiz-review .container-fluid,
-body.sm-activity-embed-mode #page-mod-quiz-attempt #region-main-box,
-body.sm-activity-embed-mode #page-mod-quiz-review #region-main-box {
+body.sm-activity-embed-mode .path-mod-quiz #region-main-box,
+body.sm-activity-embed-mode .path-mod-quiz .container-fluid {
     max-width: none !important;
     width: 100% !important;
     padding-left: var(--sl-spacing-md) !important;
     padding-right: var(--sl-spacing-md) !important;
 }
 
-/* The info panel (Question N, Points, etc.) */
-body.sm-activity-embed-mode .que .info {
-    width: 120px !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
-    flex-shrink: 0 !important;
-    margin-right: var(--sl-spacing-md) !important;
-}
-
-/* The content panel takes remaining space */
-body.sm-activity-embed-mode .que .content {
-    flex: 1 1 auto !important;
-    width: calc(100% - 140px) !important;
-    margin-left: 0 !important;
-}
-
-/* For smaller screens, stack vertically */
-@media (max-width: 768px) {
-    body.sm-activity-embed-mode .que {
-        flex-direction: column !important;
-    }
-    body.sm-activity-embed-mode .que .info {
-        width: 100% !important;
-        max-width: none !important;
-        margin-right: 0 !important;
-        margin-bottom: var(--sl-spacing-md) !important;
-    }
-    body.sm-activity-embed-mode .que .content {
-        width: 100% !important;
-    }
+/* Allow question content to expand - remove any explicit widths */
+body.sm-activity-embed-mode .path-mod-quiz .que .content,
+body.sm-activity-embed-mode .path-mod-quiz .que .formulation,
+body.sm-activity-embed-mode .path-mod-quiz .que .ablock,
+body.sm-activity-embed-mode .path-mod-quiz .que .answer {
+    max-width: none !important;
 }
 
 /* Essay/text area should be full width */
@@ -653,55 +627,6 @@ body.sm-activity-embed-mode table.progress_bar tr {
     border-spacing: 0 !important;
 }
 
-/* Lesson navigation buttons styling - clean, no borders */
-body.sm-activity-embed-mode .lessonbutton,
-body.sm-activity-embed-mode form[action*="lesson"] input[type="submit"] {
-    background-color: var(--sl-primary) !important;
-    color: white !important;
-    border: none !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-top: none !important;
-    border-bottom: none !important;
-    border-radius: var(--sl-radius-md) !important;
-    padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
-    font-weight: 500 !important;
-    cursor: pointer !important;
-    transition: all var(--sl-transition-fast) !important;
-    box-shadow: var(--sl-shadow-sm) !important;
-}
-
-body.sm-activity-embed-mode .lessonbutton:hover,
-body.sm-activity-embed-mode form[action*="lesson"] input[type="submit"]:hover {
-    background-color: var(--sl-primary-dark) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: var(--sl-shadow-md) !important;
-}
-
-/* Lesson singlebutton containers - ensure no weird borders */
-body.sm-activity-embed-mode .mod_lesson .singlebutton {
-    display: inline-block !important;
-    margin-right: var(--sl-spacing-sm) !important;
-}
-
-body.sm-activity-embed-mode .mod_lesson .singlebutton button,
-body.sm-activity-embed-mode .mod_lesson .singlebutton input {
-    background-color: var(--sl-primary) !important;
-    color: white !important;
-    border: none !important;
-    border-left: none !important;
-    border-radius: var(--sl-radius-md) !important;
-    padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
-    font-weight: 500 !important;
-    cursor: pointer !important;
-    box-shadow: var(--sl-shadow-sm) !important;
-}
-
-body.sm-activity-embed-mode .mod_lesson .singlebutton:hover button,
-body.sm-activity-embed-mode .mod_lesson .singlebutton:hover input {
-    background-color: var(--sl-primary-dark) !important;
-}
-
 /* Lesson question/answer area */
 body.sm-activity-embed-mode .contents {
     background-color: var(--sl-bg) !important;
@@ -709,37 +634,6 @@ body.sm-activity-embed-mode .contents {
     border-radius: var(--sl-radius-lg) !important;
     padding: var(--sl-spacing-xl) !important;
     margin: var(--sl-spacing-lg) 0 !important;
-}
-
-/* AGGRESSIVE FIX: Reset ALL lesson button borders to prevent blue stripe */
-body.sm-activity-embed-mode #page-mod-lesson-view button,
-body.sm-activity-embed-mode #page-mod-lesson-view input[type="submit"],
-body.sm-activity-embed-mode #page-mod-lesson-view .btn,
-body.sm-activity-embed-mode .path-mod-lesson button,
-body.sm-activity-embed-mode .path-mod-lesson input[type="submit"],
-body.sm-activity-embed-mode .path-mod-lesson .btn {
-    border: none !important;
-    border-left: 0 !important;
-    border-right: 0 !important;
-    border-top: 0 !important;
-    border-bottom: 0 !important;
-    border-style: none !important;
-    border-width: 0 !important;
-    outline: none !important;
-    box-shadow: var(--sl-shadow-sm) !important;
-    border-radius: var(--sl-radius-md) !important;
-    padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
-    min-width: 80px !important;
-}
-
-/* Button focus state - no weird borders */
-body.sm-activity-embed-mode #page-mod-lesson-view button:focus,
-body.sm-activity-embed-mode #page-mod-lesson-view input[type="submit"]:focus,
-body.sm-activity-embed-mode .path-mod-lesson button:focus,
-body.sm-activity-embed-mode .path-mod-lesson input[type="submit"]:focus {
-    outline: 2px solid var(--sl-primary) !important;
-    outline-offset: 2px !important;
-    border: none !important;
 }
 
 /* --- PAGE/RESOURCE SPECIFIC STYLES --- */

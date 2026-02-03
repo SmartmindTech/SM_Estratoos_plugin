@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025020314;  // YYYYMMDDXX format.
+$plugin->version = 2025020315;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.1.14';  // Fix quiz timer/width CSS + lesson button blue stripe.
+$plugin->release = '2.1.15';  // Fix quiz page mapping (0-based) + timer/width CSS.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

@@ -109,32 +109,37 @@ class tracking_js {
         // Position 1 = first real question (and any preceding description pages)
         // Position 2 = second real question (and any preceding description pages)
         // etc.
-        $reversemap = []; // page => position
-        $itemmap = [];    // position => first page for that position
+        //
+        // IMPORTANT: Quiz URL uses 0-based page numbers (?page=0 for first page),
+        // but database stores 1-based (page column = 1, 2, 3...).
+        // We need to use 0-based keys in reverseMap and 0-based values in itemMap.
+        $reversemap = []; // 0-based URL page => position
+        $itemmap = [];    // position => 0-based URL page
         $position = 0;
         $pendingDescPages = [];
 
-        ksort($pageinfo); // Ensure pages are in order
-        foreach ($pageinfo as $page => $info) {
+        ksort($pageinfo); // Ensure pages are in order (1-based from DB)
+        foreach ($pageinfo as $dbpage => $info) {
+            $urlpage = $dbpage - 1; // Convert to 0-based for URL
             if ($info['hasRealQuestion']) {
                 $position++;
                 // This page and all pending description pages get this position
-                $itemmap[$position] = $page;
-                $reversemap[$page] = $position;
-                foreach ($pendingDescPages as $descPage) {
-                    $reversemap[$descPage] = $position;
+                $itemmap[$position] = $urlpage;
+                $reversemap[$urlpage] = $position;
+                foreach ($pendingDescPages as $descUrlPage) {
+                    $reversemap[$descUrlPage] = $position;
                 }
                 $pendingDescPages = [];
             } else {
                 // Description-only page - wait for next real question
-                $pendingDescPages[] = $page;
+                $pendingDescPages[] = $urlpage;
             }
         }
 
         // Handle trailing description pages (assign to last position)
         if (!empty($pendingDescPages) && $position > 0) {
-            foreach ($pendingDescPages as $descPage) {
-                $reversemap[$descPage] = $position;
+            foreach ($pendingDescPages as $descUrlPage) {
+                $reversemap[$descUrlPage] = $position;
             }
         }
 
