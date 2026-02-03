@@ -357,6 +357,83 @@ body.sm-activity-embed-mode #mod_quiz_navblock .qnbutton {
     font-weight: 500 !important;
 }
 
+/* Quiz timer - should scroll with content, not be fixed */
+body.sm-activity-embed-mode .mod_quiz-timer,
+body.sm-activity-embed-mode #quiz-timer,
+body.sm-activity-embed-mode .quiz-timer,
+body.sm-activity-embed-mode [id*="quiz-time"],
+body.sm-activity-embed-mode .countdown-timer {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    z-index: auto !important;
+}
+
+/* Quiz timer container - remove fixed positioning */
+body.sm-activity-embed-mode .mod_quiz-countdown-timer,
+body.sm-activity-embed-mode #quiz-countdown-timer {
+    position: static !important;
+    float: none !important;
+}
+
+/* Make quiz questions wider - remove narrow constraints */
+body.sm-activity-embed-mode .que {
+    max-width: none !important;
+    width: 100% !important;
+}
+
+body.sm-activity-embed-mode .que .content {
+    max-width: none !important;
+}
+
+body.sm-activity-embed-mode .que .formulation {
+    max-width: none !important;
+}
+
+/* Quiz attempt page - full width content */
+body.sm-activity-embed-mode #page-mod-quiz-attempt #region-main,
+body.sm-activity-embed-mode #page-mod-quiz-review #region-main {
+    max-width: none !important;
+    width: 100% !important;
+    padding: var(--sl-spacing-md) !important;
+}
+
+/* Remove the narrow info panel constraint */
+body.sm-activity-embed-mode .que .info {
+    width: auto !important;
+    min-width: 100px !important;
+    max-width: 150px !important;
+    float: left !important;
+}
+
+body.sm-activity-embed-mode .que .content {
+    margin-left: 160px !important;
+    width: auto !important;
+}
+
+/* For smaller screens, stack vertically */
+@media (max-width: 768px) {
+    body.sm-activity-embed-mode .que .info {
+        float: none !important;
+        max-width: none !important;
+        width: 100% !important;
+        margin-bottom: var(--sl-spacing-md) !important;
+    }
+    body.sm-activity-embed-mode .que .content {
+        margin-left: 0 !important;
+    }
+}
+
+/* Essay/text area should be full width */
+body.sm-activity-embed-mode .que .qtype_essay_response,
+body.sm-activity-embed-mode .que textarea,
+body.sm-activity-embed-mode .que .editor_atto_wrap {
+    width: 100% !important;
+    max-width: none !important;
+}
+
 /* --- BOOK SPECIFIC STYLES --- */
 body.sm-activity-embed-mode .book_content {
     padding: var(--sl-spacing-xl) !important;
@@ -1119,18 +1196,25 @@ JS;
 
     // ============================================================
     // FALLBACK PROTECTION
-    // Detect when page navigates away from the activity (/mod/).
+    // Detect when page navigates away from allowed pages.
     // Show blank page instead of Moodle dashboard or other pages.
-    // This prevents users from accidentally leaving the embed context.
+    // Allows: /mod/, /local/sm_estratoos_plugin/, /grade/, /user/, files
     // ============================================================
     (function() {
         var currentPath = window.location.pathname;
-        var isActivityPage = currentPath.indexOf('/mod/') !== -1;
-        var isLocalEmbed = currentPath.indexOf('/local/sm_estratoos_plugin/') !== -1;
 
-        // If we're not on an activity page or embed page, blank the page
-        if (!isActivityPage && !isLocalEmbed) {
-            // We've navigated away from the activity - show blank page
+        // Check if current path is allowed
+        function isPathAllowed(path) {
+            return path.indexOf('/mod/') !== -1 ||
+                   path.indexOf('/local/sm_estratoos_plugin/') !== -1 ||
+                   path.indexOf('/grade/') !== -1 ||
+                   path.indexOf('/user/') !== -1 ||
+                   path.indexOf('/pluginfile.php') !== -1 ||
+                   path.indexOf('/draftfile.php') !== -1;
+        }
+
+        // If we are not on an allowed page, blank it
+        if (!isPathAllowed(currentPath)) {
             document.documentElement.innerHTML = '<html><head><style>body{background:#f8f9fa;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#6c757d;}</style></head><body><div style="text-align:center;"><p>Activity session ended.</p><p style="font-size:0.875rem;">Please return to the course to continue.</p></div></body></html>';
             return;
         }
@@ -1149,23 +1233,15 @@ JS;
             // Allow javascript: links
             if (href.startsWith('javascript:')) return;
 
-            // Check if link goes outside /mod/ or /local/sm_estratoos_plugin/
+            // Check if link goes to an allowed path
             try {
                 var url = new URL(href, window.location.origin);
-                var linkPath = url.pathname;
-                var isAllowed = linkPath.indexOf('/mod/') !== -1 ||
-                                linkPath.indexOf('/local/sm_estratoos_plugin/') !== -1 ||
-                                linkPath.indexOf('/pluginfile.php') !== -1 ||
-                                linkPath.indexOf('/draftfile.php') !== -1;
-
-                if (!isAllowed) {
+                if (!isPathAllowed(url.pathname)) {
                     e.preventDefault();
                     e.stopPropagation();
-                    // Show message in place of navigation
                     document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#6c757d;text-align:center;"><div><p>Activity session ended.</p><p style="font-size:0.875rem;">Please return to the course to continue.</p></div></div>';
                 }
             } catch (err) {
-                // Invalid URL, block it
                 e.preventDefault();
             }
         }, true);
@@ -1177,11 +1253,7 @@ JS;
 
             try {
                 var url = new URL(action, window.location.origin);
-                var formPath = url.pathname;
-                var isAllowed = formPath.indexOf('/mod/') !== -1 ||
-                                formPath.indexOf('/local/sm_estratoos_plugin/') !== -1;
-
-                if (!isAllowed && action !== '') {
+                if (!isPathAllowed(url.pathname) && action !== '') {
                     e.preventDefault();
                     document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#6c757d;text-align:center;"><div><p>Activity session ended.</p><p style="font-size:0.875rem;">Please return to the course to continue.</p></div></div>';
                 }
