@@ -260,37 +260,49 @@ HTML;
     var reverseMap = {$reversemapjson};
     var urlParam = '{$urlparam}';
 
-    // 1. Detect current position from URL parameter.
-    var params = new URLSearchParams(window.location.search);
-    var paramValue = params.get(urlParam);
-    var currentPosition = 1;
-    if (paramValue !== null) {
-        var key = isNaN(Number(paramValue)) ? paramValue : Number(paramValue);
-        if (reverseMap[key] !== undefined) {
-            currentPosition = reverseMap[key];
-        }
-    }
-
-    // 2. Track furthest position in sessionStorage + localStorage.
+    // 1. Get furthest position from storage first (before detecting current).
     var storageKey = 'activity_furthest_position_' + cmid;
+    var currentPosKey = 'activity_current_position_' + cmid;
     var furthestPosition = 0;
+    var lastKnownPosition = 1;
     try {
         furthestPosition = parseInt(sessionStorage.getItem(storageKey)) || 0;
+        lastKnownPosition = parseInt(sessionStorage.getItem(currentPosKey)) || 1;
     } catch (e) {}
     if (furthestPosition <= 0) {
         try {
             furthestPosition = parseInt(localStorage.getItem(storageKey)) || 0;
         } catch (e) {}
     }
+
+    // 2. Detect current position from URL parameter.
+    // If page not in map (e.g., answer/feedback page), keep last known position.
+    var params = new URLSearchParams(window.location.search);
+    var paramValue = params.get(urlParam);
+    var currentPosition = lastKnownPosition; // Default to last known, not 1
+    var pageInMap = false;
+    if (paramValue !== null) {
+        var key = isNaN(Number(paramValue)) ? paramValue : Number(paramValue);
+        if (reverseMap[key] !== undefined) {
+            currentPosition = reverseMap[key];
+            pageInMap = true;
+        }
+    }
+
+    // 3. Update furthest if current is higher, save to storage.
     if (currentPosition > furthestPosition) {
         furthestPosition = currentPosition;
     }
     try {
         sessionStorage.setItem(storageKey, String(furthestPosition));
         localStorage.setItem(storageKey, String(furthestPosition));
+        // Only update current position if page is in our map
+        if (pageInMap) {
+            sessionStorage.setItem(currentPosKey, String(currentPosition));
+        }
     } catch (e) {}
 
-    // 3. Build and send progress message (activity-progress for non-SCORM activities).
+    // 4. Build and send progress message (activity-progress for non-SCORM activities).
     var progressPercent = totalItems > 0
         ? Math.min(100, Math.round(furthestPosition / totalItems * 100)) : 0;
     var currentPercent = totalItems > 0

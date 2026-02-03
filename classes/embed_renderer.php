@@ -1071,22 +1071,44 @@ class embed_renderer {
         var pageIdToIndex = ' . json_encode(array_combine(array_column($pages, 'id'), array_keys($pages))) . ';
         var lastSentPosition = null;
 
+        // Storage keys for position tracking
+        var storageKey = "activity_furthest_position_" + cmid;
+        var currentPosKey = "activity_current_position_" + cmid;
+
+        // Get last known position from storage
+        var lastKnownPosition = 1;
+        var furthestPosition = 1;
+        try {
+            lastKnownPosition = parseInt(sessionStorage.getItem(currentPosKey)) || 1;
+            furthestPosition = parseInt(sessionStorage.getItem(storageKey)) || 1;
+        } catch (e) {}
+
         // Send position update to parent (SmartLearning)
         function sendPositionUpdate(currentPage, source) {
             if (currentPage === lastSentPosition) return;
             lastSentPosition = currentPage;
 
-            var progressPercent = totalPages > 0 ? Math.round((currentPage / totalPages) * 100) : 0;
+            // Update furthest if needed
+            if (currentPage > furthestPosition) {
+                furthestPosition = currentPage;
+                try {
+                    sessionStorage.setItem(storageKey, String(furthestPosition));
+                    localStorage.setItem(storageKey, String(furthestPosition));
+                } catch (e) {}
+            }
+
+            var progressPercent = totalPages > 0 ? Math.round((furthestPosition / totalPages) * 100) : 0;
+            var currentPercent = totalPages > 0 ? Math.round((currentPage / totalPages) * 100) : 0;
             var message = {
                 type: "activity-progress",
                 activityType: "lesson",
                 cmid: cmid,
                 currentPosition: currentPage,
                 totalPositions: totalPages,
-                furthestPosition: currentPage,
+                furthestPosition: furthestPosition,
                 progressPercent: progressPercent,
-                currentPercent: progressPercent,
-                status: progressPercent >= 100 ? "completed" : "incomplete",
+                currentPercent: currentPercent,
+                status: furthestPosition >= totalPages ? "completed" : "incomplete",
                 source: source || "lesson-tracker",
                 timestamp: Date.now()
             };
@@ -1094,7 +1116,7 @@ class embed_renderer {
             // Send to parent window (SmartLearning iframe container)
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage(message, "*");
-                console.log("[Lesson Embed] Sent position:", currentPage, "/", totalPages);
+                console.log("[Lesson Embed] Sent position:", currentPage, "/", totalPages, "furthest:", furthestPosition);
             }
         }
 
@@ -1111,10 +1133,17 @@ class embed_renderer {
                 var pageId = getPageIdFromUrl(iframeUrl);
 
                 if (pageId !== null && pageIdToIndex[pageId] !== undefined) {
-                    // Convert 0-indexed to 1-indexed
+                    // Convert 0-indexed to 1-indexed - page is in our map
                     var currentPage = pageIdToIndex[pageId] + 1;
+                    // Save as last known position
+                    try {
+                        sessionStorage.setItem(currentPosKey, String(currentPage));
+                    } catch (e) {}
+                    lastKnownPosition = currentPage;
                     sendPositionUpdate(currentPage, "url-tracker");
                 }
+                // If page not in map (answer/feedback page), don't update position
+                // This keeps the counter at the last question position
             } catch (e) {
                 // Cross-origin or other error - ignore
             }
@@ -1494,8 +1523,11 @@ JS;
         $html .= '</script>';
 
         $html .= '<style>';
-        $html .= 'body { margin: 0; padding: 0; overflow: hidden; }';
-        $html .= '.embed-container { width: 100%; height: 100vh; }';
+        $html .= 'html, body { margin: 0; padding: 0; height: 100%; }';
+        $html .= 'body { overflow-y: auto; overflow-x: hidden; }';
+        $html .= '.embed-container { width: 100%; min-height: 100%; padding: 0; }';
+        $html .= '.embed-page-container { max-width: 900px; margin: 0 auto; }';
+        $html .= '.embed-page-container img { max-width: 100%; height: auto; }';
         $html .= '</style>';
         $html .= '</head>';
         $html .= '<body class="embed-mode">';
