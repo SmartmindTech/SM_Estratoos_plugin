@@ -1102,39 +1102,79 @@ HTML;
     }
 
     /**
-     * CSS for quiz pages — keeps right drawer visible for question navigation.
+     * CSS for quiz pages — hides right drawer in embed mode for more content space.
      *
-     * The quiz question navigation panel is rendered as a "fake block" in
-     * Moodle's side-pre block region, which Boost places in the right drawer.
+     * In embed mode, we hide the question navigation drawer to maximize content width.
+     * Users can navigate using the SmartLearning position bar instead.
      *
      * @return string HTML <style> block.
      */
     private static function get_quiz_drawer_css() {
         return <<<HTML
 <style type="text/css">
-/* --- QUIZ: Keep right drawer for question navigation --- */
+/* --- QUIZ EMBED MODE: Hide right drawer for more space --- */
 
-/* Hide right drawer by default, then re-show for quiz */
+/* Hide right drawer - use SmartLearning position bar for navigation */
 #theme_boost-drawers-blocks,
 .drawer.drawer-right {
-    display: block !important;
-    transform: translateX(0) !important;
-    visibility: visible !important;
+    display: none !important;
 }
 
-/* Ensure the quiz nav block is visible */
-#mod_quiz_navblock {
-    display: block !important;
-}
-
-/* Right margin for the visible drawer */
-#page.drawers.show-drawer-right {
-    margin-right: 285px !important;
-}
-
-/* If drawer-right was not open, still apply margin */
+/* Remove the margin that was reserved for the drawer */
+#page.drawers.show-drawer-right,
 #page.drawers {
-    margin-right: 285px !important;
+    margin-right: 0 !important;
+}
+
+/* Quiz timer - ensure it does NOT float/overlay content */
+#quiz-timer-wrapper {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    text-align: right !important;
+    margin-bottom: 1rem !important;
+    padding: 0.5rem !important;
+    background: #f8f9fa !important;
+    border-radius: 0.375rem !important;
+}
+
+#quiz-timer-wrapper #quiz-timer,
+#quiz-timer-wrapper #toggle-timer {
+    position: static !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
+/* Question content - FULL WIDTH, no constraints */
+.que {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.que .info {
+    float: left !important;
+    width: 120px !important;
+}
+
+.que .content {
+    margin-left: 130px !important;
+    width: auto !important;
+    max-width: none !important;
+}
+
+.que .formulation,
+.que .ablock,
+.que .answer {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Essay textarea full width */
+.que textarea,
+.que .editor_atto_wrap,
+.que .qtype_essay_response {
+    width: 100% !important;
+    max-width: none !important;
 }
 </style>
 HTML;
@@ -1151,16 +1191,15 @@ HTML;
         if ($isQuiz) {
             $quizJs = <<<'JS'
 
-    // Quiz: ensure right drawer stays open for question navigation
+    // Quiz embed mode: hide right drawer for more content space
     var rightDrawer = document.getElementById('theme_boost-drawers-blocks');
     if (rightDrawer) {
-        rightDrawer.classList.add('show');
-        rightDrawer.style.display = '';
-        rightDrawer.style.visibility = 'visible';
+        rightDrawer.style.display = 'none';
     }
     var pageEl = document.getElementById('page');
-    if (pageEl && !pageEl.classList.contains('show-drawer-right')) {
-        pageEl.classList.add('show-drawer-right');
+    if (pageEl) {
+        pageEl.classList.remove('show-drawer-right');
+        pageEl.style.marginRight = '0';
     }
 JS;
         } else {
