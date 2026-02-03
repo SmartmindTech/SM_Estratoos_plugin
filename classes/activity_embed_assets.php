@@ -635,9 +635,109 @@ table {
     max-width: 100% !important;
 }
 
-table:not(.table-responsive table) {
+table:not(.table-responsive table):not(.fp-filename-field):not(.filemanager table):not(.foldertree table) {
     display: block !important;
     overflow-x: auto !important;
+}
+
+/* --- FOLDER SPECIFIC STYLING --- */
+/* Clean up folder file tree appearance */
+.foldertree,
+.filemanager,
+.fp-filename-field {
+    display: table !important;
+    width: 100% !important;
+}
+
+/* Folder file listing */
+.folder-content,
+.box.generalbox.foldertree {
+    padding: var(--sl-spacing-md) !important;
+}
+
+/* Folder tree table - clean modern look */
+.foldertree table,
+.fp-folder table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border: none !important;
+}
+
+.foldertree table td,
+.foldertree table th,
+.fp-folder table td {
+    border: none !important;
+    padding: 8px 12px !important;
+    vertical-align: middle !important;
+}
+
+/* File rows */
+.foldertree tr,
+.fp-folder tr {
+    border-bottom: 1px solid var(--sl-gray-200) !important;
+    transition: background-color var(--sl-transition-fast) !important;
+}
+
+.foldertree tr:hover,
+.fp-folder tr:hover {
+    background-color: var(--sl-gray-50) !important;
+}
+
+.foldertree tr:last-child,
+.fp-folder tr:last-child {
+    border-bottom: none !important;
+}
+
+/* File icons */
+.foldertree .fp-icon,
+.foldertree .icon,
+.fp-folder .fp-icon {
+    width: 24px !important;
+    height: 24px !important;
+    margin-right: 8px !important;
+}
+
+/* File names as links */
+.foldertree a,
+.fp-folder a {
+    color: var(--sl-primary) !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
+}
+
+.foldertree a:hover,
+.fp-folder a:hover {
+    text-decoration: underline !important;
+}
+
+/* Remove tree connector lines */
+.foldertree .tree_item::before,
+.foldertree .tree_item::after,
+.fp-folder .fp-filename::before {
+    display: none !important;
+}
+
+/* Download folder button */
+.folder-download-button,
+.singlebutton {
+    margin-top: var(--sl-spacing-md) !important;
+}
+
+.folder-download-button input[type="submit"],
+.folder-download-button button {
+    background-color: var(--sl-primary) !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    border-radius: var(--sl-radius) !important;
+    cursor: pointer !important;
+    font-weight: 500 !important;
+}
+
+.folder-download-button input[type="submit"]:hover,
+.folder-download-button button:hover {
+    background-color: var(--sl-primary-dark) !important;
 }
 </style>
 HTML;

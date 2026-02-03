@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025020304</version>
+        <version>2025020305</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.4</release>
+        <release>2.1.5</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.4/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.5/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.4</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.5</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.4 - Label Progress + Manual Completion + View Tracking</h3>
+            <h3>Version 2.1.5 - Quiz Class Fix + Folder CSS + Activity Handling</h3>
 
-            <h4>Improvements</h4>
+            <h4>Bug Fixes</h4>
             <ul>
-                <li>Added label activity support in get_activity_progress API</li>
-                <li>Added fallback view tracking using course_modules_viewed table (Moodle 4.0+)</li>
-                <li>Support manual completion tracking - external LMS can mark activities complete</li>
+                <li>Fixed "Class quiz not found" error - now supports both Moodle 4.0+ (mod_quiz\quiz) and older versions</li>
+                <li>Improved folder file listing CSS - cleaner table appearance, removed tree connector lines</li>
+                <li>Explicit handling for feedback, data, workshop, choice, survey, glossary, wiki, chat, folder activities</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.4: Label progress + manual completion + view tracking</li>
                 <li>v2.1.3: Fix URL embed constant + scrollbar CSS</li>
                 <li>v2.1.2: Fix quiz attempt start path</li>
                 <li>v2.1.1: Auto-start quiz attempt on tag navigation</li>
-                <li>v2.1.0: Quiz redirect + SmartLearning CSS + forum/label support</li>
             </ul>
             ]]>
         </releasenotes>

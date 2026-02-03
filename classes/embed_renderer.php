@@ -108,6 +108,18 @@ class embed_renderer {
                 return $this->render_resource();
             case 'url':
                 return $this->render_url();
+            // Interactive activities - always redirect to Moodle view.php in iframe.
+            // These need full Moodle JS/session support.
+            case 'feedback':  // Encuesta rapida
+            case 'data':      // Base de datos
+            case 'workshop':  // Taller
+            case 'choice':    // Choice/Poll
+            case 'survey':    // Survey
+            case 'glossary':  // Glossary
+            case 'wiki':      // Wiki
+            case 'chat':      // Chat
+            case 'folder':    // Folder
+                return $this->redirect_to_activity();
             default:
                 return $this->redirect_to_activity();
         }
@@ -222,12 +234,16 @@ class embed_renderer {
             require_once($CFG->dirroot . '/mod/quiz/locallib.php');
             require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 
-            // Load quiz and course module.
+            // Load quiz record.
             $quiz = $DB->get_record('quiz', ['id' => $this->cm->instance], '*', MUST_EXIST);
-            $course = $DB->get_record('course', ['id' => $this->cm->course], '*', MUST_EXIST);
 
             // Create quiz object using Moodle's quiz API.
-            $quizobj = \quiz::create($this->cm->instance, $USER->id);
+            // Moodle 4.0+ uses mod_quiz\quiz namespace, older uses global quiz class.
+            if (class_exists('\\mod_quiz\\quiz')) {
+                $quizobj = \mod_quiz\quiz::create($this->cm->instance, $USER->id);
+            } else {
+                $quizobj = \quiz::create($this->cm->instance, $USER->id);
+            }
 
             // Check if user can start a new attempt.
             $accessmanager = $quizobj->get_access_manager(time());
