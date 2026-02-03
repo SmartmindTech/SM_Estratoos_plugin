@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025020308;  // YYYYMMDDXX format.
+$plugin->version = 2025020309;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.1.8';  // Add progress tracking for H5P, wiki, glossary, database, workshop activities.
+$plugin->release = '2.1.9';  // Hide database errors + improved lesson progress bar CSS.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

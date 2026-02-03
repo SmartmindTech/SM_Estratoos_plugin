@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025020308</version>
+        <version>2025020309</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.8</release>
+        <release>2.1.9</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,31 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.8/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.9/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.8</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.9</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.8 - Add Progress Tracking for Additional Activities</h3>
+            <h3>Version 2.1.9 - Hide Database Errors + Improved Lesson Progress Bar</h3>
 
-            <h4>New Features</h4>
+            <h4>UI Improvements</h4>
             <ul>
-                <li>Add progress tracking for H5P activities (attempts, scores)</li>
-                <li>Add progress tracking for Wiki (pages, user edits)</li>
-                <li>Add progress tracking for Glossary (entries count)</li>
-                <li>Add progress tracking for Database activity (records, required entries)</li>
-                <li>Add progress tracking for Workshop (submission, peer assessment)</li>
-                <li>Support simple progress for Choice, Feedback, Survey, Chat, LTI</li>
+                <li>Hide raw database error messages in embedded activities</li>
+                <li>Modern lesson progress bar with gradient fill and animations</li>
+                <li>Improved progress container styling with SmartLearning theme</li>
+                <li>Better lesson navigation button styling</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.8: Add progress tracking for H5P, wiki, glossary, database, workshop</li>
                 <li>v2.1.7: Fix quiz attempt API for Moodle 4.2+</li>
                 <li>v2.1.6: Fix quiz_settings class for Moodle 4.2+</li>
-                <li>v2.1.5: Quiz class fix + folder CSS + activity handling</li>
             </ul>
             ]]>
         </releasenotes>

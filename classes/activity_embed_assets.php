@@ -350,6 +350,138 @@ body.sm-activity-embed-mode .lesson-content {
     margin: 0 auto !important;
 }
 
+/* Hide database read errors - show clean UI instead of raw errors */
+body.sm-activity-embed-mode .alert-danger,
+body.sm-activity-embed-mode .notifyproblem,
+body.sm-activity-embed-mode .errorbox,
+body.sm-activity-embed-mode .error,
+body.sm-activity-embed-mode .errormessage,
+body.sm-activity-embed-mode div[style*="background-color: #FFCCBB"],
+body.sm-activity-embed-mode div[class*="error"]:not(.que):not(.formfielderror):not(.error-feedback),
+body.sm-activity-embed-mode .dbreaderror,
+body.sm-activity-embed-mode span.error {
+    display: none !important;
+}
+
+/* Lesson progress container - modern card style */
+body.sm-activity-embed-mode .lessonprogress,
+body.sm-activity-embed-mode .progress_bar_stage,
+body.sm-activity-embed-mode div[class*="progress"]:not(.progress-bar):not(.que .progress),
+body.sm-activity-embed-mode .lesson_timer_progress {
+    background: linear-gradient(135deg, var(--sl-bg-secondary) 0%, var(--sl-bg) 100%) !important;
+    border: 1px solid var(--sl-border) !important;
+    border-radius: var(--sl-radius-lg) !important;
+    padding: var(--sl-spacing-lg) !important;
+    margin: var(--sl-spacing-lg) 0 !important;
+    box-shadow: var(--sl-shadow-sm) !important;
+}
+
+/* Lesson progress text */
+body.sm-activity-embed-mode .lessonprogress span,
+body.sm-activity-embed-mode .progress_bar_stage span,
+body.sm-activity-embed-mode .lesson_timer_progress span {
+    font-size: var(--sl-font-size-sm) !important;
+    color: var(--sl-text-secondary) !important;
+    font-weight: 500 !important;
+    display: block !important;
+    margin-bottom: var(--sl-spacing-sm) !important;
+}
+
+/* Lesson progress bar wrapper */
+body.sm-activity-embed-mode .progress_bar,
+body.sm-activity-embed-mode .lesson-progress-bar,
+body.sm-activity-embed-mode .lessonprogress .progress {
+    height: 10px !important;
+    background-color: var(--sl-gray-200) !important;
+    border-radius: var(--sl-radius-full) !important;
+    overflow: hidden !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+    margin-top: var(--sl-spacing-sm) !important;
+}
+
+/* Lesson progress bar fill - gradient animation */
+body.sm-activity-embed-mode .progress_bar_innertube,
+body.sm-activity-embed-mode .lesson-progress-fill,
+body.sm-activity-embed-mode .lessonprogress .progress-bar,
+body.sm-activity-embed-mode .progress_bar .bar,
+body.sm-activity-embed-mode table.progress_bar tr td[style*="background"] {
+    background: linear-gradient(90deg, var(--sl-primary) 0%, var(--sl-primary-light) 100%) !important;
+    border-radius: var(--sl-radius-full) !important;
+    height: 100% !important;
+    transition: width 0.4s ease-out !important;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.25) !important;
+}
+
+/* Progress bar table cleanup (Moodle uses tables for progress) */
+body.sm-activity-embed-mode table.progress_bar {
+    display: block !important;
+    width: 100% !important;
+    height: 10px !important;
+    border: none !important;
+    background-color: var(--sl-gray-200) !important;
+    border-radius: var(--sl-radius-full) !important;
+    overflow: hidden !important;
+}
+
+body.sm-activity-embed-mode table.progress_bar tbody,
+body.sm-activity-embed-mode table.progress_bar tr {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+body.sm-activity-embed-mode table.progress_bar td {
+    display: inline-block !important;
+    height: 100% !important;
+    padding: 0 !important;
+    border: none !important;
+    vertical-align: top !important;
+}
+
+body.sm-activity-embed-mode table.progress_bar td:first-child {
+    border-radius: var(--sl-radius-full) 0 0 var(--sl-radius-full) !important;
+}
+
+/* Hide table borders in progress bar */
+body.sm-activity-embed-mode table.progress_bar,
+body.sm-activity-embed-mode table.progress_bar td,
+body.sm-activity-embed-mode table.progress_bar tr {
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+}
+
+/* Lesson navigation buttons styling */
+body.sm-activity-embed-mode .lessonbutton,
+body.sm-activity-embed-mode .mod_lesson .singlebutton,
+body.sm-activity-embed-mode form[action*="lesson"] input[type="submit"] {
+    background-color: var(--sl-primary) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: var(--sl-radius-md) !important;
+    padding: var(--sl-spacing-sm) var(--sl-spacing-lg) !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all var(--sl-transition-fast) !important;
+    box-shadow: var(--sl-shadow-sm) !important;
+}
+
+body.sm-activity-embed-mode .lessonbutton:hover,
+body.sm-activity-embed-mode .mod_lesson .singlebutton:hover,
+body.sm-activity-embed-mode form[action*="lesson"] input[type="submit"]:hover {
+    background-color: var(--sl-primary-dark) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--sl-shadow-md) !important;
+}
+
+/* Lesson question/answer area */
+body.sm-activity-embed-mode .contents {
+    background-color: var(--sl-bg) !important;
+    border: 1px solid var(--sl-border) !important;
+    border-radius: var(--sl-radius-lg) !important;
+    padding: var(--sl-spacing-xl) !important;
+    margin: var(--sl-spacing-lg) 0 !important;
+}
+
 /* --- PAGE/RESOURCE SPECIFIC STYLES --- */
 body.sm-activity-embed-mode .page-content-container,
 body.sm-activity-embed-mode #region-main > .box {
