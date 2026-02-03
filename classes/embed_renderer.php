@@ -216,11 +216,11 @@ class embed_renderer {
      * @return object|null The new attempt record, or null if unable to start.
      */
     private function start_quiz_attempt(): ?object {
-        global $DB, $USER;
+        global $CFG, $DB, $USER;
 
         try {
-            require_once(__DIR__ . '/../../../mod/quiz/locallib.php');
-            require_once(__DIR__ . '/../../../mod/quiz/attemptlib.php');
+            require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+            require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 
             // Load quiz and course module.
             $quiz = $DB->get_record('quiz', ['id' => $this->cm->instance], '*', MUST_EXIST);
