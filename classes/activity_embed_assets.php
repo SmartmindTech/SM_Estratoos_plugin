@@ -636,6 +636,26 @@ body.sm-activity-embed-mode .contents {
     margin: var(--sl-spacing-lg) 0 !important;
 }
 
+/* Hide lesson end/completion links in embed mode */
+/* These links navigate away from the activity which is not allowed in embed mode */
+body.sm-activity-embed-mode .path-mod-lesson a[href*="view.php?id="][href*="pageid=0"],
+body.sm-activity-embed-mode .path-mod-lesson a[href*="course/view.php"],
+body.sm-activity-embed-mode .path-mod-lesson a[href*="grade/report"],
+body.sm-activity-embed-mode #page-mod-lesson-view a[href*="view.php?id="][href*="pageid=0"],
+body.sm-activity-embed-mode #page-mod-lesson-view a[href*="course/view.php"],
+body.sm-activity-embed-mode #page-mod-lesson-view a[href*="grade/report"],
+body.sm-activity-embed-mode .mod_lesson a[href*="pageid=0"],
+body.sm-activity-embed-mode .mod_lesson a[href*="course/view.php"],
+body.sm-activity-embed-mode .mod_lesson a[href*="grade/"] {
+    display: none !important;
+}
+
+/* Also hide by link text content using aria or title */
+body.sm-activity-embed-mode .path-mod-lesson .lessonbutton a,
+body.sm-activity-embed-mode #page-mod-lesson-view .lessonbutton a {
+    display: none !important;
+}
+
 /* --- PAGE/RESOURCE SPECIFIC STYLES --- */
 body.sm-activity-embed-mode .page-content-container,
 body.sm-activity-embed-mode #region-main > .box {

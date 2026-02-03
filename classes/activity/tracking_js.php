@@ -337,11 +337,31 @@ HTML;
 
     // 2. Detect current position from URL parameter.
     // If page not in map (e.g., answer/feedback page), keep last known position.
+    // Special case: lesson completion page has no pageid or pageid=0 - detect via page content.
     var params = new URLSearchParams(window.location.search);
     var paramValue = params.get(urlParam);
     var currentPosition = lastKnownPosition; // Default to last known, not 1
     var pageInMap = false;
-    if (paramValue !== null) {
+
+    // Check for lesson completion page (congratulations message)
+    var isLessonComplete = false;
+    if (modtype === 'lesson') {
+        // Lesson completion indicators: no pageid, pageid=0, or congratulations text
+        var noPageId = (paramValue === null || paramValue === '0' || paramValue === '');
+        var hasCompletionText = document.body.innerHTML.indexOf('100 %') !== -1 ||
+            document.body.innerHTML.indexOf('terminée') !== -1 ||
+            document.body.innerHTML.indexOf('Congratulations') !== -1 ||
+            document.body.innerHTML.indexOf('Félicitations') !== -1 ||
+            document.body.innerHTML.indexOf('completed') !== -1;
+        if (noPageId && hasCompletionText) {
+            isLessonComplete = true;
+            currentPosition = totalItems; // Set to last position (completed)
+            furthestPosition = totalItems;
+            pageInMap = true; // Treat as valid page
+        }
+    }
+
+    if (!isLessonComplete && paramValue !== null) {
         var key = isNaN(Number(paramValue)) ? paramValue : Number(paramValue);
         if (reverseMap[key] !== undefined) {
             currentPosition = reverseMap[key];
