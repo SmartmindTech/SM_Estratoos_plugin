@@ -127,10 +127,14 @@ class mark_module_viewed extends external_api {
         $completion = new \completion_info($course);
 
         if ($completion->is_enabled($cminfo)) {
-            // Check if completion is based on view.
+            // Handle completion based on tracking type.
             if ($cminfo->completion == COMPLETION_TRACKING_AUTOMATIC) {
-                // Update completion state - this triggers the completion check.
+                // Automatic completion (view-based) - triggers completion check.
                 $completion->set_module_viewed($cminfo);
+            } else if ($cminfo->completion == COMPLETION_TRACKING_MANUAL) {
+                // Manual completion - mark as complete directly.
+                // This allows external LMS players to mark activities complete.
+                $completion->update_state($cminfo, COMPLETION_COMPLETE);
             }
         }
 

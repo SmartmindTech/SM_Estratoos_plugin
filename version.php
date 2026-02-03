@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025020303;  // YYYYMMDDXX format.
+$plugin->version = 2025020304;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.1.3';  // Fix URL embed + scrollbar CSS.
+$plugin->release = '2.1.4';  // Label progress + manual completion + view tracking fallback.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

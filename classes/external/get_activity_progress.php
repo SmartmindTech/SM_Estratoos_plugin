@@ -143,6 +143,7 @@ class get_activity_progress extends external_api {
                 case 'resource':
                 case 'url':
                 case 'folder':
+                case 'label':
                     $progress = array_merge($progress, self::get_simple_progress($cm, $userid));
                     break;
 
@@ -729,19 +730,40 @@ class get_activity_progress extends external_api {
     }
 
     /**
-     * Get simple activity progress (page, resource, url).
+     * Get simple activity progress (page, resource, url, folder, label).
      */
     private static function get_simple_progress($cm, int $userid): array {
+        global $DB;
+
         $progress = [
             'viewed' => false,
             'totalitems' => 1,
             'completeditems' => 0,
         ];
 
-        // Check completion - if viewed, it's complete.
+        // Check completion first - if viewed, it's complete.
         $completion = self::get_completion_status($cm, $userid);
-        $progress['viewed'] = $completion['completed'];
-        $progress['completeditems'] = $completion['completed'] ? 1 : 0;
+        if ($completion['completed']) {
+            $progress['viewed'] = true;
+            $progress['completeditems'] = 1;
+            return $progress;
+        }
+
+        // Fallback: Check course_modules_viewed table (Moodle 4.0+)
+        // This table records views even when completion tracking is disabled.
+        try {
+            $viewrecord = $DB->get_record('course_modules_viewed', [
+                'coursemoduleid' => $cm->id,
+                'userid' => $userid,
+            ]);
+
+            if ($viewrecord) {
+                $progress['viewed'] = true;
+                $progress['completeditems'] = 1;
+            }
+        } catch (\Exception $e) {
+            // Table may not exist in older Moodle versions.
+        }
 
         return $progress;
     }
