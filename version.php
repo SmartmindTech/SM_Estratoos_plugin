@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025020310;  // YYYYMMDDXX format.
+$plugin->version = 2025020311;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.1.10';  // Lesson position tracking via iframe wrapper.
+$plugin->release = '2.1.11';  // Fix lesson SQL - use id instead of nonexistent ordering column.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

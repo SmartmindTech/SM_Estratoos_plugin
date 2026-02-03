@@ -731,17 +731,44 @@ body {
 
 /* --- PAGE SPECIFIC --- */
 /* Ensure page module content scrolls vertically */
-.page-content-container,
-#page-mod-page-content,
-.mod_page .generalbox {
+/* Full viewport height for page content - no artificial max-height */
+html.sm-activity-embed-mode,
+body.sm-activity-embed-mode {
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+body.sm-activity-embed-mode #page {
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+body.sm-activity-embed-mode #page-content {
+    flex: 1 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    max-height: calc(100vh - 120px) !important;
+}
+
+body.sm-activity-embed-mode #region-main {
+    height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+.page-content-container,
+#page-mod-page-content,
+.mod_page .generalbox,
+body.sm-activity-embed-mode .box.generalbox {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    max-height: none !important;
+    height: auto !important;
 }
 
 /* Page content inside region-main */
 #region-main-box .generalbox.box {
-    overflow-y: auto !important;
+    overflow-y: visible !important;
     overflow-x: hidden !important;
 }
 
@@ -1023,6 +1050,80 @@ JS;
     var topScroll = document.getElementById('topofscroll');
     if (topScroll) topScroll.style.paddingTop = '0';
 {$quizJs}
+
+    // ============================================================
+    // FALLBACK PROTECTION
+    // Detect when page navigates away from the activity (/mod/).
+    // Show blank page instead of Moodle dashboard or other pages.
+    // This prevents users from accidentally leaving the embed context.
+    // ============================================================
+    (function() {
+        var currentPath = window.location.pathname;
+        var isActivityPage = currentPath.indexOf('/mod/') !== -1;
+        var isLocalEmbed = currentPath.indexOf('/local/sm_estratoos_plugin/') !== -1;
+
+        // If we're not on an activity page or embed page, blank the page
+        if (!isActivityPage && !isLocalEmbed) {
+            // We've navigated away from the activity - show blank page
+            document.documentElement.innerHTML = '<html><head><style>body{background:#f8f9fa;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#6c757d;}</style></head><body><div style="text-align:center;"><p>Activity session ended.</p><p style="font-size:0.875rem;">Please return to the course to continue.</p></div></body></html>';
+            return;
+        }
+
+        // Intercept all link clicks to prevent navigation away
+        document.addEventListener('click', function(e) {
+            var target = e.target.closest('a');
+            if (!target) return;
+
+            var href = target.getAttribute('href');
+            if (!href) return;
+
+            // Allow same-page anchors
+            if (href.startsWith('#')) return;
+
+            // Allow javascript: links
+            if (href.startsWith('javascript:')) return;
+
+            // Check if link goes outside /mod/ or /local/sm_estratoos_plugin/
+            try {
+                var url = new URL(href, window.location.origin);
+                var linkPath = url.pathname;
+                var isAllowed = linkPath.indexOf('/mod/') !== -1 ||
+                                linkPath.indexOf('/local/sm_estratoos_plugin/') !== -1 ||
+                                linkPath.indexOf('/pluginfile.php') !== -1 ||
+                                linkPath.indexOf('/draftfile.php') !== -1;
+
+                if (!isAllowed) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Show message in place of navigation
+                    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#6c757d;text-align:center;"><div><p>Activity session ended.</p><p style="font-size:0.875rem;">Please return to the course to continue.</p></div></div>';
+                }
+            } catch (err) {
+                // Invalid URL, block it
+                e.preventDefault();
+            }
+        }, true);
+
+        // Also intercept form submissions
+        document.addEventListener('submit', function(e) {
+            var form = e.target;
+            var action = form.getAttribute('action') || '';
+
+            try {
+                var url = new URL(action, window.location.origin);
+                var formPath = url.pathname;
+                var isAllowed = formPath.indexOf('/mod/') !== -1 ||
+                                formPath.indexOf('/local/sm_estratoos_plugin/') !== -1;
+
+                if (!isAllowed && action !== '') {
+                    e.preventDefault();
+                    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#6c757d;text-align:center;"><div><p>Activity session ended.</p><p style="font-size:0.875rem;">Please return to the course to continue.</p></div></div>';
+                }
+            } catch (err) {
+                // Allow form submission if we can't parse the URL
+            }
+        }, true);
+    })();
 })();
 </script>
 HTML;

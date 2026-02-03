@@ -193,10 +193,11 @@ HTML;
     public static function get_lesson_script(int $cmid, int $lessonid): string {
         global $DB;
 
+        // Note: lesson_pages uses prevpageid/nextpageid for ordering, not an ordering column
         $pages = $DB->get_records_sql(
             "SELECT id FROM {lesson_pages}
              WHERE lessonid = :lessonid AND qtype NOT IN (21, 30, 31)
-             ORDER BY ordering ASC",
+             ORDER BY id ASC",
             ['lessonid' => $lessonid]
         );
 

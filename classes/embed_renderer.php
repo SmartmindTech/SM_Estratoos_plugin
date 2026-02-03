@@ -355,10 +355,11 @@ class embed_renderer {
     private function get_lesson_position_url(int $position): ?string {
         global $DB, $CFG;
 
+        // Note: lesson_pages uses prevpageid/nextpageid for ordering, not an ordering column
         $pages = $DB->get_records_sql(
             "SELECT id FROM {lesson_pages}
              WHERE lessonid = :lessonid AND qtype NOT IN (21, 30, 31)
-             ORDER BY ordering ASC",
+             ORDER BY id ASC",
             ['lessonid' => (int)$this->cm->instance]
         );
 
@@ -1016,10 +1017,11 @@ class embed_renderer {
 
         // Get lesson pages (content pages only, exclude navigation pages)
         // qtype: 20 = content page, 1-10 = question types, 21 = end of branch, 30 = cluster, 31 = end of cluster
+        // Note: lesson_pages uses prevpageid/nextpageid for ordering, not an ordering column
         $pages = $DB->get_records_sql(
             "SELECT id, title, qtype FROM {lesson_pages}
              WHERE lessonid = :lessonid AND qtype NOT IN (21, 30, 31)
-             ORDER BY ordering ASC",
+             ORDER BY id ASC",
             ['lessonid' => (int)$this->cm->instance]
         );
         $pages = array_values($pages);
