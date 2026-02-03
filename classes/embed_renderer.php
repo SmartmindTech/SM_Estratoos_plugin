@@ -233,6 +233,7 @@ class embed_renderer {
         try {
             require_once($CFG->dirroot . '/mod/quiz/locallib.php');
             require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
+            require_once($CFG->dirroot . '/mod/quiz/lib.php');
 
             // Load quiz record.
             $quiz = $DB->get_record('quiz', ['id' => $this->cm->instance], '*', MUST_EXIST);
@@ -250,12 +251,17 @@ class embed_renderer {
                 $quizobj = \quiz::create($this->cm->instance, $USER->id);
             }
 
+            // Get user's previous attempts using the library function.
+            $attempts = quiz_get_user_attempts($quiz->id, $USER->id, 'finished', true);
+            $numprevattempts = count($attempts);
+            $lastattempt = end($attempts);
+            if ($lastattempt === false) {
+                $lastattempt = null;
+            }
+
             // Check if user can start a new attempt.
             $accessmanager = $quizobj->get_access_manager(time());
-            $messages = $accessmanager->prevent_new_attempt(
-                $quizobj->get_num_attempts_allowed(),
-                $quizobj->get_last_finished_attempt()
-            );
+            $messages = $accessmanager->prevent_new_attempt($numprevattempts, $lastattempt);
 
             if (!empty($messages)) {
                 // User cannot start a new attempt (max attempts reached, etc.)
@@ -263,12 +269,9 @@ class embed_renderer {
             }
 
             // Start the attempt.
-            $attemptnumber = $DB->count_records('quiz_attempts', [
-                'quiz' => $quiz->id,
-                'userid' => $USER->id
-            ]) + 1;
+            $attemptnumber = $numprevattempts + 1;
 
-            $attempt = quiz_prepare_and_start_new_attempt($quizobj, $attemptnumber, null);
+            $attempt = quiz_prepare_and_start_new_attempt($quizobj, $attemptnumber, $lastattempt);
 
             if ($attempt) {
                 return (object)['id' => $attempt->id];
