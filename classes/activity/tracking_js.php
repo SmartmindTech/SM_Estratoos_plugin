@@ -337,31 +337,13 @@ HTML;
 
     // 2. Detect current position from URL parameter.
     // If page not in map (e.g., answer/feedback page), keep last known position.
-    // Special case: lesson completion page has no pageid or pageid=0 - detect via page content.
     var params = new URLSearchParams(window.location.search);
     var paramValue = params.get(urlParam);
     var currentPosition = lastKnownPosition; // Default to last known, not 1
     var pageInMap = false;
 
-    // Check for lesson completion page (congratulations message)
-    var isLessonComplete = false;
-    if (modtype === 'lesson') {
-        // Lesson completion indicators: no pageid, pageid=0, or congratulations text
-        var noPageId = (paramValue === null || paramValue === '0' || paramValue === '');
-        var hasCompletionText = document.body.innerHTML.indexOf('100 %') !== -1 ||
-            document.body.innerHTML.indexOf('terminée') !== -1 ||
-            document.body.innerHTML.indexOf('Congratulations') !== -1 ||
-            document.body.innerHTML.indexOf('Félicitations') !== -1 ||
-            document.body.innerHTML.indexOf('completed') !== -1;
-        if (noPageId && hasCompletionText) {
-            isLessonComplete = true;
-            currentPosition = totalItems; // Set to last position (completed)
-            furthestPosition = totalItems;
-            pageInMap = true; // Treat as valid page
-        }
-    }
-
-    if (!isLessonComplete && paramValue !== null) {
+    // First, check if we have a valid pageid in the URL
+    if (paramValue !== null && paramValue !== '' && paramValue !== '0') {
         var key = isNaN(Number(paramValue)) ? paramValue : Number(paramValue);
         if (reverseMap[key] !== undefined) {
             currentPosition = reverseMap[key];
@@ -369,10 +351,35 @@ HTML;
         }
     }
 
+    // For lessons: detect completion page (no pageid + completion indicators)
+    if (modtype === 'lesson' && !pageInMap) {
+        var noPageId = (paramValue === null || paramValue === '0' || paramValue === '');
+        // Look for specific completion elements, not just text anywhere
+        var completionBox = document.querySelector('.box.generalbox.boxaligncenter');
+        var hasCompletionIndicator = completionBox && (
+            completionBox.innerHTML.indexOf('100') !== -1 ||
+            completionBox.innerHTML.indexOf('terminée') !== -1 ||
+            completionBox.innerHTML.indexOf('Félicitations') !== -1 ||
+            completionBox.innerHTML.indexOf('Congratulations') !== -1
+        );
+        if (noPageId && hasCompletionIndicator) {
+            currentPosition = totalItems;
+            pageInMap = true;
+        }
+    }
+
     // 3. Update furthest if current is higher, save to storage.
+    // IMPORTANT: furthest should NEVER decrease
     if (currentPosition > furthestPosition) {
         furthestPosition = currentPosition;
     }
+    // Re-read furthest from storage in case another tab updated it
+    try {
+        var storedFurthest = parseInt(sessionStorage.getItem(storageKey)) || 0;
+        if (storedFurthest > furthestPosition) {
+            furthestPosition = storedFurthest;
+        }
+    } catch (e) {}
     try {
         sessionStorage.setItem(storageKey, String(furthestPosition));
         localStorage.setItem(storageKey, String(furthestPosition));
@@ -381,6 +388,29 @@ HTML;
             sessionStorage.setItem(currentPosKey, String(currentPosition));
         }
     } catch (e) {}
+
+    // For lessons: hide end-of-lesson navigation links in embed mode
+    if (modtype === 'lesson') {
+        setTimeout(function() {
+            var links = document.querySelectorAll('a');
+            links.forEach(function(link) {
+                var href = link.getAttribute('href') || '';
+                var text = link.textContent || '';
+                // Hide links that navigate away from the lesson
+                if (href.indexOf('course/view.php') !== -1 ||
+                    href.indexOf('grade/report') !== -1 ||
+                    href.indexOf('pageid=0') !== -1 ||
+                    text.indexOf('Revoir') !== -1 ||
+                    text.indexOf('Retour') !== -1 ||
+                    text.indexOf('Afficher') !== -1 ||
+                    text.indexOf('Review') !== -1 ||
+                    text.indexOf('Return') !== -1 ||
+                    text.indexOf('View grades') !== -1) {
+                    link.style.display = 'none';
+                }
+            });
+        }, 100);
+    }
 
     // 4. Build and send progress message (activity-progress for non-SCORM activities).
     var progressPercent = totalItems > 0
