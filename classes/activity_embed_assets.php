@@ -928,8 +928,13 @@ ol.breadcrumb,
     display: none !important;
 }
 
-/* Activity navigation (prev/next at bottom — keep if needed, but hide nav header) */
-.activity-navigation .breadcrumb {
+/* Activity navigation bar (prev/next activity + "Jump to" dropdown at bottom) */
+/* Navigation between activities is handled by SmartLearning frontend */
+.activity-navigation,
+#activity-navigation,
+.activity-navigation-container,
+.jump-to-activity,
+.activity_navigation {
     display: none !important;
 }
 
@@ -1415,7 +1420,8 @@ JS;
         '.columnleft', '.columnright',
         '.column-side-pre', '.column-side-post',
         'nav.block_tree', '.block_tree', '.block_tree_box',
-        '.breadcrumb-nav', 'ol.breadcrumb', '.breadcrumb'
+        '.breadcrumb-nav', 'ol.breadcrumb', '.breadcrumb',
+        '.activity-navigation'
     ];
     blockSelectors.forEach(function(sel) {
         document.querySelectorAll(sel).forEach(function(el) {
