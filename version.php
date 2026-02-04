@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025020323;  // YYYYMMDDXX format.
+$plugin->version = 2025020324;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.1.23';  // Hide activity navigation bar (prev/next/jump-to) in embed mode.
+$plugin->release = '2.1.24';  // Self-service profile update API (mirrors core_user_update_users).
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

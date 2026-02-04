@@ -651,6 +651,19 @@ $functions = [
         'capabilities' => '',
         'loginrequired' => true,
     ],
+
+    // Update the authenticated user's own profile fields.
+    'local_sm_estratoos_plugin_update_user' => [
+        'classname' => 'local_sm_estratoos_plugin\external\update_user',
+        'methodname' => 'execute',
+        'description' => 'Update the authenticated user\'s own profile fields (name, email, phone, address, custom fields, ' .
+                        'preferences, etc.). Self-service only — no admin capability required. ' .
+                        'Mirrors core_user_update_users but restricted to the token owner. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
 ];
 
 // NOTE: The SmartMind - Estratoos Plugin service is created and managed in install.php,
