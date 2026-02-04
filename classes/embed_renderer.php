@@ -1400,24 +1400,31 @@ JS;
     private function trigger_module_viewed(): void {
         global $USER, $DB;
 
-        // Get course.
-        $course = $DB->get_record('course', ['id' => $this->cm->course], '*', MUST_EXIST);
+        try {
+            // Get course.
+            $course = $DB->get_record('course', ['id' => $this->cm->course], '*', MUST_EXIST);
 
-        // Create viewed event based on activity type.
-        $eventclass = '\\mod_' . $this->activityType . '\\event\\course_module_viewed';
-        if (class_exists($eventclass)) {
-            $event = $eventclass::create([
-                'objectid' => $this->cm->instance,
-                'context' => $this->context,
-            ]);
-            $event->add_record_snapshot('course', $course);
-            $event->trigger();
-        }
+            // Create viewed event based on activity type.
+            // Some modules require extra data in the event — wrap in try-catch
+            // so a failed event never blocks the activity from loading.
+            $eventclass = '\\mod_' . $this->activityType . '\\event\\course_module_viewed';
+            if (class_exists($eventclass)) {
+                $event = $eventclass::create([
+                    'objectid' => $this->cm->instance,
+                    'context' => $this->context,
+                ]);
+                $event->add_record_snapshot('course', $course);
+                $event->trigger();
+            }
 
-        // Update completion state.
-        $completion = new \completion_info($course);
-        if ($completion->is_enabled($this->cm) && $this->cm->completion == COMPLETION_TRACKING_AUTOMATIC) {
-            $completion->update_state($this->cm, COMPLETION_COMPLETE);
+            // Update completion state.
+            $completion = new \completion_info($course);
+            if ($completion->is_enabled($this->cm) && $this->cm->completion == COMPLETION_TRACKING_AUTOMATIC) {
+                $completion->update_state($this->cm, COMPLETION_COMPLETE);
+            }
+        } catch (\Throwable $e) {
+            // Module viewed events are best-effort — never block the activity from loading.
+            debugging('trigger_module_viewed failed for ' . $this->activityType . ': ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
     }
 
