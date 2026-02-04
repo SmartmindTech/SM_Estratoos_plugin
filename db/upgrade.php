@@ -1627,6 +1627,17 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025012600, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.20: Add user self-service functions (update_username, update_password).
+    if ($oldversion < 2025020320) {
+        require_once(__DIR__ . '/install.php');
+
+        // Rebuild service functions to include the new self-service APIs.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025020320, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

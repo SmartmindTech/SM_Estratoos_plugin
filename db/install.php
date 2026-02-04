@@ -378,6 +378,9 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_get_plugin_status',
         // v1.7.48: Update plugin version (detailed update info for external systems).
         'local_sm_estratoos_plugin_update_plugin_version',
+        // v2.1.20: User self-service functions.
+        'local_sm_estratoos_plugin_update_username',
+        'local_sm_estratoos_plugin_update_password',
     ];
 
     foreach ($pluginfunctions as $functionname) {

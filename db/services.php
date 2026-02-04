@@ -623,6 +623,34 @@ $functions = [
         'capabilities' => '',
         'loginrequired' => true,
     ],
+
+    // =========================================================================
+    // USER SELF-SERVICE FUNCTIONS (v2.1.20)
+    // =========================================================================
+
+    // Update the authenticated user's own username.
+    'local_sm_estratoos_plugin_update_username' => [
+        'classname' => 'local_sm_estratoos_plugin\external\update_username',
+        'methodname' => 'execute',
+        'description' => 'Update the authenticated user\'s own username. Self-service only — no admin capability required. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
+    // Update the authenticated user's own password.
+    'local_sm_estratoos_plugin_update_password' => [
+        'classname' => 'local_sm_estratoos_plugin\external\update_password',
+        'methodname' => 'execute',
+        'description' => 'Update the authenticated user\'s own password. Requires current password for verification. ' .
+                        'Self-service only — no admin capability required. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
 ];
 
 // NOTE: The SmartMind - Estratoos Plugin service is created and managed in install.php,
