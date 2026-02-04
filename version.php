@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025020321;  // YYYYMMDDXX format.
+$plugin->version = 2025020322;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.1.21';  // Fix embed crash for feedback/survey activity types.
+$plugin->release = '2.1.22';  // Hide all navigation/blocks in embed mode across all Moodle layouts.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

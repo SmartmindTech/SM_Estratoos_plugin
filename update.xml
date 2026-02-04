@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025020320</version>
+        <version>2025020322</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.20</release>
+        <release>2.1.22</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,28 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.20/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.22/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.20</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.22</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.20 - User Self-Service APIs</h3>
+            <h3>Version 2.1.22 - Hide All Navigation in Embed Mode</h3>
 
-            <h4>New Features</h4>
+            <h4>Bug Fix</h4>
             <ul>
-                <li>New API: update_username — users can change their own username</li>
-                <li>New API: update_password — users can change their own password (requires current password)</li>
-                <li>Both functions are self-service (no admin capability needed)</li>
-                <li>Auth plugin validation (blocks LDAP/CAS/SSO users from changing credentials)</li>
-                <li>Moodle password policy enforcement for password changes</li>
+                <li>Hide navigation sidebar, blocks, and block regions across ALL Moodle layout types in embed mode</li>
+                <li>Covers legacy navigation block, settings block, breadcrumbs, and all block regions</li>
+                <li>Both CSS and JS backup ensure no navigation elements leak through any theme/layout</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.21: Fix embed crash for feedback/survey activity types</li>
+                <li>v2.1.20: User self-service APIs (update_username, update_password)</li>
                 <li>v2.1.19: Lesson keyword matching for page title detection</li>
-                <li>v2.1.15: Quiz page mapping + CSS fixes</li>
-                <li>v2.1.12: Quiz tag navigation uses review mode</li>
             </ul>
             ]]>
         </releasenotes>

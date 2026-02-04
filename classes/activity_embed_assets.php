@@ -844,7 +844,125 @@ button[aria-controls="theme_boost-drawers-primary"],
     display: none !important;
 }
 
-/* --- MAXIMIZE CONTENT --- */
+/* --- HIDE ALL BLOCKS AND BLOCK REGIONS (all Moodle layouts) --- */
+
+/* Navigation block (legacy sidebar shown in standard/incourse layouts) */
+.block_navigation,
+.block_settings,
+.block_site_main_menu,
+.block_course_list,
+.block_myoverview,
+.block_recentlyaccessedcourses,
+.block_calendar_month,
+.block_calendar_upcoming,
+.block_online_users,
+.block_activity_modules,
+.block_admin_bookmarks,
+.block_badges,
+.block_blog_menu,
+.block_comments,
+.block_completionstatus,
+.block_course_summary,
+.block_globalsearch,
+.block_html,
+.block_login,
+.block_mentees,
+.block_mnet_hosts,
+.block_news_items,
+.block_private_files,
+.block_recent_activity,
+.block_rss_client,
+.block_search_forums,
+.block_section_links,
+.block_selfcompletion,
+.block_social_activities,
+.block_tag_flickr,
+.block_tag_youtube,
+.block_tags {
+    display: none !important;
+}
+
+/* Hide ALL blocks generically — covers any block not listed above */
+aside[data-block],
+.block[data-block],
+.block.card {
+    display: none !important;
+}
+
+/* Block regions — left/right sidebars in all Moodle layouts */
+#block-region-side-pre,
+#block-region-side-post,
+.block-region,
+[data-region="blocks-column"],
+section[data-region="blocks-column"],
+aside#block-region-side-pre,
+aside#block-region-side-post {
+    display: none !important;
+}
+
+/* Column containers for block regions (Classic theme and older layouts) */
+#region-pre,
+#region-post,
+.columnleft,
+.columnright,
+.column-side-pre,
+.column-side-post,
+#side-pre-only,
+#side-post-only {
+    display: none !important;
+}
+
+/* Block tree navigation (nav tree inside navigation block) */
+nav.block_tree,
+.block_tree,
+.block_tree_box {
+    display: none !important;
+}
+
+/* Breadcrumbs / navigation bar (different selectors across themes) */
+.breadcrumb-nav,
+.breadcrumb-item,
+nav[aria-label="Navigation bar"],
+ol.breadcrumb,
+.breadcrumb {
+    display: none !important;
+}
+
+/* Activity navigation (prev/next at bottom — keep if needed, but hide nav header) */
+.activity-navigation .breadcrumb {
+    display: none !important;
+}
+
+/* IOMAD specific navigation elements */
+.iomad_company_selector,
+#iomad_company_selector {
+    display: none !important;
+}
+
+/* --- MAXIMIZE CONTENT (full width when blocks/sidebars hidden) --- */
+
+/* Force content to use full width — no space reserved for hidden sidebars */
+#page.drawers .main-inner,
+#page .main-inner,
+.pagelayout-standard #page-content,
+.pagelayout-incourse #page-content,
+.pagelayout-course #page-content,
+.pagelayout-admin #page-content,
+.pagelayout-report #page-content,
+.pagelayout-mydashboard #page-content,
+.pagelayout-frontpage #page-content {
+    display: block !important;
+}
+
+/* Remove columns layout — force single column */
+#page-content .row,
+.columns-1 #region-main,
+.columns-2 #region-main,
+.columns-3 #region-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+}
 
 /* Remove top offset caused by hidden fixed navbar */
 body {
@@ -1286,6 +1404,24 @@ JS;
     // Remove top scroll offset.
     var topScroll = document.getElementById('topofscroll');
     if (topScroll) topScroll.style.paddingTop = '0';
+
+    // Hide ALL blocks and block regions (covers all Moodle layouts/themes).
+    var blockSelectors = [
+        '.block_navigation', '.block_settings', '.block.card',
+        'aside[data-block]', '.block[data-block]',
+        '#block-region-side-pre', '#block-region-side-post',
+        '.block-region', '[data-region="blocks-column"]',
+        '#region-pre', '#region-post',
+        '.columnleft', '.columnright',
+        '.column-side-pre', '.column-side-post',
+        'nav.block_tree', '.block_tree', '.block_tree_box',
+        '.breadcrumb-nav', 'ol.breadcrumb', '.breadcrumb'
+    ];
+    blockSelectors.forEach(function(sel) {
+        document.querySelectorAll(sel).forEach(function(el) {
+            el.style.display = 'none';
+        });
+    });
 {$quizJs}
 
     // ============================================================
