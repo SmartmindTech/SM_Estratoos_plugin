@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025020325</version>
+        <version>2025020326</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.25</release>
+        <release>2.1.26</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,30 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.25/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.26/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.25</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.26</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.25 - Video Player with Progress Tracking</h3>
+            <h3>Version 2.1.26 - Video Player Improvements</h3>
 
-            <h4>New Feature</h4>
+            <h4>Enhancements</h4>
             <ul>
-                <li>HTML5 video player for video resources in embed mode</li>
-                <li>Real-time progress tracking via postMessage (activity-progress protocol)</li>
-                <li>Tag navigation support via URL parameter and postMessage</li>
-                <li>Furthest position persistence in sessionStorage</li>
+                <li>Full-width video layout with object-fit: contain</li>
+                <li>Auto-resume from last watched position on reload</li>
+                <li>Send initial progress on loadedmetadata for immediate position bar display</li>
+                <li>Dark background (#1a1a2e) for cinematic appearance</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.25: HTML5 video player with progress tracking in embed mode</li>
                 <li>v2.1.24: Self-service profile update API (mirrors core_user_update_users)</li>
                 <li>v2.1.23: Hide activity navigation bar in embed mode</li>
                 <li>v2.1.22: Hide all blocks/sidebars in embed mode across all Moodle layouts</li>
-                <li>v2.1.21: Fix embed crash for feedback/survey activity types</li>
             </ul>
             ]]>
         </releasenotes>

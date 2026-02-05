@@ -1538,18 +1538,17 @@ JS;
 <title>' . $safeName . '</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
   .video-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
     height: 100%;
   }
   video {
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
     outline: none;
+    background: #1a1a2e;
   }
 </style>
 </head>
@@ -1583,11 +1582,18 @@ JS;
 
   video.addEventListener("loadedmetadata", function() {
     if (seekTarget) {
+      // Tag click navigation - seek to specific second
       var targetSec = parseInt(seekTarget, 10);
       if (!isNaN(targetSec) && targetSec >= 0 && targetSec <= video.duration) {
         video.currentTime = targetSec;
       }
+    } else if (furthestSecond > 0) {
+      // Auto-resume from last watched position
+      video.currentTime = furthestSecond;
     }
+
+    // Send initial progress immediately so the position bar shows before play
+    sendProgress(video.currentTime, video.duration, furthestSecond > 0 ? "in-progress" : "incomplete");
   });
 
   function sendProgress(current, total, status) {
