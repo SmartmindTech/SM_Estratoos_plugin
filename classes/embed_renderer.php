@@ -1499,6 +1499,8 @@ JS;
             $html = '<div class="embed-resource-container" style="text-align:center;padding:20px;">';
             $html .= '<img src="' . $fileUrl->out(false) . '" style="max-width:100%;max-height:90vh;" />';
             $html .= '</div>';
+        } elseif (strpos($mimetype, 'video/') === 0) {
+            return $this->render_video_player($fileUrl->out(false), $resource->name, $mimetype);
         } else {
             // Download link for other types.
             $html = '<div class="embed-resource-container" style="padding:20px;text-align:center;">';
@@ -1509,6 +1511,139 @@ JS;
         }
 
         return $this->wrap_content($html);
+    }
+
+    /**
+     * Render HTML5 video player with tracking.
+     *
+     * Returns a standalone HTML document (NOT wrapped with wrap_content())
+     * that contains a video element and inline JS for progress tracking
+     * via postMessage (same protocol as SCORM/book/quiz).
+     *
+     * @param string $fileurl Direct URL to the video file
+     * @param string $name    Activity name (for display)
+     * @param string $mimetype Video MIME type (video/mp4, video/webm, etc.)
+     * @return string Full HTML document
+     */
+    private function render_video_player(string $fileurl, string $name, string $mimetype): string {
+        $cmid = $this->cm->id;
+        $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+        $safeUrl = htmlspecialchars($fileurl, ENT_QUOTES, 'UTF-8');
+
+        $html = '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>' . $safeName . '</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  .video-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+  video {
+    max-width: 100%;
+    max-height: 100%;
+    outline: none;
+  }
+</style>
+</head>
+<body>
+<div class="video-container">
+  <video id="smartvideo" controls preload="metadata">
+    <source src="' . $safeUrl . '" type="' . htmlspecialchars($mimetype, ENT_QUOTES, 'UTF-8') . '">
+    Your browser does not support the video tag.
+  </video>
+</div>
+<script>
+(function() {
+  var CMID = ' . (int)$cmid . ';
+  var video = document.getElementById("smartvideo");
+  var furthestSecond = 0;
+  var lastReportedSecond = -1;
+  var storageKey = "activity_furthest_position_" + CMID;
+
+  // Restore furthest from sessionStorage
+  try {
+    var stored = sessionStorage.getItem(storageKey);
+    if (stored) {
+      var parsed = JSON.parse(stored);
+      if (parsed && parsed.position) furthestSecond = parsed.position;
+    }
+  } catch(e) {}
+
+  // Seek to ?slide=N if present (tag click navigation)
+  var params = new URLSearchParams(window.location.search);
+  var seekTarget = params.get("slide");
+
+  video.addEventListener("loadedmetadata", function() {
+    if (seekTarget) {
+      var targetSec = parseInt(seekTarget, 10);
+      if (!isNaN(targetSec) && targetSec >= 0 && targetSec <= video.duration) {
+        video.currentTime = targetSec;
+      }
+    }
+  });
+
+  function sendProgress(current, total, status) {
+    var currentSec = Math.floor(current);
+    if (currentSec > furthestSecond) furthestSecond = currentSec;
+    var totalSec = Math.floor(total);
+
+    window.parent.postMessage({
+      type: "activity-progress",
+      activityType: "video",
+      cmid: CMID,
+      currentPosition: currentSec,
+      totalPositions: totalSec,
+      furthestPosition: furthestSecond,
+      status: status || "in-progress"
+    }, "*");
+
+    // Persist to sessionStorage
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify({
+        position: furthestSecond,
+        total: totalSec,
+        activityType: "video"
+      }));
+    } catch(e) {}
+  }
+
+  video.addEventListener("timeupdate", function() {
+    var currentSec = Math.floor(video.currentTime);
+    // Throttle: only send when second changes
+    if (currentSec !== lastReportedSecond && video.duration > 0) {
+      lastReportedSecond = currentSec;
+      sendProgress(video.currentTime, video.duration, "in-progress");
+    }
+  });
+
+  video.addEventListener("ended", function() {
+    sendProgress(video.duration, video.duration, "completed");
+  });
+
+  // Listen for seek commands from parent (tag click navigation while video is playing)
+  window.addEventListener("message", function(event) {
+    if (event.data && event.data.type === "activity-navigate-to-position") {
+      var targetSec = parseInt(event.data.position, 10);
+      if (!isNaN(targetSec) && targetSec >= 0 && video.duration && targetSec <= video.duration) {
+        video.currentTime = targetSec;
+        video.play().catch(function(){});
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>';
+
+        return $html;
     }
 
     /**

@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2025020324;  // YYYYMMDDXX format.
+$plugin->version = 2025020325;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.1.24';  // Self-service profile update API (mirrors core_user_update_users).
+$plugin->release = '2.1.25';  // HTML5 video player with progress tracking in embed mode.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.
