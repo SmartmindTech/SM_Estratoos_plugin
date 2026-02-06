@@ -459,12 +459,13 @@ body.sm-activity-embed-mode .que .formulation {
     width: 100% !important;
 }
 
-/* Quiz attempt page - full width content */
+/* Quiz attempt page - full width content, override the 5% centering padding */
 body.sm-activity-embed-mode #page-mod-quiz-attempt #region-main,
 body.sm-activity-embed-mode #page-mod-quiz-review #region-main {
     max-width: none !important;
     width: 100% !important;
-    padding: var(--sl-spacing-md) !important;
+    padding-left: var(--sl-spacing-md) !important;
+    padding-right: var(--sl-spacing-md) !important;
 }
 
 /* Remove Bootstrap container constraints */
@@ -492,29 +493,9 @@ body.sm-activity-embed-mode .que .editor_atto_wrap {
     max-width: none !important;
 }
 
-/* --- CONTENT CENTERING (all activity types) --- */
-/* Center the main content area for comfortable reading width */
-body.sm-activity-embed-mode #region-main {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-}
-
-body.sm-activity-embed-mode #region-main > * {
-    width: 100% !important;
-    max-width: 900px !important;
-}
-
-body.sm-activity-embed-mode #region-main-box {
-    display: flex !important;
-    justify-content: center !important;
-}
-
 /* --- BOOK SPECIFIC STYLES --- */
 body.sm-activity-embed-mode .book_content {
     padding: var(--sl-spacing-xl) !important;
-    max-width: 800px !important;
-    margin: 0 auto !important;
 }
 
 body.sm-activity-embed-mode .book_content h1,
@@ -541,8 +522,6 @@ body.sm-activity-embed-mode .book_navigation {
 /* --- LESSON SPECIFIC STYLES --- */
 body.sm-activity-embed-mode .lesson-content {
     padding: var(--sl-spacing-xl) !important;
-    max-width: 800px !important;
-    margin: 0 auto !important;
 }
 
 /* Hide database read errors - show clean UI instead of raw errors */
@@ -985,6 +964,17 @@ ol.breadcrumb,
     flex: 0 0 100% !important;
 }
 
+/* --- CENTER CONTENT IN IFRAME --- */
+/* The SmartLearning frontend zooms the iframe (1.0x-1.30x via CSS transform),
+   so the iframe CSS viewport is narrower than the visual area (~700-900px).
+   max-width centering won't work since viewport is already small.
+   Instead, use symmetric padding to visually center the content.
+   The scrollbar is hidden (overlay) so it doesn't take layout space. */
+body.sm-activity-embed-mode #region-main {
+    padding-left: 5% !important;
+    padding-right: 5% !important;
+}
+
 /* Remove top offset caused by hidden fixed navbar */
 body {
     margin-top: 0 !important;
@@ -994,15 +984,15 @@ body {
     overflow-x: hidden !important;
 }
 
-/* Remove drawer margin/padding displacement */
-#page.drawers {
+/* Remove drawer margin/padding displacement (both sides) */
+#page.drawers,
+#page.drawers.show-drawer-left,
+#page.drawers.show-drawer-right {
     margin-left: 0 !important;
+    margin-right: 0 !important;
     padding-left: 0 !important;
+    padding-right: 0 !important;
     transition: none !important;
-}
-
-#page.drawers.show-drawer-left {
-    margin-left: 0 !important;
 }
 
 /* topofscroll normally has padding-top for fixed navbar */
@@ -1053,10 +1043,18 @@ body.sm-activity-embed-mode {
     padding: 0 !important;
 }
 
-/* Allow body to scroll */
+/* Allow body to scroll but hide the scrollbar visually.
+   Content is embedded in SmartLearning iframe — scrollbar is unnecessary visual noise.
+   Users can still scroll with mousewheel/trackpad when content overflows. */
 body.sm-activity-embed-mode {
     overflow-y: auto !important;
     overflow-x: hidden !important;
+    scrollbar-width: none !important;         /* Firefox */
+    -ms-overflow-style: none !important;      /* IE/Edge */
+}
+
+body.sm-activity-embed-mode::-webkit-scrollbar {
+    display: none !important;                 /* Chrome/Safari/Opera */
 }
 
 /* Main page wrapper */
@@ -1066,7 +1064,17 @@ body.sm-activity-embed-mode #page {
 }
 
 body.sm-activity-embed-mode #page-wrapper {
-    min-height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100vh !important;
+}
+
+/* Vertical centering via auto margins on the flex child.
+   Short content: auto margins split remaining space equally → centered.
+   Long content: no remaining space, margins collapse to 0 → starts at top, scrolls naturally. */
+body.sm-activity-embed-mode #page-wrapper > #page {
+    margin-top: auto !important;
+    margin-bottom: auto !important;
 }
 
 /* Page content area */
