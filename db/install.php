@@ -383,6 +383,8 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_update_password',
         // v2.1.24: Self-service profile update (mirrors core_user_update_users).
         'local_sm_estratoos_plugin_update_user',
+        // v2.1.29: Calendar event update.
+        'local_sm_estratoos_plugin_update_calendar_event',
     ];
 
     foreach ($pluginfunctions as $functionname) {

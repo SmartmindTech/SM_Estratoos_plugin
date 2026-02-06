@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2025020328</version>
+        <version>2025020329</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.28</release>
+        <release>2.1.29</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,26 +29,26 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.28/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.29/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.28</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.29</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.28 - Content Centering and Scrollbar Cleanup in Embed Mode</h3>
+            <h3>Version 2.1.29 - Calendar Event Update API</h3>
 
-            <h4>Enhancement</h4>
+            <h4>New Feature</h4>
             <ul>
-                <li>Center content horizontally with symmetric padding and drawer margin fix</li>
-                <li>Vertically center short content; long content starts at top and scrolls naturally</li>
-                <li>Hide scrollbar in embedded iframe for clean appearance</li>
+                <li>API function to update calendar events (title, date/time, course, description, location)</li>
+                <li>Event type enforced as Course, duration enforced as No duration</li>
+                <li>Field-specific error codes: event_not_found, empty_name, invalid_timestart, invalid_course</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v2.1.27: Content centering attempt (reverted)</li>
+                <li>v2.1.28: Content centering and scrollbar cleanup in embed mode</li>
                 <li>v2.1.26: Video player full-width layout and auto-resume from last position</li>
                 <li>v2.1.25: HTML5 video player with progress tracking in embed mode</li>
                 <li>v2.1.24: Self-service profile update API (mirrors core_user_update_users)</li>

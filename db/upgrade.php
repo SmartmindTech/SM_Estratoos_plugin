@@ -1649,6 +1649,17 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025020324, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.29: Add calendar event update function.
+    if ($oldversion < 2025020329) {
+        require_once(__DIR__ . '/install.php');
+
+        // Rebuild service functions to include the new update_calendar_event API.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2025020329, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

@@ -664,6 +664,18 @@ $functions = [
         'capabilities' => '',
         'loginrequired' => true,
     ],
+
+    // Update a calendar event (title, date/time, course, description, location).
+    'local_sm_estratoos_plugin_update_calendar_event' => [
+        'classname' => 'local_sm_estratoos_plugin\external\update_calendar_event',
+        'methodname' => 'execute',
+        'description' => 'Update a calendar event (title, date/time, course, description, location). ' .
+                        'Event type is always Course, duration is always 0. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
 ];
 
 // NOTE: The SmartMind - Estratoos Plugin service is created and managed in install.php,
