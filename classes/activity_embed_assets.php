@@ -492,6 +492,24 @@ body.sm-activity-embed-mode .que .editor_atto_wrap {
     max-width: none !important;
 }
 
+/* --- CONTENT CENTERING (all activity types) --- */
+/* Center the main content area for comfortable reading width */
+body.sm-activity-embed-mode #region-main {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+body.sm-activity-embed-mode #region-main > * {
+    width: 100% !important;
+    max-width: 900px !important;
+}
+
+body.sm-activity-embed-mode #region-main-box {
+    display: flex !important;
+    justify-content: center !important;
+}
+
 /* --- BOOK SPECIFIC STYLES --- */
 body.sm-activity-embed-mode .book_content {
     padding: var(--sl-spacing-xl) !important;
@@ -660,8 +678,6 @@ body.sm-activity-embed-mode #page-mod-lesson-view .lessonbutton a {
 body.sm-activity-embed-mode .page-content-container,
 body.sm-activity-embed-mode #region-main > .box {
     padding: var(--sl-spacing-xl) !important;
-    max-width: 900px !important;
-    margin: 0 auto !important;
 }
 
 /* --- ALERTS --- */
