@@ -75,6 +75,8 @@ if ($mform->is_cancelled()) {
                 'state_province' => $data->state_province ?? '',
                 'country' => $data->country ?? '',
                 'timezone' => $data->timezone ?? '99',
+                'document_type' => $data->document_type ?? '',
+                'document_id' => $data->document_id ?? '',
                 'companyid' => (int)$data->companyid,
                 'serviceid' => (int)$data->serviceid,
             ];

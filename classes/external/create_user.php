@@ -137,6 +137,18 @@ class create_user extends external_api {
                 VALUE_DEFAULT,
                 ''
             ),
+            'document_type' => new external_value(
+                PARAM_ALPHANUMEXT,
+                'Document type: dni, nie, or passport (required for Spain compliance)',
+                VALUE_DEFAULT,
+                ''
+            ),
+            'document_id' => new external_value(
+                PARAM_ALPHANUMEXT,
+                'Document ID number (validated per document_type)',
+                VALUE_DEFAULT,
+                ''
+            ),
             'companyid' => new external_value(
                 PARAM_INT,
                 'IOMAD company ID (0 for standard Moodle)',
@@ -168,6 +180,8 @@ class create_user extends external_api {
      * @param string $state_province State or province.
      * @param string $country Country code.
      * @param string $timezone Timezone.
+     * @param string $document_type Document type (dni, nie, passport).
+     * @param string $document_id Document ID number.
      * @param int $companyid IOMAD company ID.
      * @param int $serviceid External service ID for token creation.
      * @return array Result with success flag and user details or error_code.
@@ -186,6 +200,8 @@ class create_user extends external_api {
         string $state_province = '',
         string $country = '',
         string $timezone = '',
+        string $document_type = '',
+        string $document_id = '',
         int $companyid = 0,
         int $serviceid = 0
     ): array {
@@ -206,6 +222,8 @@ class create_user extends external_api {
             'state_province' => $state_province,
             'country' => $country,
             'timezone' => $timezone,
+            'document_type' => $document_type,
+            'document_id' => $document_id,
             'companyid' => $companyid,
             'serviceid' => $serviceid,
         ]);
@@ -244,6 +262,8 @@ class create_user extends external_api {
             'state_province' => $params['state_province'],
             'country' => $params['country'],
             'timezone' => $params['timezone'],
+            'document_type' => $params['document_type'],
+            'document_id' => $params['document_id'],
             'companyid' => $params['companyid'],
             'serviceid' => $params['serviceid'],
         ];

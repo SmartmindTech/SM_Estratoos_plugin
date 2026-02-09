@@ -478,6 +478,8 @@ class user_manager {
             $userrecord->birthdate = trim($userdata['birthdate'] ?? '');
             $userrecord->state_province = trim($userdata['state_province'] ?? '');
             $userrecord->country_name = $countryname;
+            $userrecord->document_type = strtolower(trim($userdata['document_type'] ?? ''));
+            $userrecord->document_id = strtoupper(trim($userdata['document_id'] ?? ''));
             $userrecord->password_generated = $generatepassword ? 1 : 0;
             $userrecord->source = $source;
             $userrecord->createdby = (int)($GLOBALS['USER']->id ?? 0);
@@ -603,6 +605,7 @@ class user_manager {
         // Map expected column names.
         $expectedcolumns = [
             'firstname', 'lastname', 'email', 'username', 'password',
+            'document_type', 'document_id',
             'phone_intl_code', 'phone', 'birthdate', 'city',
             'state_province', 'country', 'timezone',
         ];
@@ -677,7 +680,8 @@ class user_manager {
 
         $sql = "SELECT su.id as recordid, su.userid, su.companyid, su.token_string,
                        su.encrypted_password, su.phone_intl_code, su.phone, su.birthdate,
-                       su.state_province, su.country_name, su.source, su.notified,
+                       su.state_province, su.country_name, su.document_type, su.document_id,
+                       su.source, su.notified,
                        su.timecreated,
                        u.firstname, u.lastname, u.email, u.username,
                        u.city, u.country as country_code, u.timezone
@@ -732,6 +736,8 @@ class user_manager {
             $user->city = $record->city;
             $user->state_province = $record->state_province;
             $user->country_name = $record->country_name;
+            $user->document_type = $record->document_type ?? '';
+            $user->document_id = $record->document_id ?? '';
             $user->country_code = $record->country_code;
             $user->timezone = $record->timezone;
             $user->moodle_token = $record->token_string;
@@ -911,6 +917,72 @@ class user_manager {
             }
         }
 
+        // Document type validation (if provided).
+        $documenttype = strtolower(trim($userdata['document_type'] ?? ''));
+        if (!empty($documenttype)) {
+            $validtypes = ['dni', 'nie', 'passport'];
+            if (!in_array($documenttype, $validtypes)) {
+                $result->valid = false;
+                $result->error_code = 'invalid_document_type';
+                $result->message = 'Document type must be one of: dni, nie, passport';
+                return $result;
+            }
+
+            // Document ID required when document_type is provided.
+            $documentid = strtoupper(trim($userdata['document_id'] ?? ''));
+            if (empty($documentid)) {
+                $result->valid = false;
+                $result->error_code = 'empty_document_id';
+                $result->message = 'Document ID is required when document type is specified';
+                return $result;
+            }
+
+            // Format validation per document type.
+            if ($documenttype === 'dni') {
+                // DNI: 8 digits + 1 letter, validated via modulo-23 check.
+                if (!preg_match('/^(\d{8})([A-Z])$/', $documentid, $matches)) {
+                    $result->valid = false;
+                    $result->error_code = 'invalid_document_id';
+                    $result->message = 'DNI must be 8 digits followed by 1 letter (e.g., 12345678A)';
+                    return $result;
+                }
+                $dnitable = 'TRWAGMYFPDXBNJZSQVHLCKE';
+                $expectedletter = $dnitable[(int)$matches[1] % 23];
+                if ($matches[2] !== $expectedletter) {
+                    $result->valid = false;
+                    $result->error_code = 'invalid_document_id';
+                    $result->message = 'DNI check letter is incorrect. Expected: ' . $expectedletter;
+                    return $result;
+                }
+            } else if ($documenttype === 'nie') {
+                // NIE: X/Y/Z + 7 digits + 1 letter.
+                if (!preg_match('/^([XYZ])(\d{7})([A-Z])$/', $documentid, $matches)) {
+                    $result->valid = false;
+                    $result->error_code = 'invalid_document_id';
+                    $result->message = 'NIE must be X/Y/Z + 7 digits + 1 letter (e.g., X1234567A)';
+                    return $result;
+                }
+                $prefixmap = ['X' => '0', 'Y' => '1', 'Z' => '2'];
+                $numericpart = $prefixmap[$matches[1]] . $matches[2];
+                $dnitable = 'TRWAGMYFPDXBNJZSQVHLCKE';
+                $expectedletter = $dnitable[(int)$numericpart % 23];
+                if ($matches[3] !== $expectedletter) {
+                    $result->valid = false;
+                    $result->error_code = 'invalid_document_id';
+                    $result->message = 'NIE check letter is incorrect. Expected: ' . $expectedletter;
+                    return $result;
+                }
+            } else if ($documenttype === 'passport') {
+                // Passport: 3-20 alphanumeric characters.
+                if (!preg_match('/^[A-Z0-9]{3,20}$/', $documentid)) {
+                    $result->valid = false;
+                    $result->error_code = 'invalid_document_id';
+                    $result->message = 'Passport must be 3-20 alphanumeric characters';
+                    return $result;
+                }
+            }
+        }
+
         // Company ID validation (if provided and > 0).
         $companyid = (int)($userdata['companyid'] ?? 0);
         if ($companyid > 0) {
@@ -954,5 +1026,111 @@ class user_manager {
         }
 
         return 0;
+    }
+
+    /**
+     * Get newly created tokens for SmartLearning watcher.
+     *
+     * Queries the main token metadata table (local_sm_estratoos_plugin) joined with
+     * external_tokens and user tables. This covers tokens created via create_batch
+     * for existing Moodle users (not tracked in local_sm_estratoos_plugin_users).
+     *
+     * @param int $since Only return tokens created after this timestamp (0 = all).
+     * @param int $companyid Filter by company ID (0 = all companies).
+     * @param bool $markasnotified If true, marks returned records as notified.
+     * @param int $limit Maximum number of records to return.
+     * @param bool $onlyunnotified If true, only return records where notified=0.
+     * @return array Array with tokens[], count, has_more.
+     */
+    public static function get_new_tokens(int $since = 0, int $companyid = 0,
+            bool $markasnotified = false, int $limit = 100, bool $onlyunnotified = true): array {
+        global $DB, $CFG;
+
+        $sql = "SELECT lsp.id as recordid, lsp.tokenid, lsp.companyid, lsp.active,
+                       lsp.notified, lsp.timecreated,
+                       et.token as token_string, et.userid,
+                       u.firstname, u.lastname, u.email, u.username,
+                       u.city, u.country, u.timezone, u.phone1
+                FROM {local_sm_estratoos_plugin} lsp
+                JOIN {external_tokens} et ON et.id = lsp.tokenid
+                JOIN {user} u ON u.id = et.userid
+                WHERE lsp.active = 1
+                  AND u.deleted = 0";
+
+        $params = [];
+
+        if ($since > 0) {
+            $sql .= " AND lsp.timecreated > :since";
+            $params['since'] = $since;
+        }
+
+        if ($companyid > 0) {
+            $sql .= " AND lsp.companyid = :companyid";
+            $params['companyid'] = $companyid;
+        }
+
+        if ($onlyunnotified) {
+            $sql .= " AND lsp.notified = 0";
+        }
+
+        $sql .= " ORDER BY lsp.timecreated ASC";
+
+        // Fetch limit + 1 to detect has_more.
+        $records = $DB->get_records_sql($sql, $params, 0, $limit + 1);
+
+        $hasmore = count($records) > $limit;
+        if ($hasmore) {
+            array_pop($records);
+        }
+
+        $tokens = [];
+        $recordids = [];
+
+        foreach ($records as $record) {
+            $recordids[] = $record->recordid;
+
+            $token = new \stdClass();
+            $token->userid = (int)$record->userid;
+            $token->firstname = $record->firstname;
+            $token->lastname = $record->lastname;
+            $token->email = $record->email;
+            $token->username = $record->username;
+            $token->token = $record->token_string;
+            $token->companyid = (int)$record->companyid;
+            $token->city = $record->city ?? '';
+            $token->country = $record->country ?? '';
+            $token->timezone = $record->timezone ?? '';
+            $token->phone1 = $record->phone1 ?? '';
+            $token->moodle_url = $CFG->wwwroot;
+            $token->timecreated = (int)$record->timecreated;
+            $token->notified = (int)$record->notified;
+            $tokens[] = $token;
+        }
+
+        // Mark as notified if requested.
+        if ($markasnotified && !empty($recordids)) {
+            $now = time();
+            $transaction = $DB->start_delegated_transaction();
+            try {
+                foreach ($recordids as $rid) {
+                    $DB->update_record('local_sm_estratoos_plugin', (object)[
+                        'id' => $rid,
+                        'notified' => 1,
+                        'notified_at' => $now,
+                    ]);
+                }
+                $transaction->allow_commit();
+            } catch (\Exception $e) {
+                $transaction->rollback($e);
+                debugging('user_manager::get_new_tokens: Failed to mark as notified - ' . $e->getMessage(),
+                    DEBUG_DEVELOPER);
+            }
+        }
+
+        return [
+            'tokens' => $tokens,
+            'count' => count($tokens),
+            'has_more' => $hasmore,
+        ];
     }
 }

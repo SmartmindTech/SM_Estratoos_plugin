@@ -129,6 +129,24 @@ class create_users_form extends \moodleform {
         $mform->setType('username', PARAM_TEXT);
         $mform->hideIf('username', 'creationmethod', 'eq', 'csv');
 
+        // Document ID (mandatory for Spain compliance).
+        $mform->addElement('select', 'document_type',
+            get_string('documenttype', 'local_sm_estratoos_plugin'), [
+                '' => get_string('selectdocumenttype', 'local_sm_estratoos_plugin'),
+                'dni' => get_string('dni', 'local_sm_estratoos_plugin'),
+                'nie' => get_string('nie', 'local_sm_estratoos_plugin'),
+                'passport' => get_string('passport', 'local_sm_estratoos_plugin'),
+            ]);
+        $mform->addRule('document_type', get_string('required'), 'required', null, 'client');
+        $mform->hideIf('document_type', 'creationmethod', 'eq', 'csv');
+
+        $mform->addElement('text', 'document_id',
+            get_string('documentid', 'local_sm_estratoos_plugin'),
+            ['size' => 40]);
+        $mform->setType('document_id', PARAM_TEXT);
+        $mform->addRule('document_id', get_string('required'), 'required', null, 'client');
+        $mform->hideIf('document_id', 'creationmethod', 'eq', 'csv');
+
         // Password.
         $mform->addElement('advcheckbox', 'generate_password',
             get_string('generatepassword', 'local_sm_estratoos_plugin'),

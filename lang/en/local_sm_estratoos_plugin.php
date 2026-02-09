@@ -463,6 +463,22 @@ $string['error_token_creation_failed'] = 'Token creation failed after user was c
 $string['error_company_not_found'] = 'The specified company was not found.';
 $string['error_service_not_found'] = 'The specified web service was not found or is disabled.';
 
+// Document ID fields (v2.1.31).
+$string['documenttype'] = 'Document type';
+$string['documentid'] = 'Document ID';
+$string['dni'] = 'DNI';
+$string['nie'] = 'NIE';
+$string['passport'] = 'Passport';
+$string['selectdocumenttype'] = 'Select document type...';
+$string['error_empty_document_type'] = 'Document type is required.';
+$string['error_invalid_document_type'] = 'Document type must be DNI, NIE, or Passport.';
+$string['error_empty_document_id'] = 'Document ID is required when document type is specified.';
+$string['error_invalid_document_id'] = 'Document ID format is invalid for the selected document type.';
+
+// Token watcher API (v2.1.31).
+$string['getnewtokens'] = 'Get New Tokens';
+$string['getnewtokensdesc'] = 'Retrieve newly created tokens for SmartLearning sync.';
+
 // CSV template for user creation.
 $string['csvtemplate_users_instructions'] = 'Fill in user data. Only firstname, lastname, and email are required. Leave username empty for auto-generation.';
 $string['downloaduserscsvtemplate'] = 'Download Users CSV Template';

@@ -17,6 +17,8 @@
         <FIELD NAME="notes" TYPE="text" NOTNULL="false" COMMENT="Admin notes about this token"/>
         <FIELD NAME="active" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="1=active, 0=suspended (company access disabled)"/>
         <FIELD NAME="token_backup" TYPE="text" NOTNULL="false" COMMENT="JSON backup of external_tokens record when suspended"/>
+        <FIELD NAME="notified" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="1=SmartLearning has retrieved this token via get_new_tokens"/>
+        <FIELD NAME="notified_at" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Timestamp when watcher marked as notified"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -28,6 +30,7 @@
         <INDEX NAME="companyid_idx" UNIQUE="false" FIELDS="companyid"/>
         <INDEX NAME="batchid_idx" UNIQUE="false" FIELDS="batchid"/>
         <INDEX NAME="active_idx" UNIQUE="false" FIELDS="active"/>
+        <INDEX NAME="token_notified_idx" UNIQUE="false" FIELDS="notified, timecreated" COMMENT="Optimizes get_new_tokens watcher query"/>
       </INDEXES>
     </TABLE>
 
@@ -134,6 +137,8 @@
         <FIELD NAME="birthdate" TYPE="char" LENGTH="10" NOTNULL="false" COMMENT="Birthdate in YYYY-MM-DD format"/>
         <FIELD NAME="state_province" TYPE="char" LENGTH="100" NOTNULL="false" COMMENT="Full state/province name"/>
         <FIELD NAME="country_name" TYPE="char" LENGTH="100" NOTNULL="false" COMMENT="Full country name (e.g. Brazil, United States)"/>
+        <FIELD NAME="document_type" TYPE="char" LENGTH="20" NOTNULL="false" DEFAULT="" COMMENT="Document type: dni, nie, or passport"/>
+        <FIELD NAME="document_id" TYPE="char" LENGTH="50" NOTNULL="false" DEFAULT="" COMMENT="Document number (DNI/NIE/Passport)"/>
         <FIELD NAME="password_generated" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="1 if password was auto-generated"/>
         <FIELD NAME="batchid" TYPE="char" LENGTH="40" NOTNULL="false" COMMENT="UUID grouping for batch creation"/>
         <FIELD NAME="notified" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="1 if watcher API has retrieved this user"/>

@@ -147,6 +147,18 @@ class create_users_batch extends external_api {
                         VALUE_DEFAULT,
                         ''
                     ),
+                    'document_type' => new external_value(
+                        PARAM_ALPHANUMEXT,
+                        'Document type: dni, nie, or passport',
+                        VALUE_DEFAULT,
+                        ''
+                    ),
+                    'document_id' => new external_value(
+                        PARAM_ALPHANUMEXT,
+                        'Document ID number',
+                        VALUE_DEFAULT,
+                        ''
+                    ),
                 ]),
                 'Array of user data objects to create',
                 VALUE_DEFAULT,

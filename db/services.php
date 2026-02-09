@@ -717,6 +717,19 @@ $functions = [
         'loginrequired' => true,
     ],
 
+    // v2.1.31: Token watcher API for SmartLearning sync.
+    'local_sm_estratoos_plugin_get_new_tokens' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_new_tokens',
+        'methodname' => 'execute',
+        'description' => 'Get newly created tokens for SmartLearning sync. Returns tokens with user profile data (name, email, ' .
+                        'city, country, timezone, phone) so SmartLearning can create user accounts without extra API calls. ' .
+                        'Supports timestamp filtering and notification tracking. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'local/sm_estratoos_plugin:createusers',
+        'loginrequired' => true,
+    ],
+
     // v2.1.30: Encryption key retrieval for SmartLearning.
     'local_sm_estratoos_plugin_get_encryption_key' => [
         'classname' => 'local_sm_estratoos_plugin\external\get_encryption_key',

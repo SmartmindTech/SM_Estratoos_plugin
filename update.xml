@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2026020931</version>
+        <version>2026020932</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.30</release>
+        <release>2.1.31</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,32 +29,30 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.30/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.31/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.30</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.31</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.30 - User Creation APIs & Watcher</h3>
+            <h3>Version 2.1.31 - Document ID & Token Watcher</h3>
 
             <h4>New Features</h4>
             <ul>
-                <li>API: Create single user with auto-generated username, password, and token</li>
-                <li>API: Batch user creation from array or CSV data</li>
-                <li>API: Watcher endpoint to retrieve newly created users for SmartLearning sync</li>
-                <li>RSA password encryption with SmartLearning public key</li>
-                <li>Dashboard page for user creation (single or CSV/Excel upload)</li>
-                <li>Multilingual country resolution (English, Spanish, Portuguese)</li>
-                <li>Auto timezone detection from country code</li>
+                <li>Document ID fields (DNI/NIE/Passport) with Spain compliance validation</li>
+                <li>API: Token watcher endpoint (get_new_tokens) for existing user onboarding</li>
+                <li>Document fields in create_user, create_users_batch, get_new_users APIs</li>
+                <li>CSV/Excel templates updated with document_type and document_id columns</li>
+                <li>Notified/notified_at tracking on token metadata table</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.30: User creation APIs, batch creation, watcher endpoint</li>
                 <li>v2.1.29: Calendar event update API function</li>
                 <li>v2.1.28: Content centering and scrollbar cleanup in embed mode</li>
-                <li>v2.1.26: Video player full-width layout and auto-resume from last position</li>
             </ul>
             ]]>
         </releasenotes>

@@ -1719,6 +1719,48 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026020931, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.31: Add document ID fields to users table + notified/notified_at to token table + get_new_tokens API.
+    if ($oldversion < 2026020932) {
+        // 1. Add document_type and document_id to the users table.
+        $userstable = new xmldb_table('local_sm_estratoos_plugin_users');
+
+        $field = new xmldb_field('document_type', XMLDB_TYPE_CHAR, '20', null, null, null, '', 'country_name');
+        if (!$dbman->field_exists($userstable, $field)) {
+            $dbman->add_field($userstable, $field);
+        }
+
+        $field = new xmldb_field('document_id', XMLDB_TYPE_CHAR, '50', null, null, null, '', 'document_type');
+        if (!$dbman->field_exists($userstable, $field)) {
+            $dbman->add_field($userstable, $field);
+        }
+
+        // 2. Add notified and notified_at to the main token table for get_new_tokens watcher.
+        $tokentable = new xmldb_table('local_sm_estratoos_plugin');
+
+        $field = new xmldb_field('notified', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'token_backup');
+        if (!$dbman->field_exists($tokentable, $field)) {
+            $dbman->add_field($tokentable, $field);
+        }
+
+        $field = new xmldb_field('notified_at', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'notified');
+        if (!$dbman->field_exists($tokentable, $field)) {
+            $dbman->add_field($tokentable, $field);
+        }
+
+        // Add index for watcher query performance.
+        $index = new xmldb_index('token_notified_idx', XMLDB_INDEX_NOTUNIQUE, ['notified', 'timecreated']);
+        if (!$dbman->index_exists($tokentable, $index)) {
+            $dbman->add_index($tokentable, $index);
+        }
+
+        // 3. Add new get_new_tokens API function to service.
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026020932, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

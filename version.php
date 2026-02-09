@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2026020931;  // YYYYMMDDXX format.
+$plugin->version = 2026020932;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.1.30';  // User creation APIs, batch creation, watcher endpoint.
+$plugin->release = '2.1.31';  // Document ID fields, token watcher API.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

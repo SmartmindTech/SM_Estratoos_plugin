@@ -35,15 +35,16 @@ $format = optional_param('format', 'csv', PARAM_ALPHA);
 // Header row.
 $header = [
     'firstname', 'lastname', 'email', 'username', 'password',
+    'document_type', 'document_id',
     'phone_intl_code', 'phone', 'birthdate', 'city',
     'state_province', 'country', 'timezone',
 ];
 
 // Example rows.
 $examples = [
-    ['John', 'Doe', 'john@example.com', '', '', '+1', '5551234567', '1990-05-15', 'New York', 'New York', 'United States', 'America/New_York'],
-    ['Jane', 'Smith', 'jane@example.com', '', '', '+55', '11999998888', '1985-12-25', 'São Paulo', 'São Paulo', 'Brazil', ''],
-    ['Carlos', 'García', 'carlos@example.com', '', '', '+34', '612345678', '1992-03-10', 'Madrid', 'Madrid', 'España', ''],
+    ['John', 'Doe', 'john@example.com', '', '', 'passport', 'AB1234567', '+1', '5551234567', '1990-05-15', 'New York', 'New York', 'United States', 'America/New_York'],
+    ['Jane', 'Smith', 'jane@example.com', '', '', 'dni', '12345678Z', '+55', '11999998888', '1985-12-25', 'São Paulo', 'São Paulo', 'Brazil', ''],
+    ['Carlos', 'García', 'carlos@example.com', '', '', 'nie', 'X1234567L', '+34', '612345678', '1992-03-10', 'Madrid', 'Madrid', 'España', ''],
 ];
 
 // Instructions.
@@ -97,13 +98,15 @@ if ($format === 'xlsx') {
     $worksheet->set_column(2, 2, 25);  // email
     $worksheet->set_column(3, 3, 15);  // username
     $worksheet->set_column(4, 4, 15);  // password
-    $worksheet->set_column(5, 5, 15);  // phone_intl_code
-    $worksheet->set_column(6, 6, 15);  // phone
-    $worksheet->set_column(7, 7, 12);  // birthdate
-    $worksheet->set_column(8, 8, 15);  // city
-    $worksheet->set_column(9, 9, 15);  // state_province
-    $worksheet->set_column(10, 10, 15); // country
-    $worksheet->set_column(11, 11, 20); // timezone
+    $worksheet->set_column(5, 5, 15);  // document_type
+    $worksheet->set_column(6, 6, 18);  // document_id
+    $worksheet->set_column(7, 7, 15);  // phone_intl_code
+    $worksheet->set_column(8, 8, 15);  // phone
+    $worksheet->set_column(9, 9, 12);  // birthdate
+    $worksheet->set_column(10, 10, 15); // city
+    $worksheet->set_column(11, 11, 15); // state_province
+    $worksheet->set_column(12, 12, 15); // country
+    $worksheet->set_column(13, 13, 20); // timezone
 
     $workbook->close();
     exit;

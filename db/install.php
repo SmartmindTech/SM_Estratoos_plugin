@@ -393,6 +393,8 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_create_users_batch',
         'local_sm_estratoos_plugin_get_new_users',
         'local_sm_estratoos_plugin_get_encryption_key',
+        // v2.1.31: Token watcher API.
+        'local_sm_estratoos_plugin_get_new_tokens',
     ];
 
     foreach ($pluginfunctions as $functionname) {
