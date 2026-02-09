@@ -72,4 +72,12 @@ $capabilities = [
         'archetypes' => [],
         'riskbitmask' => RISK_CONFIG | RISK_PERSONAL,
     ],
+
+    // Create users via API or dashboard.
+    'local/sm_estratoos_plugin:createusers' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [],
+        'riskbitmask' => RISK_CONFIG | RISK_PERSONAL | RISK_SPAM,
+    ],
 ];

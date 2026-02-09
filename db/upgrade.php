@@ -1660,6 +1660,65 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025020329, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.30: User creation APIs with watcher and dashboard page.
+    if ($oldversion < 2026020930) {
+        // Create user creation tracking table.
+        $table = new xmldb_table('local_sm_estratoos_plugin_users');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('companyid', XMLDB_TYPE_INTEGER, '10', null, null, null, '0');
+        $table->add_field('tokenid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('token_string', XMLDB_TYPE_CHAR, '128', null, null, null, null);
+        $table->add_field('encrypted_password', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('phone_intl_code', XMLDB_TYPE_CHAR, '10', null, null, null, null);
+        $table->add_field('phone', XMLDB_TYPE_CHAR, '50', null, null, null, null);
+        $table->add_field('birthdate', XMLDB_TYPE_CHAR, '10', null, null, null, null);
+        $table->add_field('state_province', XMLDB_TYPE_CHAR, '100', null, null, null, null);
+        $table->add_field('country_name', XMLDB_TYPE_CHAR, '100', null, null, null, null);
+        $table->add_field('password_generated', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('batchid', XMLDB_TYPE_CHAR, '40', null, null, null, null);
+        $table->add_field('notified', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('notified_at', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('source', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'api');
+        $table->add_field('createdby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('userid_fk', XMLDB_KEY_FOREIGN_UNIQUE, ['userid'], 'user', ['id']);
+        $table->add_key('createdby_fk', XMLDB_KEY_FOREIGN, ['createdby'], 'user', ['id']);
+
+        $table->add_index('companyid_idx', XMLDB_INDEX_NOTUNIQUE, ['companyid']);
+        $table->add_index('notified_idx', XMLDB_INDEX_NOTUNIQUE, ['notified']);
+        $table->add_index('batchid_idx', XMLDB_INDEX_NOTUNIQUE, ['batchid']);
+        $table->add_index('timecreated_idx', XMLDB_INDEX_NOTUNIQUE, ['timecreated']);
+        $table->add_index('notified_timecreated_idx', XMLDB_INDEX_NOTUNIQUE, ['notified', 'timecreated']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Auto-generate RSA key pair for password encryption.
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_generate_rsa_keypair();
+
+        // Rebuild service functions to include new user creation APIs.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026020930, 'local', 'sm_estratoos_plugin');
+    }
+
+    if ($oldversion < 2026020931) {
+        // Auto-generate RSA key pair and add get_encryption_key API.
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_generate_rsa_keypair();
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026020931, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

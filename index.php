@@ -145,7 +145,9 @@ echo html_writer::end_div();
 // Dashboard cards.
 $cards = [];
 
-// Card 1: Create Admin Token (only for site admins).
+// Row 1: Token creation cards.
+
+// Card: Create Admin Token (only for site admins).
 if ($issiteadmin) {
     $cards[] = [
         'title' => get_string('createadmintoken', 'local_sm_estratoos_plugin'),
@@ -156,9 +158,8 @@ if ($issiteadmin) {
     ];
 }
 
-// Card 2: Create Company/User Tokens (depending on IOMAD mode).
+// Card: Create Company/User Tokens (depending on IOMAD mode).
 if ($isiomad) {
-    // IOMAD mode: Create Company Tokens.
     $cards[] = [
         'title' => get_string('createcompanytokens', 'local_sm_estratoos_plugin'),
         'description' => get_string('createcompanytokensdesc', 'local_sm_estratoos_plugin'),
@@ -167,7 +168,6 @@ if ($isiomad) {
         'class' => 'bg-success text-white',
     ];
 } else {
-    // Standard Moodle: Create User Tokens (no company context).
     $cards[] = [
         'title' => get_string('createusertokens', 'local_sm_estratoos_plugin'),
         'description' => get_string('createusertokensdesc', 'local_sm_estratoos_plugin'),
@@ -177,7 +177,7 @@ if ($isiomad) {
     ];
 }
 
-// Card 3: Manage Tokens.
+// Card: Manage Tokens.
 $cards[] = [
     'title' => get_string('managetokens', 'local_sm_estratoos_plugin'),
     'description' => get_string('managetokensdesc', 'local_sm_estratoos_plugin'),
@@ -186,7 +186,9 @@ $cards[] = [
     'class' => 'bg-info text-white',
 ];
 
-// Card 4: Manage Web Services (only for site admins).
+// Row 2: Management and user creation cards.
+
+// Card: Manage Web Services (only for site admins).
 if ($issiteadmin) {
     $cards[] = [
         'title' => get_string('manageservices', 'local_sm_estratoos_plugin'),
@@ -198,7 +200,7 @@ if ($issiteadmin) {
     ];
 }
 
-// Card 5: Manage Company Access (only for site admins in IOMAD mode).
+// Card: Manage Company Access (only for site admins in IOMAD mode).
 if ($issiteadmin && $isiomad) {
     $cards[] = [
         'title' => get_string('managecompanyaccess', 'local_sm_estratoos_plugin'),
@@ -208,6 +210,16 @@ if ($issiteadmin && $isiomad) {
         'class' => 'bg-dark text-white',
     ];
 }
+
+// Card: Create Users.
+$cards[] = [
+    'title' => get_string('createusers', 'local_sm_estratoos_plugin'),
+    'description' => get_string('createusersdesc', 'local_sm_estratoos_plugin'),
+    'url' => new moodle_url('/local/sm_estratoos_plugin/create_users.php'),
+    'icon' => 'i/user',
+    'class' => 'text-white',
+    'style' => 'background-color: #8B0000;', // Brick red.
+];
 
 // Render cards.
 echo html_writer::start_div('row mt-4 justify-content-center');

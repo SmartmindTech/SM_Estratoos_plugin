@@ -676,6 +676,58 @@ $functions = [
         'capabilities' => '',
         'loginrequired' => true,
     ],
+    // =========================================================================
+    // USER CREATION & WATCHER FUNCTIONS (v2.1.30)
+    // =========================================================================
+
+    // Create a single Moodle user with auto-generated username and token.
+    'local_sm_estratoos_plugin_create_user' => [
+        'classname' => 'local_sm_estratoos_plugin\external\create_user',
+        'methodname' => 'execute',
+        'description' => 'Create a single Moodle user with auto-generated username and token. ' .
+                        'Stores RSA-encrypted password for SmartLearning watcher. Supports IOMAD company assignment. ' .
+                        'Returns error codes for validation failures. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'local/sm_estratoos_plugin:createusers',
+        'loginrequired' => true,
+    ],
+
+    // Create multiple Moodle users in batch.
+    'local_sm_estratoos_plugin_create_users_batch' => [
+        'classname' => 'local_sm_estratoos_plugin\external\create_users_batch',
+        'methodname' => 'execute',
+        'description' => 'Create multiple Moodle users with auto token generation. Supports array of users or CSV data string. ' .
+                        'Returns per-user success/fail results with error codes. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'local/sm_estratoos_plugin:createusers',
+        'loginrequired' => true,
+    ],
+
+    // Watcher API: Get newly created users for SmartLearning sync.
+    'local_sm_estratoos_plugin_get_new_users' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_new_users',
+        'methodname' => 'execute',
+        'description' => 'Get newly created users for SmartLearning sync. Returns encrypted passwords, tokens, and user data. ' .
+                        'Supports timestamp filtering and notification tracking. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'local/sm_estratoos_plugin:createusers',
+        'loginrequired' => true,
+    ],
+
+    // v2.1.30: Encryption key retrieval for SmartLearning.
+    'local_sm_estratoos_plugin_get_encryption_key' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_encryption_key',
+        'methodname' => 'execute',
+        'description' => 'Retrieve the RSA private key for password decryption. SmartLearning uses this to decrypt ' .
+                        'passwords encrypted by the plugin. Admin-only. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'moodle/site:config',
+        'loginrequired' => true,
+    ],
 ];
 
 // NOTE: The SmartMind - Estratoos Plugin service is created and managed in install.php,

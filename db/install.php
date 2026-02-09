@@ -51,6 +51,9 @@ function xmldb_local_sm_estratoos_plugin_install() {
     // set_config('allowedframembedders', 'https://smartlearning.example.com https://app.smartlxp.com');
     // This sets Content-Security-Policy frame-ancestors to whitelist specific domains.
 
+    // Auto-generate RSA key pair for password encryption.
+    xmldb_local_sm_estratoos_plugin_generate_rsa_keypair();
+
     // Add plugin functions to Moodle mobile web service.
     xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
 
@@ -385,6 +388,11 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_update_user',
         // v2.1.29: Calendar event update.
         'local_sm_estratoos_plugin_update_calendar_event',
+        // v2.1.30: User creation, watcher, and encryption key functions.
+        'local_sm_estratoos_plugin_create_user',
+        'local_sm_estratoos_plugin_create_users_batch',
+        'local_sm_estratoos_plugin_get_new_users',
+        'local_sm_estratoos_plugin_get_encryption_key',
     ];
 
     foreach ($pluginfunctions as $functionname) {
@@ -448,4 +456,46 @@ function xmldb_local_sm_estratoos_plugin_remove_from_mobile_service() {
             'functionname' => $functionname,
         ]);
     }
+}
+
+/**
+ * Generate RSA key pair for password encryption.
+ *
+ * Creates a 2048-bit RSA key pair and stores both keys in plugin config.
+ * The public key is used to encrypt passwords, the private key is
+ * retrieved by SmartLearning via the get_encryption_key API to decrypt.
+ *
+ * Only generates if keys don't already exist.
+ */
+function xmldb_local_sm_estratoos_plugin_generate_rsa_keypair() {
+    $existingprivate = get_config('local_sm_estratoos_plugin', 'rsa_private_key');
+
+    if (!empty($existingprivate)) {
+        return;
+    }
+
+    $config = [
+        'private_key_bits' => 2048,
+        'private_key_type' => OPENSSL_KEYTYPE_RSA,
+    ];
+
+    $keypair = openssl_pkey_new($config);
+    if (!$keypair) {
+        error_log('SM_ESTRATOOS_PLUGIN: Failed to generate RSA key pair');
+        return;
+    }
+
+    // Extract private key.
+    $privatekey = '';
+    openssl_pkey_export($keypair, $privatekey);
+
+    // Extract public key.
+    $details = openssl_pkey_get_details($keypair);
+    $publickey = $details['key'];
+
+    // Store both keys in plugin config (not visible in settings UI).
+    set_config('rsa_private_key', $privatekey, 'local_sm_estratoos_plugin');
+    set_config('rsa_public_key', $publickey, 'local_sm_estratoos_plugin');
+
+    error_log('SM_ESTRATOOS_PLUGIN: RSA key pair generated successfully');
 }
