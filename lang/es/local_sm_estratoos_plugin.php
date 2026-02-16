@@ -416,3 +416,55 @@ $string['oauth2allowedorigins'] = 'Orígenes de Incrustación Permitidos';
 $string['oauth2allowedorigins_desc'] = 'URLs permitidas para incrustar actividades de Moodle en iframes (una por línea). Soporta comodines como https://*.smartmind.net.';
 $string['oauth2jwkscachettl'] = 'TTL de Caché JWKS (segundos)';
 $string['oauth2jwkscachettl_desc'] = 'Tiempo de caché del JWKS (JSON Web Key Set) de SmartLearning. Predeterminado: 3600 (1 hora).';
+
+// Activacion del plugin (v2.1.32).
+$string['pluginnotactivated'] = 'Plugin no activado. Ingrese un codigo de activacion en la configuracion del plugin.';
+$string['activationrequired'] = 'Activacion Requerida';
+$string['activationcode'] = 'Codigo de Activacion';
+$string['activateplugin'] = 'Activar Plugin';
+$string['activationstatus'] = 'Estado de Activacion';
+$string['activationsuccess'] = 'Plugin activado correctamente.';
+$string['activationfailed'] = 'Activacion fallida: {$a}';
+$string['plugindeactivated'] = 'Plugin desactivado. Contacte al soporte de SmartLearning.';
+$string['activationcodeonly'] = 'Ingrese el codigo de activacion proporcionado por SmartLearning. El plugin no puede usarse sin activar.';
+$string['activationcodehelp'] = 'Formato: ACT-XXXX-XXXX-XXXX. Proporcionado por su administrador de SmartLearning. Expira en 15 minutos.';
+$string['activationcodeinvalid'] = 'Codigo de activacion invalido. Verifique el codigo e intente nuevamente.';
+$string['activationcodeexpired'] = 'Este codigo de activacion ha expirado. Solicite uno nuevo a SmartLearning.';
+$string['activationcodeused'] = 'Este codigo de activacion ya fue utilizado.';
+// Configuracion de webhooks (v2.1.32).
+$string['webhooksettings'] = 'Configuracion de Webhooks';
+$string['webhookenabled'] = 'Habilitar webhooks';
+$string['webhookenabled_desc'] = 'Enviar eventos de actividad a SmartLearning via webhooks.';
+$string['webhookurl'] = 'URL de API de SmartLearning';
+$string['webhookurl_desc'] = 'Endpoint de la API de SmartLearning para eventos de webhook. Solo cambie si se lo indica soporte.';
+$string['webhooksecret'] = 'Secreto de Webhook';
+$string['instanceid'] = 'ID de Instancia';
+// Etiquetas de estado (v2.1.32).
+$string['statusnotactivated'] = 'No Activado';
+$string['statusactive'] = 'Activo';
+$string['statusdisabled'] = 'Deshabilitado por SmartLearning';
+$string['statusexpired'] = 'Expirado';
+// Activacion por empresa (v2.1.32).
+$string['companyactivationcode'] = 'Codigo de Activacion de Empresa';
+$string['companyactivationcodehelp'] = 'Ingrese el codigo de activacion para esta empresa. Las fechas de contrato se estableceran automaticamente.';
+$string['companyactivationcodeset'] = 'Codigo de activacion ya configurado para esta empresa.';
+$string['companyactivated'] = 'Empresa activada correctamente. Contrato: {$a->start} a {$a->end}.';
+$string['companyactivationfailed'] = 'Activacion de empresa fallida: {$a}';
+$string['companynotactivated'] = 'No Activada';
+$string['companycontractexpired'] = 'Contrato Expirado';
+$string['contractstart'] = 'Inicio de Contrato';
+$string['contractend'] = 'Fin de Contrato';
+// Autoactivacion de managers (v2.1.35).
+$string['manageractivationinstructions'] = 'Introduce el codigo de activacion proporcionado por SmartLearning para habilitar el acceso de tu empresa.';
+$string['activatebutton'] = 'Activar';
+$string['tokenscreatedformanagers'] = '{$a->count} token(s) creados para los managers.';
+$string['companiesactivatedcount'] = '{$a->activated} de {$a->total} empresas activadas';
+// Secciones de configuracion (v2.1.32).
+$string['tokensettings'] = 'Configuracion de Tokens';
+// Tarea (v2.1.32).
+$string['task_dispatch_webhooks'] = 'Enviar eventos de webhook a SmartLearning';
+// API de eliminacion de usuarios (v2.1.34).
+$string['sm_estratoos_plugin:deleteusers'] = 'Eliminar usuarios via API';
+$string['userdeleted'] = 'Usuario eliminado correctamente.';
+$string['userdeleteerror'] = 'Error al eliminar usuario: {$a}';
+$string['usersdeleted'] = '{$a->deleted} de {$a->total} usuarios eliminados correctamente.';

@@ -31,6 +31,9 @@ require_login();
 // Site administrators and company managers can access this page.
 \local_sm_estratoos_plugin\util::require_token_admin();
 
+// Check plugin activation (v2.1.32). Superadmins skip this in IOMAD.
+\local_sm_estratoos_plugin\util::check_activation_gate();
+
 $PAGE->set_url(new moodle_url('/local/sm_estratoos_plugin/batch.php'));
 $PAGE->set_context(context_system::instance());
 $PAGE->set_title(get_string('batchtokens', 'local_sm_estratoos_plugin'));

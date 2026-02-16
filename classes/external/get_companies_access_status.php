@@ -115,7 +115,7 @@ class get_companies_access_status extends external_api {
             "companyid $insql",
             $inparams,
             '',
-            'companyid, enabled, expirydate, plugin_version, enabledby, timecreated, timemodified'
+            'companyid, enabled, expirydate, plugin_version, enabledby, timecreated, timemodified, activation_code, contract_start'
         );
 
         // Get token counts per company.
@@ -184,6 +184,10 @@ class get_companies_access_status extends external_api {
                 'timemodified' => (int)($access ? ($access->timemodified ?? 0) : 0),
                 'tokencount' => (int)($tokens ? $tokens->total : 0),
                 'activetokencount' => (int)($tokens ? $tokens->active : 0),
+                'activation_code' => ($access && !empty($access->activation_code))
+                    ? substr($access->activation_code, 0, 8) . '****-****' : '',
+                'contract_start' => (int)($access ? ($access->contract_start ?? 0) : 0),
+                'is_activated' => ($access && !empty($access->activation_code)),
             ];
         }
 
@@ -213,6 +217,9 @@ class get_companies_access_status extends external_api {
                     'timemodified' => new external_value(PARAM_INT, 'Access record modification timestamp'),
                     'tokencount' => new external_value(PARAM_INT, 'Total tokens for this company'),
                     'activetokencount' => new external_value(PARAM_INT, 'Active tokens for this company'),
+                    'activation_code' => new external_value(PARAM_TEXT, 'Masked activation code (ACT-XXXX-****-****)'),
+                    'contract_start' => new external_value(PARAM_INT, 'Contract start timestamp'),
+                    'is_activated' => new external_value(PARAM_BOOL, 'Whether company has been activated with code'),
                 ]),
                 'Companies with access status'
             ),

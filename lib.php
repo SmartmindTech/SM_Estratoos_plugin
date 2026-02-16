@@ -129,6 +129,11 @@ function local_sm_estratoos_plugin_extend_settings_navigation(settings_navigatio
 function local_sm_estratoos_plugin_before_footer() {
     global $CFG, $PAGE, $DB;
 
+    // Skip all injections if plugin is not activated (v2.1.32).
+    if (!\local_sm_estratoos_plugin\webhook::is_activated()) {
+        return;
+    }
+
     // Check if we're on the SCORM player page.
     $pagepath = $PAGE->url->get_path() ?? '';
     $isscormplayer = strpos($pagepath, '/mod/scorm/player.php') !== false;

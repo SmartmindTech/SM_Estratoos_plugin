@@ -44,6 +44,10 @@ class company_token_manager {
     public static function create_token(int $userid, int $companyid, int $serviceid, array $options = []): object {
         global $DB, $USER;
 
+        // Determine actor user ID for logging and record ownership.
+        // Callers (e.g., superadmin provisioning) can override $USER via 'actoruserid'.
+        $actoruserid = !empty($options['actoruserid']) ? (int) $options['actoruserid'] : (int) $USER->id;
+
         // Check if IOMAD mode (companyid > 0) or standard Moodle mode (companyid = 0).
         $isiomad = util::is_iomad_installed() && $companyid > 0;
 
@@ -134,7 +138,7 @@ class company_token_manager {
             get_config('local_sm_estratoos_plugin', 'default_restricttoenrolment');
         $iomadtoken->iprestriction = $iprestriction ?: null;
         $iomadtoken->validuntil = $validuntil ?: null;
-        $iomadtoken->createdby = $USER->id;
+        $iomadtoken->createdby = $actoruserid;
         $iomadtoken->timecreated = time();
         $iomadtoken->timemodified = time();
         // Store token name as notes (prepend to any existing notes).
@@ -146,7 +150,85 @@ class company_token_manager {
         $iomadtoken->userid = $userid;
         $iomadtoken->tokenname = $tokenname;
 
+        // Log token.created event — skip when part of a batch (batch_created covers it).
+        if (empty($options['batchid'])) {
+            try {
+                $user = $DB->get_record('user', ['id' => $userid], 'id, username, email, firstname, lastname');
+                \local_sm_estratoos_plugin\webhook::log_event('token.created', 'token', [
+                    'tokenid' => $iomadtoken->id,
+                    'token' => $token,
+                    'userid' => $userid,
+                    'companyid' => $companyid,
+                    'token_name' => $tokenname,
+                    'username' => $user ? $user->username : '',
+                    'email' => $user ? $user->email : '',
+                    'firstname' => $user ? $user->firstname : '',
+                    'lastname' => $user ? $user->lastname : '',
+                ], $actoruserid, $companyid);
+            } catch (\Exception $e) {
+                // Non-fatal.
+            }
+        }
+
         return $iomadtoken;
+    }
+
+    /**
+     * Create tokens for all managers of a company.
+     *
+     * Called after company activation to auto-provision manager tokens.
+     * Skips managers who already have an active token for the same service.
+     *
+     * @param int $companyid The IOMAD company ID.
+     * @param int $serviceid The external service ID (0 = default plugin service).
+     * @param int $validuntil Token expiry timestamp (0 = never expires).
+     * @return array ['created' => int, 'skipped' => int, 'errors' => int]
+     */
+    public static function create_tokens_for_company_managers(int $companyid, int $serviceid = 0,
+            int $validuntil = 0): array {
+        global $DB;
+
+        // Get service ID (default plugin service).
+        if (!$serviceid) {
+            $service = $DB->get_record('external_services', ['shortname' => 'sm_estratoos_plugin']);
+            $serviceid = $service ? (int) $service->id : 0;
+        }
+        if (!$serviceid) {
+            return ['created' => 0, 'skipped' => 0, 'errors' => 0];
+        }
+
+        // Get company managers.
+        $managers = util::get_company_managers($companyid);
+
+        $created = 0;
+        $skipped = 0;
+        $errors = 0;
+
+        foreach ($managers as $manager) {
+            // Check if manager already has an active token for this service and company.
+            $existing = $DB->get_record_sql(
+                "SELECT et.id FROM {external_tokens} et
+                 JOIN {local_sm_estratoos_plugin} lp ON lp.tokenid = et.id
+                 WHERE et.userid = :userid AND et.externalserviceid = :serviceid
+                   AND lp.companyid = :companyid",
+                ['userid' => $manager->id, 'serviceid' => $serviceid, 'companyid' => $companyid]
+            );
+            if ($existing) {
+                $skipped++;
+                continue;
+            }
+
+            try {
+                self::create_token($manager->id, $companyid, $serviceid, [
+                    'validuntil' => $validuntil,
+                ]);
+                $created++;
+            } catch (\Exception $e) {
+                $errors++;
+            }
+        }
+
+        return ['created' => $created, 'skipped' => $skipped, 'errors' => $errors];
     }
 
     /**
@@ -191,6 +273,17 @@ class company_token_manager {
         // Get the token record and update the name.
         $tokenrecord = $DB->get_record('external_tokens', ['token' => $token], 'id', MUST_EXIST);
         $DB->set_field('external_tokens', 'name', $tokenname, ['id' => $tokenrecord->id]);
+
+        // Log token.admin_created event (v2.1.32).
+        try {
+            \local_sm_estratoos_plugin\webhook::log_event('token.admin_created', 'token', [
+                'tokenid' => $tokenrecord->id,
+                'userid' => $userid,
+                'token_name' => $tokenname,
+            ], $userid, 0);
+        } catch (\Exception $e) {
+            // Non-fatal.
+        }
 
         return $token;
     }
@@ -257,6 +350,45 @@ class company_token_manager {
         $batch->failcount = $results->failcount;
         $batch->status = 'completed';
         $DB->update_record('local_sm_estratoos_plugin_batch', $batch);
+
+        // Log token.batch_created event (v2.1.32).
+        try {
+            $userdetails = [];
+            foreach ($results->tokens as $t) {
+                $u = $DB->get_record('user', ['id' => $t->userid], 'id, username, email, firstname, lastname');
+                if ($u) {
+                    $userdetails[] = [
+                        'userid' => $u->id,
+                        'username' => $u->username,
+                        'email' => $u->email,
+                        'firstname' => $u->firstname,
+                        'lastname' => $u->lastname,
+                    ];
+                }
+            }
+            // Include error details so the activity log can show which users failed.
+            $errordetails = [];
+            foreach ($results->errors as $err) {
+                $errordetails[] = [
+                    'userid' => $err['userid'] ?? 0,
+                    'username' => $err['username'] ?? '',
+                    'email' => $err['email'] ?? '',
+                    'fullname' => $err['fullname'] ?? '',
+                    'error' => $err['error'] ?? 'Unknown error',
+                ];
+            }
+
+            \local_sm_estratoos_plugin\webhook::log_event('token.batch_created', 'token', [
+                'batchid' => $results->batchid,
+                'companyid' => $companyid,
+                'successcount' => $results->successcount,
+                'failcount' => $results->failcount,
+                'user_details' => $userdetails,
+                'error_details' => $errordetails,
+            ], $USER->id, $companyid);
+        } catch (\Exception $e) {
+            // Non-fatal.
+        }
 
         // Auto-enable company if any manager tokens were created (IOMAD only).
         if (util::is_iomad_installed() && $companyid > 0 && $results->successcount > 0) {
@@ -489,6 +621,24 @@ class company_token_manager {
         // Delete our record.
         $DB->delete_records('local_sm_estratoos_plugin', ['id' => $tokenid]);
 
+        // Log token.revoked event.
+        try {
+            \local_sm_estratoos_plugin\webhook::log_event('token.revoked', 'token', [
+                'tokenid' => $tokenid,
+                'userid' => $externaltoken ? $externaltoken->userid : 0,
+                'companyid' => $iomadtoken->companyid ?? 0,
+                'username' => $user ? $user->username : '',
+                'email' => $user ? $user->email : '',
+                'firstname' => $user ? $user->firstname : '',
+                'lastname' => $user ? $user->lastname : '',
+            ], $USER->id, $iomadtoken->companyid ?? 0);
+
+            // Dispatch immediately so SmartLearning is notified in real time.
+            \local_sm_estratoos_plugin\webhook::dispatch_pending();
+        } catch (\Exception $e) {
+            // Non-fatal — cron will retry.
+        }
+
         return true;
     }
 
@@ -505,6 +655,7 @@ class company_token_manager {
                 $count++;
             }
         }
+        // Batch: dispatch is already called per-token in revoke_token above.
         return $count;
     }
 

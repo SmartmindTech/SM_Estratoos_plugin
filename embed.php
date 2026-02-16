@@ -47,19 +47,13 @@ use local_sm_estratoos_plugin\embed_renderer;
 
 // SmartLearning OAuth2 issuer URL (backend that signs JWT tokens).
 // Configurable via: Site admin > Plugins > Local plugins > SmartMind Estratoos Plugin
-$issuerUrl = get_config('local_sm_estratoos_plugin', 'oauth2_issuer_url');
-if (empty($issuerUrl)) {
-    $issuerUrl = 'https://api-inbox.smartlxp.com';
-}
+$issuerUrl = \local_sm_estratoos_plugin\util::get_env_config('oauth2_issuer_url', 'https://api-inbox.smartlxp.com');
 // Clean up any whitespace/newlines.
 $issuerUrl = trim(preg_replace('/[\r\n]+/', '', $issuerUrl));
 
 // Allowed embed origins for CSP header (frontend that displays iframes).
-// Configurable via: Site admin > Plugins > Local plugins > SmartMind Estratoos Plugin
-$allowedOrigins = get_config('local_sm_estratoos_plugin', 'oauth2_allowed_origins');
-if (empty($allowedOrigins)) {
-    $allowedOrigins = 'https://inbox.smartlxp.com';
-}
+// Configurable via .env file or database config.
+$allowedOrigins = \local_sm_estratoos_plugin\util::get_env_config('oauth2_allowed_origins', 'https://inbox.smartlxp.com');
 // Convert newlines to spaces (textarea format → CSP format).
 $allowedOrigins = preg_replace('/[\r\n]+/', ' ', trim($allowedOrigins));
 

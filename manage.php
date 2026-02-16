@@ -30,6 +30,9 @@ require_login();
 // Site administrators and company managers can access this page.
 \local_sm_estratoos_plugin\util::require_token_admin();
 
+// Check plugin activation (v2.1.32). Superadmins skip this in IOMAD.
+\local_sm_estratoos_plugin\util::check_activation_gate();
+
 // Get parameters.
 $companyid = optional_param('companyid', 0, PARAM_INT);
 $serviceid = optional_param('serviceid', 0, PARAM_INT);

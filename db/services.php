@@ -705,6 +705,18 @@ $functions = [
         'loginrequired' => true,
     ],
 
+    // Delete one or more Moodle users.
+    'local_sm_estratoos_plugin_delete_users' => [
+        'classname' => 'local_sm_estratoos_plugin\external\delete_users',
+        'methodname' => 'execute',
+        'description' => 'Delete one or more Moodle users. Revokes tokens, removes plugin metadata, soft-deletes user. ' .
+                        'Company-scoped for IOMAD. [SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'local/sm_estratoos_plugin:deleteusers',
+        'loginrequired' => true,
+    ],
+
     // Watcher API: Get newly created users for SmartLearning sync.
     'local_sm_estratoos_plugin_get_new_users' => [
         'classname' => 'local_sm_estratoos_plugin\external\get_new_users',
@@ -739,6 +751,37 @@ $functions = [
         'type' => 'read',
         'ajax' => true,
         'capabilities' => 'moodle/site:config',
+        'loginrequired' => true,
+    ],
+
+    // =========================================================================
+    // ACCESS CONTROL FUNCTIONS (v2.1.35)
+    // Called by SmartLearning when a superadmin enables/disables a Moodle instance.
+    // =========================================================================
+
+    // Toggle company access (IOMAD only).
+    'local_sm_estratoos_plugin_toggle_company_access' => [
+        'classname' => 'local_sm_estratoos_plugin\external\toggle_company_access',
+        'methodname' => 'execute',
+        'description' => 'Toggle plugin access for an IOMAD company. Called by SmartLearning when a superadmin ' .
+                        'enables or disables a Moodle instance. Enables/disables company access and suspends/reactivates tokens. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'local/sm_estratoos_plugin:manageaccess',
+        'loginrequired' => true,
+    ],
+
+    // Toggle plugin access globally (Standard Moodle).
+    'local_sm_estratoos_plugin_toggle_access' => [
+        'classname' => 'local_sm_estratoos_plugin\external\toggle_access',
+        'methodname' => 'execute',
+        'description' => 'Toggle plugin access globally for standard (non-IOMAD) Moodle instances. Called by SmartLearning ' .
+                        'when a superadmin enables or disables a Moodle instance. Toggles the plugin activated state. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'local/sm_estratoos_plugin:manageaccess',
         'loginrequired' => true,
     ],
 ];

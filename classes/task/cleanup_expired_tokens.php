@@ -67,13 +67,55 @@ class cleanup_expired_tokens extends \core\task\scheduled_task {
         $count = 0;
         foreach ($expiredtokens as $token) {
             try {
+                // Get user info before deleting.
+                $user = null;
+                if (!empty($token->tokenid)) {
+                    $et = $DB->get_record('external_tokens', ['id' => $token->tokenid], 'userid');
+                    if ($et) {
+                        $user = $DB->get_record('user', ['id' => $et->userid], 'id, username, email, firstname, lastname');
+                    }
+                }
+
+                // Write audit record.
+                $deletion = new \stdClass();
+                $deletion->tokenid = $token->tokenid ?? 0;
+                $deletion->userid = $user ? $user->id : 0;
+                $deletion->companyid = $token->companyid ?? 0;
+                $deletion->reason = 'expired';
+                $deletion->deletedby = 0; // System/cron.
+                $deletion->timedeleted = time();
+                $DB->insert_record('local_sm_estratoos_plugin_del', $deletion);
+
                 // Delete our record.
                 $DB->delete_records('local_sm_estratoos_plugin', ['id' => $token->id]);
 
-                // Note: We don't delete from external_tokens as Moodle's own cleanup handles that.
+                // Log token.expired event so SmartLearning is notified.
+                try {
+                    \local_sm_estratoos_plugin\webhook::log_event('token.expired', 'token', [
+                        'tokenid' => $token->id,
+                        'userid' => $user ? $user->id : 0,
+                        'companyid' => $token->companyid ?? 0,
+                        'username' => $user ? $user->username : '',
+                        'email' => $user ? $user->email : '',
+                        'firstname' => $user ? $user->firstname : '',
+                        'lastname' => $user ? $user->lastname : '',
+                    ], 0, $token->companyid ?? 0);
+                } catch (\Exception $e) {
+                    // Non-fatal.
+                }
+
                 $count++;
             } catch (\Exception $e) {
                 mtrace('Error deleting token ' . $token->id . ': ' . $e->getMessage());
+            }
+        }
+
+        // Dispatch webhook events immediately so SmartLearning is notified.
+        if ($count > 0) {
+            try {
+                \local_sm_estratoos_plugin\webhook::dispatch_pending();
+            } catch (\Exception $e) {
+                mtrace('Webhook dispatch failed, will retry on next cron: ' . $e->getMessage());
             }
         }
 

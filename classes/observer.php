@@ -39,8 +39,7 @@ class observer {
      * SmartLearning backend URL (reuses OAuth2 issuer URL from settings)
      */
     private static function get_backend_url(): string {
-        return get_config('local_sm_estratoos_plugin', 'oauth2_issuer_url')
-            ?: 'https://api-inbox.smartlxp.com';
+        return util::get_env_config('oauth2_issuer_url', 'https://api-inbox.smartlxp.com');
     }
 
     /**

@@ -65,8 +65,11 @@ class navbar_hooks {
     public static function render_navbar_output(\renderer_base $renderer) {
         global $CFG;
 
-        // Only show for site admins and company managers.
-        if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
+        // Show for site admins, active token admins, and potential managers
+        // (managers whose company may not yet be activated).
+        if (!is_siteadmin()
+            && !\local_sm_estratoos_plugin\util::is_token_admin()
+            && !\local_sm_estratoos_plugin\util::is_potential_token_admin()) {
             return '';
         }
 
@@ -101,8 +104,10 @@ class navbar_hooks {
      * @return string HTML/JS to inject at the top of <body>, or empty string if not applicable.
      */
     public static function before_standard_top_of_body_html() {
-        // Only inject for authorized users.
-        if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
+        // Only inject for authorized users (including potential managers).
+        if (!is_siteadmin()
+            && !\local_sm_estratoos_plugin\util::is_token_admin()
+            && !\local_sm_estratoos_plugin\util::is_potential_token_admin()) {
             return '';
         }
 

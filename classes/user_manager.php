@@ -321,9 +321,73 @@ class user_manager {
             'moodle_url' => $CFG->wwwroot,
         ];
 
+        // Resolve actor user ID for logging and record ownership.
+        // Callers (e.g., superadmin provisioning) can set 'actor_userid' to override $USER.
+        $actoruserid = !empty($userdata['actor_userid']) ? (int) $userdata['actor_userid'] : (int) ($GLOBALS['USER']->id ?? 0);
+
         // Step 1: Validate fields.
         $validation = self::validate_user_data($userdata);
         if (!$validation->valid) {
+            // For email_taken: return existing user data and create a token if serviceid provided.
+            // This allows callers (e.g., superadmin provisioning) to get the existing user's
+            // info and a working token without needing additional API calls.
+            if ($validation->error_code === 'email_taken') {
+                $existinguser = $DB->get_record('user', [
+                    'email' => $result->email, 'deleted' => 0
+                ], 'id, username');
+                if ($existinguser) {
+                    $result->userid = (int)$existinguser->id;
+                    $result->username = $existinguser->username;
+
+                    $companyid = (int)($userdata['companyid'] ?? 0);
+
+                    // Ensure user is assigned to the company (may be missing for existing users).
+                    if (util::is_iomad_installed() && $companyid > 0) {
+                        try {
+                            if (!$DB->record_exists('company_users', [
+                                'userid' => $existinguser->id, 'companyid' => $companyid,
+                            ])) {
+                                $department = $DB->get_record('department', [
+                                    'company' => $companyid, 'parent' => 0,
+                                ], 'id', IGNORE_MULTIPLE);
+
+                                $DB->insert_record('company_users', [
+                                    'companyid' => $companyid,
+                                    'userid' => $existinguser->id,
+                                    'managertype' => (int)($userdata['managertype'] ?? 0),
+                                    'departmentid' => $department ? $department->id : 0,
+                                    'timecreated' => time(),
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                            debugging('user_manager::create_user: Company assignment for existing user failed - ' .
+                                $e->getMessage(), DEBUG_DEVELOPER);
+                        }
+                    }
+
+                    $serviceid = (int)($userdata['serviceid'] ?? 0);
+                    if ($serviceid === 0) {
+                        $serviceid = self::get_default_service_id();
+                    }
+                    if ($serviceid > 0) {
+                        try {
+                            $tokenoptions = ['actoruserid' => $actoruserid];
+                            if (!empty($userdata['validuntil'])) {
+                                $tokenoptions['validuntil'] = (int) $userdata['validuntil'];
+                            }
+                            $tokenrecord = company_token_manager::create_token(
+                                $existinguser->id, $companyid, $serviceid, $tokenoptions
+                            );
+                            $result->token = $tokenrecord->token;
+                        } catch (\Exception $e) {
+                            // Token creation failed — still return the user data.
+                            debugging('user_manager::create_user: Token for existing user failed - ' .
+                                $e->getMessage(), DEBUG_DEVELOPER);
+                        }
+                    }
+                }
+            }
+
             $result->error_code = $validation->error_code;
             $result->message = $validation->message;
             return $result;
@@ -443,7 +507,7 @@ class user_manager {
                     $companyuser = new \stdClass();
                     $companyuser->companyid = $companyid;
                     $companyuser->userid = $userid;
-                    $companyuser->managertype = 0;
+                    $companyuser->managertype = (int)($userdata['managertype'] ?? 0);
                     $companyuser->departmentid = $department ? $department->id : 0;
                     $companyuser->timecreated = time();
 
@@ -455,9 +519,33 @@ class user_manager {
             }
         }
 
+        // Step 11b: Assign a system-level role so the user has webservice/rest:use capability.
+        // Without this, the token exists but REST API calls fail with accessexception.
+        // IOMAD company-scoped users get 'companymanager'; standard Moodle users get 'student'.
+        try {
+            $systemctx = \context_system::instance();
+            if (util::is_iomad_installed() && $companyid > 0) {
+                $roleid = $DB->get_field('role', 'id', ['shortname' => 'companymanager']);
+            } else {
+                $roleid = $DB->get_field('role', 'id', ['shortname' => 'manager']);
+            }
+            if ($roleid && !$DB->record_exists('role_assignments', [
+                'roleid' => $roleid, 'contextid' => $systemctx->id, 'userid' => $userid
+            ])) {
+                role_assign($roleid, $userid, $systemctx->id);
+            }
+        } catch (\Exception $e) {
+            debugging('user_manager::create_user: Failed to assign system role - ' . $e->getMessage(),
+                DEBUG_DEVELOPER);
+        }
+
         // Step 12: Create web service token.
         try {
-            $tokenrecord = company_token_manager::create_token($userid, $companyid, $serviceid, []);
+            $tokenoptions = ['actoruserid' => $actoruserid];
+            if (!empty($userdata['validuntil'])) {
+                $tokenoptions['validuntil'] = (int) $userdata['validuntil'];
+            }
+            $tokenrecord = company_token_manager::create_token($userid, $companyid, $serviceid, $tokenoptions);
             $result->token = $tokenrecord->token;
         } catch (\Exception $e) {
             $result->error_code = 'token_creation_failed';
@@ -482,7 +570,7 @@ class user_manager {
             $userrecord->document_id = strtoupper(trim($userdata['document_id'] ?? ''));
             $userrecord->password_generated = $generatepassword ? 1 : 0;
             $userrecord->source = $source;
-            $userrecord->createdby = (int)($GLOBALS['USER']->id ?? 0);
+            $userrecord->createdby = $actoruserid;
             $userrecord->notified = 0;
             $userrecord->timecreated = time();
 
@@ -496,6 +584,24 @@ class user_manager {
         // Step 15: Return success.
         $result->success = true;
         $result->message = 'User created successfully';
+
+        // Log user.created event (v2.1.32).
+        try {
+            \local_sm_estratoos_plugin\webhook::log_event('user.created', 'user', [
+                'userid' => $result->userid,
+                'username' => $result->username,
+                'email' => $result->email,
+                'firstname' => $userdata['firstname'] ?? '',
+                'lastname' => $userdata['lastname'] ?? '',
+                'companyid' => (int)($userdata['companyid'] ?? 0),
+                'document_type' => $userdata['document_type'] ?? '',
+                'encrypted_password' => $result->encrypted_password ?? '',
+                'token' => $result->token ?? '',
+                'moodle_url' => $result->moodle_url ?? '',
+            ], $actoruserid, (int)($userdata['companyid'] ?? 0));
+        } catch (\Exception $e) {
+            // Non-fatal.
+        }
 
         return $result;
     }
@@ -554,6 +660,29 @@ class user_manager {
                     'moodle_url' => '',
                 ];
             }
+        }
+
+        // Log user.batch_created event (v2.1.32).
+        try {
+            $userdetails = [];
+            foreach ($result->results as $r) {
+                if ($r->success) {
+                    $userdetails[] = [
+                        'userid' => $r->userid,
+                        'username' => $r->username,
+                        'email' => $r->email ?? '',
+                    ];
+                }
+            }
+            \local_sm_estratoos_plugin\webhook::log_event('user.batch_created', 'user', [
+                'batchid' => $result->batchid,
+                'companyid' => $companyid,
+                'successcount' => $result->successcount,
+                'failcount' => $result->failcount,
+                'user_details' => $userdetails,
+            ], (int)($GLOBALS['USER']->id ?? 0), $companyid);
+        } catch (\Exception $e) {
+            // Non-fatal.
         }
 
         return $result;
@@ -1132,5 +1261,151 @@ class user_manager {
             'count' => count($tokens),
             'has_more' => $hasmore,
         ];
+    }
+
+    /**
+     * Delete a single user and clean up all related plugin data.
+     *
+     * Sequence: revoke tokens → delete plugin metadata → soft-delete Moodle user → log event.
+     *
+     * @param int $userid Moodle user ID to delete.
+     * @param int $companyid IOMAD company ID for scoped validation (0 = any).
+     * @return object Result with success, error_code, message, userid, username.
+     */
+    public static function delete_user(int $userid, int $companyid = 0): object {
+        global $DB;
+
+        $result = (object)[
+            'success' => false,
+            'error_code' => '',
+            'message' => '',
+            'userid' => $userid,
+            'username' => '',
+        ];
+
+        // Step 1: Validate user exists and is not already deleted.
+        $user = $DB->get_record('user', ['id' => $userid]);
+        if (!$user || $user->deleted) {
+            $result->error_code = 'user_not_found';
+            $result->message = 'User not found or already deleted.';
+            return $result;
+        }
+
+        $result->username = $user->username;
+
+        // Step 2: IOMAD company check.
+        if ($companyid > 0 && util::is_iomad_installed()) {
+            $incompany = $DB->record_exists('company_users', [
+                'userid' => $userid,
+                'companyid' => $companyid,
+            ]);
+            if (!$incompany) {
+                $result->error_code = 'user_not_in_company';
+                $result->message = 'User does not belong to the specified company.';
+                return $result;
+            }
+        }
+
+        // Step 3: Revoke all plugin tokens for this user.
+        try {
+            $sql = "SELECT smp.id
+                    FROM {local_sm_estratoos_plugin} smp
+                    JOIN {external_tokens} et ON et.id = smp.tokenid
+                    WHERE et.userid = :userid";
+            $params = ['userid' => $userid];
+
+            if ($companyid > 0) {
+                $sql .= " AND smp.companyid = :companyid";
+                $params['companyid'] = $companyid;
+            }
+
+            $plugintokens = $DB->get_records_sql($sql, $params);
+            foreach ($plugintokens as $pt) {
+                company_token_manager::revoke_token($pt->id);
+            }
+        } catch (\Exception $e) {
+            // Non-fatal: continue with deletion even if token revocation fails.
+            debugging('user_manager::delete_user: Token revocation failed - ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+
+        // Step 4: Delete plugin user metadata.
+        try {
+            $DB->delete_records('local_sm_estratoos_plugin_users', ['userid' => $userid]);
+        } catch (\Exception $e) {
+            debugging('user_manager::delete_user: Metadata cleanup failed - ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+
+        // Step 5: Soft-delete the Moodle user.
+        try {
+            delete_user($user);
+        } catch (\Exception $e) {
+            $result->error_code = 'delete_failed';
+            $result->message = 'Failed to delete Moodle user: ' . $e->getMessage();
+            return $result;
+        }
+
+        // Step 6: Log webhook event.
+        try {
+            webhook::log_event('user.deleted', 'user', [
+                'userid' => $userid,
+                'username' => $user->username,
+                'email' => $user->email,
+                'firstname' => $user->firstname,
+                'lastname' => $user->lastname,
+                'companyid' => $companyid,
+            ], (int)($GLOBALS['USER']->id ?? 0), $companyid);
+        } catch (\Exception $e) {
+            // Non-fatal.
+        }
+
+        // Step 7: Return success.
+        $result->success = true;
+        $result->message = 'User deleted successfully.';
+        return $result;
+    }
+
+    /**
+     * Delete multiple users in batch.
+     *
+     * @param array $userids Array of Moodle user IDs.
+     * @param int $companyid IOMAD company ID for scoped validation (0 = any).
+     * @return object Result with success, total, deleted, failed, results[].
+     */
+    public static function delete_users_batch(array $userids, int $companyid = 0): object {
+        $result = (object)[
+            'success' => true,
+            'total' => count($userids),
+            'deleted' => 0,
+            'failed' => 0,
+            'results' => [],
+        ];
+
+        foreach ($userids as $userid) {
+            $deleteresult = self::delete_user((int) $userid, $companyid);
+            $result->results[] = $deleteresult;
+
+            if ($deleteresult->success) {
+                $result->deleted++;
+            } else {
+                $result->failed++;
+            }
+        }
+
+        $result->success = ($result->failed === 0);
+
+        // Log batch event.
+        try {
+            webhook::log_event('user.batch_deleted', 'user', [
+                'total' => $result->total,
+                'deleted' => $result->deleted,
+                'failed' => $result->failed,
+                'companyid' => $companyid,
+                'userids' => $userids,
+            ], (int)($GLOBALS['USER']->id ?? 0), $companyid);
+        } catch (\Exception $e) {
+            // Non-fatal.
+        }
+
+        return $result;
     }
 }

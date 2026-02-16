@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2026020932</version>
+        <version>2026021637</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.31</release>
+        <release>2.1.37</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,44 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.31/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.37/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.31</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.37</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.31 - Document ID & Token Watcher</h3>
+            <h3>Version 2.1.37 - Activation Flow, Webhook Events, Token Expiry, Service User</h3>
 
             <h4>New Features</h4>
             <ul>
-                <li>Document ID fields (DNI/NIE/Passport) with Spain compliance validation</li>
-                <li>API: Token watcher endpoint (get_new_tokens) for existing user onboarding</li>
-                <li>Document fields in create_user, create_users_batch, get_new_users APIs</li>
-                <li>CSV/Excel templates updated with document_type and document_id columns</li>
-                <li>Notified/notified_at tracking on token metadata table</li>
+                <li>Company activation/deactivation via SmartLearning API with activation codes</li>
+                <li>Webhook event system: batched dispatch of token, user, and company events to SmartLearning</li>
+                <li>Dedicated <code>smartlearning_service</code> user with scoped role for API callbacks</li>
+                <li>Superadmin user provisioning during company activation</li>
+                <li>Token expiry based on contract end date instead of default validity days</li>
+                <li>Duplicate token cleanup on re-activation (prevents token accumulation)</li>
+                <li>Delete users API: single and batch soft-delete with token revocation</li>
+                <li>Toggle company access and toggle access API functions</li>
+                <li>Company access status endpoint for SmartLearning queries</li>
+                <li>Activity log page with event type filtering and company scoping</li>
+                <li>Dispatch webhooks scheduled task for reliable event delivery</li>
+            </ul>
+
+            <h4>Improvements</h4>
+            <ul>
+                <li>Context-aware validation for company-scoped tokens (category context instead of system)</li>
+                <li>Actor user ID tracking for webhook events and user metadata</li>
+                <li>Manager type support during user creation (company manager role assignment)</li>
+                <li>System-level role assignment for created users (webservice/rest:use capability)</li>
+                <li>Plugin release version sent during activation</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v2.1.30: User creation APIs, batch creation, watcher endpoint</li>
-                <li>v2.1.29: Calendar event update API function</li>
-                <li>v2.1.28: Content centering and scrollbar cleanup in embed mode</li>
+                <li>v2.1.31: Document ID fields (DNI/NIE/Passport), token watcher API</li>
+                <li>v2.1.30: User creation APIs, batch creation, watcher endpoint, RSA encryption</li>
             </ul>
             ]]>
         </releasenotes>

@@ -30,6 +30,65 @@ class util {
     /** @var bool|null Cached IOMAD detection result. */
     private static $isiomad = null;
 
+    /** @var array|null Cached .env file values. */
+    private static $envvalues = null;
+
+    /** @var array Map of .env keys to Moodle config keys. */
+    private static $envmap = [
+        'WEBHOOK_URL' => 'webhook_url',
+        'WEBHOOK_ENABLED' => 'webhook_enabled',
+        'CURL_IGNORE_SECURITY' => 'curl_ignore_security',
+        'OAUTH2_ISSUER_URL' => 'oauth2_issuer_url',
+        'OAUTH2_ALLOWED_ORIGINS' => 'oauth2_allowed_origins',
+        'OAUTH2_JWKS_CACHE_TTL' => 'oauth2_jwks_cache_ttl',
+    ];
+
+    /**
+     * Get a plugin config value with .env override support.
+     *
+     * Checks for a .env file in the plugin directory first. If the key has
+     * an override there, it takes precedence over the database config.
+     * This allows local development without modifying the database.
+     *
+     * @param string $key The Moodle config key (e.g., 'oauth2_issuer_url').
+     * @param mixed $default Default value if not found anywhere.
+     * @return mixed The config value.
+     */
+    public static function get_env_config(string $key, $default = null) {
+        // Load .env file once.
+        if (self::$envvalues === null) {
+            self::$envvalues = [];
+            $envfile = __DIR__ . '/../.env';
+            if (file_exists($envfile)) {
+                $lines = file($envfile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                foreach ($lines as $line) {
+                    $line = trim($line);
+                    if ($line === '' || $line[0] === '#') {
+                        continue;
+                    }
+                    $parts = explode('=', $line, 2);
+                    if (count($parts) === 2) {
+                        self::$envvalues[trim($parts[0])] = trim($parts[1]);
+                    }
+                }
+            }
+        }
+
+        // Find the .env key for this Moodle config key.
+        $envkey = array_search($key, self::$envmap);
+        if ($envkey !== false && isset(self::$envvalues[$envkey])) {
+            return self::$envvalues[$envkey];
+        }
+
+        // Fall back to database config.
+        $value = get_config('local_sm_estratoos_plugin', $key);
+        if ($value !== false) {
+            return $value;
+        }
+
+        return $default;
+    }
+
     /**
      * Check if IOMAD is installed and active.
      *
@@ -460,6 +519,67 @@ class util {
     }
 
     /**
+     * Get all managers of a specific IOMAD company.
+     *
+     * Returns users with managertype > 0 in the company_users table.
+     *
+     * @param int $companyid The IOMAD company ID.
+     * @return array Array of user records (id, username, email, firstname, lastname).
+     */
+    public static function get_company_managers(int $companyid): array {
+        global $DB;
+
+        if (!self::is_iomad_installed()) {
+            return [];
+        }
+
+        try {
+            $sql = "SELECT u.id, u.username, u.email, u.firstname, u.lastname
+                    FROM {company_users} cu
+                    JOIN {user} u ON u.id = cu.userid AND u.deleted = 0 AND u.suspended = 0
+                    WHERE cu.companyid = :companyid
+                      AND cu.managertype > 0";
+            return $DB->get_records_sql($sql, ['companyid' => $companyid]);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Check if user is a potential token admin (IOMAD manager for any company,
+     * regardless of company enabled status).
+     *
+     * Used for navigation visibility so managers can access the activation page
+     * even before their company is activated.
+     *
+     * @param int|null $userid User ID (defaults to current user).
+     * @return bool True if user is a manager for any IOMAD company.
+     */
+    public static function is_potential_token_admin(int $userid = null): bool {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        if (is_siteadmin($userid)) {
+            return true;
+        }
+
+        if (!self::is_iomad_installed()) {
+            return self::has_admin_or_manager_role($userid);
+        }
+
+        try {
+            $sql = "SELECT COUNT(*) FROM {company_users}
+                    WHERE userid = :userid AND managertype > 0";
+            return $DB->count_records_sql($sql, ['userid' => $userid]) > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * Require token admin access (site admin or company manager).
      * Throws exception if access denied.
      */
@@ -468,7 +588,9 @@ class util {
 
         require_login();
 
-        if (!self::is_token_admin($USER->id)) {
+        // Allow active token admins and potential managers (whose company
+        // may not yet be activated — they need access to activate it).
+        if (!self::is_token_admin($USER->id) && !self::is_potential_token_admin($USER->id)) {
             throw new \moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
         }
     }
@@ -671,10 +793,9 @@ class util {
                 return false;
             }
 
-            // Check if expired (v1.7.29).
-            if (!empty($record->expirydate) && $record->expirydate < time()) {
-                // Company access has expired - auto-disable it.
-                self::disable_company_access($companyid, get_admin()->id);
+            // Check if expired (v1.7.29, v2.1.34 noon-UTC fix: +12h buffer).
+            // Just return false; actual cleanup is handled by the expire_company_access scheduled task.
+            if (!empty($record->expirydate) && ($record->expirydate + 43200) < time()) {
                 return false;
             }
 
@@ -781,10 +902,23 @@ class util {
         }
 
         // Only update the expiry date field.
+        $oldexpiry = $record->expirydate;
         $record->expirydate = $expirydate;
         $record->enabledby = $userid;
         $record->timemodified = time();
         $DB->update_record('local_sm_estratoos_plugin_access', $record);
+
+        // Log company.expiry_updated event (v2.1.32).
+        try {
+            \local_sm_estratoos_plugin\webhook::log_event('company.expiry_updated', 'company', [
+                'companyid' => $companyid,
+                'new_expiry' => $expirydate,
+                'old_expiry' => $oldexpiry,
+                'set_by' => $userid,
+            ], $userid, $companyid);
+        } catch (\Exception $e) {
+            // Non-fatal.
+        }
 
         return true;
     }
@@ -826,6 +960,16 @@ class util {
 
             // Reactivate all tokens for this company.
             self::set_company_tokens_active($companyid, true, $time);
+
+            // Log company.access_enabled event (v2.1.32).
+            try {
+                \local_sm_estratoos_plugin\webhook::log_event('company.access_enabled', 'company', [
+                    'companyid' => $companyid,
+                    'enabled_by' => $userid,
+                ], $userid, $companyid);
+            } catch (\Exception $e) {
+                // Non-fatal.
+            }
 
             return true;
         } catch (\Exception $e) {
@@ -871,6 +1015,16 @@ class util {
 
             // Suspend all tokens for this company.
             self::set_company_tokens_active($companyid, false, $time);
+
+            // Log company.access_disabled event (v2.1.32).
+            try {
+                \local_sm_estratoos_plugin\webhook::log_event('company.access_disabled', 'company', [
+                    'companyid' => $companyid,
+                    'disabled_by' => $userid,
+                ], $userid, $companyid);
+            } catch (\Exception $e) {
+                // Non-fatal.
+            }
 
             return true;
         } catch (\Exception $e) {
@@ -1085,6 +1239,83 @@ class util {
     }
 
     /**
+     * Get the activation code for a company.
+     *
+     * @param int $companyid Company ID.
+     * @return string|null The activation code or null if not set.
+     */
+    public static function get_company_activation_code(int $companyid): ?string {
+        global $DB;
+        $record = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $companyid], 'activation_code');
+        if ($record && !empty($record->activation_code)) {
+            return $record->activation_code;
+        }
+        return null;
+    }
+
+    /**
+     * Check if a company has been activated with an activation code.
+     *
+     * @param int $companyid Company ID.
+     * @return bool True if the company has an activation code and contract has not expired.
+     */
+    public static function is_company_activated(int $companyid): bool {
+        global $DB;
+        $record = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $companyid], 'activation_code, expirydate');
+        if (!$record || empty($record->activation_code)) {
+            return false;
+        }
+        // If there's an expiry date and it's in the past, the contract has expired.
+        // Dates stored at noon UTC; add 12h so the full day counts as active.
+        if (!empty($record->expirydate) && ($record->expirydate + 43200) < time()) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Check activation gate for UI pages (index.php, batch.php, etc.).
+     *
+     * For IOMAD environments:
+     * - Site admins are never redirected (they manage activation via settings/company_access).
+     * - Company managers are redirected only if NONE of their companies have been activated.
+     *
+     * For non-IOMAD: redirects if plugin-level activation is not done.
+     */
+    public static function check_activation_gate(): void {
+        global $USER;
+
+        // Non-IOMAD: simple plugin-level activation check.
+        if (!self::is_iomad_installed()) {
+            if (!\local_sm_estratoos_plugin\webhook::is_activated()) {
+                redirect(new \moodle_url('/local/sm_estratoos_plugin/activate.php'),
+                    get_string('activationrequired', 'local_sm_estratoos_plugin'), null,
+                    \core\output\notification::NOTIFY_WARNING);
+            }
+            return;
+        }
+
+        // IOMAD: Site admins skip the activation redirect entirely.
+        if (is_siteadmin()) {
+            return;
+        }
+
+        // IOMAD company manager: check if any of their companies have been activated.
+        $companies = self::get_user_managed_companies($USER->id);
+        foreach ($companies as $company) {
+            if (self::is_company_activated($company->id)) {
+                return; // At least one company is activated — allow access.
+            }
+        }
+
+        // No activated company found — redirect to company access page where
+        // managers can self-activate by entering their activation code.
+        redirect(new \moodle_url('/local/sm_estratoos_plugin/company_access.php'),
+            get_string('activationrequired', 'local_sm_estratoos_plugin'), null,
+            \core\output\notification::NOTIFY_WARNING);
+    }
+
+    /**
      * Get all companies with their enabled status and expiry info (for the admin page).
      *
      * @return array Array of companies with 'enabled', 'expirydate', 'expired' properties.
@@ -1097,7 +1328,7 @@ class util {
         }
 
         $companies = self::get_companies();
-        $accessrecords = $DB->get_records('local_sm_estratoos_plugin_access', [], '', 'companyid, enabled, expirydate');
+        $accessrecords = $DB->get_records('local_sm_estratoos_plugin_access', [], '', 'companyid, enabled, expirydate, activation_code, contract_start');
 
         $now = time();
         foreach ($companies as $company) {
@@ -1105,6 +1336,8 @@ class util {
             $company->enabled = $access && $access->enabled;
             $company->expirydate = $access ? $access->expirydate : null;
             $company->expired = !empty($company->expirydate) && $company->expirydate < $now;
+            $company->activation_code = $access ? ($access->activation_code ?? null) : null;
+            $company->contract_start = $access ? ($access->contract_start ?? null) : null;
         }
 
         return $companies;

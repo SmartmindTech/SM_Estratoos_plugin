@@ -72,6 +72,16 @@ class webservice_hooks {
      * @throws \moodle_exception If the token is suspended.
      */
     public static function pre_process($functionname, $params) {
+        // Check plugin activation (v2.1.32).
+        // Allow health_check and get_plugin_status through for monitoring.
+        $activationexempt = [
+            'local_sm_estratoos_plugin_health_check',
+            'local_sm_estratoos_plugin_get_plugin_status',
+        ];
+        if (!in_array($functionname, $activationexempt) && !\local_sm_estratoos_plugin\webhook::is_activated()) {
+            throw new \moodle_exception('pluginnotactivated', 'local_sm_estratoos_plugin');
+        }
+
         // Store params in the global so post_process() can access them.
         // This is needed because Moodle calls pre and post separately,
         // and some post-processing filters need the original request parameters
@@ -127,8 +137,28 @@ class webservice_hooks {
     public static function post_process($functionname, $result) {
         global $local_sm_estratoos_plugin_params;
 
+        // Log api.called event (v2.1.32).
+        try {
+            $companyid = 0;
+            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+            if ($token) {
+                $restrictions = \local_sm_estratoos_plugin\company_token_manager::get_token_restrictions($token);
+                if ($restrictions) {
+                    $companyid = (int)($restrictions->companyid ?? 0);
+                }
+            }
+            \local_sm_estratoos_plugin\webhook::log_event('api.called', 'api', [
+                'functionname' => $functionname,
+                'companyid' => $companyid,
+            ], 0, $companyid);
+        } catch (\Exception $e) {
+            // Non-fatal.
+        }
+
         // Get the current token from the HTTP request.
-        $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+        if (empty($token)) {
+            $token = \local_sm_estratoos_plugin\util::get_current_request_token();
+        }
         if (!$token) {
             return $result;
         }

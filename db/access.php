@@ -80,4 +80,21 @@ $capabilities = [
         'archetypes' => [],
         'riskbitmask' => RISK_CONFIG | RISK_PERSONAL | RISK_SPAM,
     ],
+
+    // Delete users via API.
+    'local/sm_estratoos_plugin:deleteusers' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [],
+        'riskbitmask' => RISK_CONFIG | RISK_PERSONAL | RISK_DATALOSS,
+    ],
+
+    // Manage plugin access (enable/disable companies, toggle global access).
+    // Used by the SmartLearning service user for API callbacks.
+    'local/sm_estratoos_plugin:manageaccess' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [],
+        'riskbitmask' => RISK_CONFIG,
+    ],
 ];

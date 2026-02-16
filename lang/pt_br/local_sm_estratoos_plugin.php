@@ -408,3 +408,121 @@ $string['oauth2allowedorigins'] = 'Origens de Incorporação Permitidas';
 $string['oauth2allowedorigins_desc'] = 'URLs permitidas para incorporar atividades do Moodle em iframes (uma por linha). Suporta curingas como https://*.smartmind.net.';
 $string['oauth2jwkscachettl'] = 'TTL do Cache JWKS (segundos)';
 $string['oauth2jwkscachettl_desc'] = 'Tempo de cache do JWKS (JSON Web Key Set) do SmartLearning. Padrão: 3600 (1 hora).';
+
+// APIs de criação de usuários (v2.1.30).
+$string['createusers'] = 'Criar Usuários';
+$string['createusersdesc'] = 'Criar novos usuários do Moodle com geração automática de token. Usuários são rastreados para integração com SmartLearning.';
+$string['singleuser'] = 'Usuário Único';
+$string['singleuserdetails'] = 'Detalhes do Usuário';
+$string['creationmethod'] = 'Método de criação';
+$string['generatepassword'] = 'Gerar senha aleatória';
+$string['generatepassword_desc'] = 'Gerar automaticamente uma senha aleatória para o usuário.';
+$string['phoneintlcode'] = 'Código de país do telefone';
+$string['phoneintlcode_help'] = 'Código internacional do telefone (ex: +55 para Brasil, +1 para EUA).';
+$string['birthdate'] = 'Data de nascimento';
+$string['stateprovince'] = 'Estado / Província';
+$string['optional'] = 'opcional';
+$string['usercreated'] = 'Usuário criado com sucesso.';
+$string['userscreated'] = '{$a} usuários criados com sucesso.';
+$string['usersfailed'] = '{$a} usuários falharam ao criar.';
+$string['usercreationresults'] = 'Resultados da Criação de Usuários';
+$string['passwordshownonce'] = 'As senhas são exibidas apenas uma vez. Certifique-se de salvá-las antes de sair desta página.';
+$string['createnewusers'] = 'Criar Novos Usuários';
+$string['sm_estratoos_plugin:createusers'] = 'Criar usuários via plugin SmartMind';
+
+// API de chave de criptografia.
+$string['encryptionkey'] = 'Chave de Criptografia';
+$string['encryptionkeydesc'] = 'Par de chaves RSA gerado automaticamente pelo plugin. O SmartLearning obtém a chave privada via API get_encryption_key para descriptografar senhas.';
+
+// Códigos de erro de criação de usuários.
+$string['error_empty_firstname'] = 'O primeiro nome não pode estar vazio.';
+$string['error_empty_lastname'] = 'O sobrenome não pode estar vazio.';
+$string['error_empty_email'] = 'O e-mail não pode estar vazio.';
+$string['error_invalid_email'] = 'Formato de e-mail inválido.';
+$string['error_email_taken'] = 'O endereço de e-mail já está em uso.';
+$string['error_username_taken'] = 'O nome de usuário já está em uso.';
+$string['error_invalid_username'] = 'O nome de usuário contém caracteres inválidos.';
+$string['error_empty_password'] = 'A senha é obrigatória quando a geração automática está desabilitada.';
+$string['error_password_policy'] = 'A senha não atende aos requisitos da política de segurança.';
+$string['error_invalid_birthdate'] = 'A data de nascimento deve estar no formato AAAA-MM-DD.';
+$string['error_invalid_phone_code'] = 'O código de país do telefone deve começar com + seguido de 1-4 dígitos (ex: +55).';
+$string['error_invalid_country'] = 'País não reconhecido. Forneça um código ISO válido (ex: BR) ou nome completo (ex: Brasil).';
+$string['error_encryption'] = 'Falha ao criptografar a senha.';
+$string['error_no_public_key'] = 'A chave pública RSA do SmartLearning não está configurada. Defina-a nas configurações do plugin.';
+$string['error_user_creation_failed'] = 'Falha na criação do usuário do Moodle.';
+$string['error_token_creation_failed'] = 'Falha na criação do token após o usuário ter sido criado.';
+$string['error_company_not_found'] = 'A empresa especificada não foi encontrada.';
+$string['error_service_not_found'] = 'O serviço web especificado não foi encontrado ou está desabilitado.';
+
+// Campos de documento de identidade (v2.1.31).
+$string['documenttype'] = 'Tipo de documento';
+$string['documentid'] = 'Número do documento';
+$string['dni'] = 'DNI';
+$string['nie'] = 'NIE';
+$string['passport'] = 'Passaporte';
+$string['selectdocumenttype'] = 'Selecione o tipo de documento...';
+$string['error_empty_document_type'] = 'O tipo de documento é obrigatório.';
+$string['error_invalid_document_type'] = 'O tipo de documento deve ser DNI, NIE ou Passaporte.';
+$string['error_empty_document_id'] = 'O número do documento é obrigatório quando o tipo de documento é especificado.';
+$string['error_invalid_document_id'] = 'O formato do número do documento é inválido para o tipo selecionado.';
+
+// API de observação de tokens (v2.1.31).
+$string['getnewtokens'] = 'Obter Novos Tokens';
+$string['getnewtokensdesc'] = 'Recuperar tokens recém-criados para sincronização com SmartLearning.';
+
+// Modelo CSV para criação de usuários.
+$string['csvtemplate_users_instructions'] = 'Preencha os dados do usuário. Apenas nome, sobrenome e e-mail são obrigatórios. Deixe o nome de usuário vazio para geração automática.';
+$string['downloaduserscsvtemplate'] = 'Baixar Modelo CSV de Usuários';
+$string['downloadusersexceltemplate'] = 'Baixar Modelo Excel de Usuários';
+
+// Ativação do plugin (v2.1.32).
+$string['pluginnotactivated'] = 'Plugin não ativado. Insira um código de ativação nas configurações do plugin.';
+$string['activationrequired'] = 'Ativação Necessária';
+$string['activationcode'] = 'Código de Ativação';
+$string['activateplugin'] = 'Ativar Plugin';
+$string['activationstatus'] = 'Status de Ativação';
+$string['activationsuccess'] = 'Plugin ativado com sucesso.';
+$string['activationfailed'] = 'Falha na ativação: {$a}';
+$string['plugindeactivated'] = 'Plugin desativado. Entre em contato com o suporte SmartLearning.';
+$string['activationcodeonly'] = 'Insira o código de ativação fornecido pelo SmartLearning. O plugin não pode ser usado sem ativação.';
+$string['activationcodehelp'] = 'Formato: ACT-XXXX-XXXX-XXXX. Fornecido pelo seu administrador SmartLearning. Expira em 15 minutos.';
+$string['activationcodeinvalid'] = 'Código de ativação inválido. Verifique o código e tente novamente.';
+$string['activationcodeexpired'] = 'Este código de ativação expirou. Solicite um novo ao SmartLearning.';
+$string['activationcodeused'] = 'Este código de ativação já foi utilizado.';
+// Configurações de webhooks (v2.1.32).
+$string['webhooksettings'] = 'Configurações de Webhooks';
+$string['webhookenabled'] = 'Habilitar webhooks';
+$string['webhookenabled_desc'] = 'Enviar eventos de atividade para o SmartLearning via webhooks.';
+$string['webhookurl'] = 'URL da API SmartLearning';
+$string['webhookurl_desc'] = 'Endpoint da API SmartLearning para eventos de webhook. Altere apenas se orientado pelo suporte.';
+$string['webhooksecret'] = 'Segredo do Webhook';
+$string['instanceid'] = 'ID da Instância';
+// Rótulos de status (v2.1.32).
+$string['statusnotactivated'] = 'Não Ativado';
+$string['statusactive'] = 'Ativo';
+$string['statusdisabled'] = 'Desabilitado pelo SmartLearning';
+$string['statusexpired'] = 'Expirado';
+// Ativação por empresa (v2.1.32).
+$string['companyactivationcode'] = 'Código de Ativação da Empresa';
+$string['companyactivationcodehelp'] = 'Insira o código de ativação para esta empresa. As datas do contrato serão definidas automaticamente.';
+$string['companyactivationcodeset'] = 'Código de ativação já configurado para esta empresa.';
+$string['companyactivated'] = 'Empresa ativada com sucesso. Contrato: {$a->start} a {$a->end}.';
+$string['companyactivationfailed'] = 'Falha na ativação da empresa: {$a}';
+$string['companynotactivated'] = 'Não Ativada';
+$string['companycontractexpired'] = 'Contrato Expirado';
+$string['contractstart'] = 'Início do Contrato';
+$string['contractend'] = 'Fim do Contrato';
+// Autoativação de gerentes (v2.1.35).
+$string['manageractivationinstructions'] = 'Insira o código de ativação fornecido pelo SmartLearning para habilitar o acesso da sua empresa.';
+$string['activatebutton'] = 'Ativar';
+$string['tokenscreatedformanagers'] = '{$a->count} token(s) criados para os gerentes.';
+$string['companiesactivatedcount'] = '{$a->activated} de {$a->total} empresas ativadas';
+// Seções de configurações (v2.1.32).
+$string['tokensettings'] = 'Configurações de Tokens';
+// Tarefa (v2.1.32).
+$string['task_dispatch_webhooks'] = 'Enviar eventos de webhook para o SmartLearning';
+// API de exclusão de usuários (v2.1.34).
+$string['sm_estratoos_plugin:deleteusers'] = 'Excluir usuários via API';
+$string['userdeleted'] = 'Usuário excluído com sucesso.';
+$string['userdeleteerror'] = 'Erro ao excluir usuário: {$a}';
+$string['usersdeleted'] = '{$a->deleted} de {$a->total} usuários excluídos com sucesso.';

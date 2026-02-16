@@ -55,11 +55,13 @@ class expire_company_access extends \core\task\scheduled_task {
         $now = time();
 
         // Find enabled companies with expired access.
+        // Dates are stored at noon UTC; add 12h buffer so the company stays active
+        // for the entire expiry day and only expires after midnight UTC.
         $sql = "SELECT id, companyid
                 FROM {local_sm_estratoos_plugin_access}
                 WHERE enabled = 1
                   AND expirydate IS NOT NULL
-                  AND expirydate < :now";
+                  AND (expirydate + 43200) < :now";
 
         $expiredcompanies = $DB->get_records_sql($sql, ['now' => $now]);
 
@@ -80,6 +82,16 @@ class expire_company_access extends \core\task\scheduled_task {
             $company = $DB->get_record('company', ['id' => $record->companyid], 'name');
             $companyname = $company ? $company->name : "ID: {$record->companyid}";
             mtrace("Disabled expired company access: {$companyname}");
+
+            // Log company.access_expired event (v2.1.32).
+            try {
+                \local_sm_estratoos_plugin\webhook::log_event('company.access_expired', 'company', [
+                    'companyid' => $record->companyid,
+                    'company_name' => $companyname,
+                ], $adminid, $record->companyid);
+            } catch (\Exception $e) {
+                // Non-fatal.
+            }
         }
 
         mtrace("Expired {$count} company access records.");

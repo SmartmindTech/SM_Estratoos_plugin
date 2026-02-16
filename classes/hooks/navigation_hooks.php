@@ -108,7 +108,11 @@ class navigation_hooks {
         // ACCESS CHECK
         // Only show navigation items to authorized users.
         // ========================================
-        if (!\local_sm_estratoos_plugin\util::is_token_admin()) {
+        // Show plugin to: site admins always, token admins (active company),
+        // and potential managers (managertype > 0, even if plugin/company not yet activated).
+        if (!is_siteadmin()
+            && !\local_sm_estratoos_plugin\util::is_token_admin()
+            && !\local_sm_estratoos_plugin\util::is_potential_token_admin()) {
             return;
         }
 

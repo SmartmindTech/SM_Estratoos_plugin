@@ -54,6 +54,11 @@ function xmldb_local_sm_estratoos_plugin_install() {
     // Auto-generate RSA key pair for password encryption.
     xmldb_local_sm_estratoos_plugin_generate_rsa_keypair();
 
+    // Auto-generate webhook HMAC secret for SmartLearning integration.
+    set_config('webhook_secret', \local_sm_estratoos_plugin\webhook::generate_secret(), 'local_sm_estratoos_plugin');
+    set_config('is_activated', '0', 'local_sm_estratoos_plugin');
+    set_config('webhook_enabled', '1', 'local_sm_estratoos_plugin');
+
     // Add plugin functions to Moodle mobile web service.
     xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
 
@@ -395,6 +400,11 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_get_encryption_key',
         // v2.1.31: Token watcher API.
         'local_sm_estratoos_plugin_get_new_tokens',
+        // v2.1.34: Delete users API.
+        'local_sm_estratoos_plugin_delete_users',
+        // v2.1.34: Toggle access functions.
+        'local_sm_estratoos_plugin_toggle_company_access',
+        'local_sm_estratoos_plugin_toggle_access',
     ];
 
     foreach ($pluginfunctions as $functionname) {

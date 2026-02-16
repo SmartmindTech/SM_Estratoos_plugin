@@ -1761,6 +1761,91 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026020932, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.32: Plugin activation system + webhook activity log.
+    if ($oldversion < 2026021033) {
+        // 1. Create the webhook events table.
+        $table = new xmldb_table('local_sm_estratoos_plugin_events');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('event_id', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('event_type', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('event_category', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('actor_userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('companyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('event_data', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('webhook_status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'pending');
+        $table->add_field('webhook_attempts', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('webhook_last_attempt', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('webhook_response', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+
+        $table->add_index('idx_webhook_status', XMLDB_INDEX_NOTUNIQUE, ['webhook_status', 'timecreated']);
+        $table->add_index('idx_event_type', XMLDB_INDEX_NOTUNIQUE, ['event_type', 'timecreated']);
+        $table->add_index('idx_event_id', XMLDB_INDEX_UNIQUE, ['event_id']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // 2. Add activation_code and contract_start to company access table.
+        $accesstable = new xmldb_table('local_sm_estratoos_plugin_access');
+
+        $field = new xmldb_field('activation_code', XMLDB_TYPE_CHAR, '20', null, null, null, null, 'plugin_version');
+        if (!$dbman->field_exists($accesstable, $field)) {
+            $dbman->add_field($accesstable, $field);
+        }
+
+        $field = new xmldb_field('contract_start', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'activation_code');
+        if (!$dbman->field_exists($accesstable, $field)) {
+            $dbman->add_field($accesstable, $field);
+        }
+
+        // 3. Generate webhook HMAC secret if not already set.
+        $existingsecret = get_config('local_sm_estratoos_plugin', 'webhook_secret');
+        if (empty($existingsecret)) {
+            set_config('webhook_secret', bin2hex(random_bytes(32)), 'local_sm_estratoos_plugin');
+        }
+
+        // 4. Set default activation and webhook config.
+        if (get_config('local_sm_estratoos_plugin', 'is_activated') === false) {
+            set_config('is_activated', '0', 'local_sm_estratoos_plugin');
+        }
+        if (get_config('local_sm_estratoos_plugin', 'webhook_enabled') === false) {
+            set_config('webhook_enabled', '1', 'local_sm_estratoos_plugin');
+        }
+
+        // 5. Log system.upgraded event (will be queued for dispatch after activation).
+        try {
+            \local_sm_estratoos_plugin\webhook::log_event('system.upgraded', 'system', [
+                'old_version' => $oldversion,
+                'new_version' => 2026021033,
+                'new_release' => '2.1.32',
+            ]);
+        } catch (\Exception $e) {
+            // Non-fatal.
+        }
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026021033, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v2.1.37: Dedicated service user + manageaccess capability.
+    // - Replaces admin token with dedicated smartlearning_service user (limited capabilities)
+    // - New capability: local/sm_estratoos_plugin:manageaccess for toggle_access/toggle_company_access
+    // - Plugin now creates superadmin Moodle users locally during activation
+    // - Service role is created lazily on next activation via get_or_create_service_token()
+    if ($oldversion < 2026021637) {
+        require_once(__DIR__ . '/install.php');
+
+        // Rebuild service functions to pick up updated capability requirements.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026021637, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

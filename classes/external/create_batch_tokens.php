@@ -68,7 +68,7 @@ class create_batch_tokens extends external_api {
      * @return array Result.
      */
     public static function execute(array $userids, int $companyid, int $serviceid, array $options = []): array {
-        global $USER;
+        global $USER, $DB;
 
         // Validate parameters.
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -78,14 +78,38 @@ class create_batch_tokens extends external_api {
             'options' => $options,
         ]);
 
-        // Check capabilities.
-        $context = \context_system::instance();
+        // Check capabilities — use company category context for IOMAD so
+        // company-scoped tokens (e.g., superadmin tokens) can call this.
+        $isiomad = \local_sm_estratoos_plugin\util::is_iomad_installed();
+        if ($isiomad && $params['companyid'] > 0) {
+            $company = $DB->get_record('company', ['id' => $params['companyid']], 'id, category');
+            if ($company && $company->category) {
+                $context = \context_coursecat::instance($company->category);
+            } else {
+                $context = \context_system::instance();
+            }
+        } else {
+            $context = \context_system::instance();
+        }
         self::validate_context($context);
-        require_capability('local/sm_estratoos_plugin:createtokensapi', $context);
 
-        // Only site admins can use this API.
+        // Allow site admins or company managers.
         if (!is_siteadmin()) {
-            throw new \moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
+            if ($isiomad && $params['companyid'] > 0) {
+                if (!\local_sm_estratoos_plugin\util::can_manage_company($params['companyid'])) {
+                    throw new \moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
+                }
+            } else {
+                throw new \moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
+            }
+        }
+
+        // Resolve service ID if not provided (use plugin default).
+        if (empty($params['serviceid'])) {
+            $defaultservice = $DB->get_record('external_services', ['shortname' => 'sm_estratoos_plugin'], 'id');
+            if ($defaultservice) {
+                $params['serviceid'] = (int) $defaultservice->id;
+            }
         }
 
         // Prepare options.

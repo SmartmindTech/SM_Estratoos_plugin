@@ -56,4 +56,15 @@ $tasks = [
         'dayofweek' => '*',
         'disabled' => 0,
     ],
+    // Dispatch webhook events to SmartLearning (v2.1.32) - runs every minute.
+    [
+        'classname' => 'local_sm_estratoos_plugin\task\dispatch_webhooks',
+        'blocking' => 0,
+        'minute' => '*',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+        'disabled' => 0,
+    ],
 ];

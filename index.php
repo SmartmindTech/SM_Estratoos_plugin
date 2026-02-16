@@ -30,6 +30,9 @@ require_login();
 // Site administrators and company managers can access this page.
 \local_sm_estratoos_plugin\util::require_token_admin();
 
+// Check plugin activation (v2.1.32). Superadmins skip this in IOMAD.
+\local_sm_estratoos_plugin\util::check_activation_gate();
+
 require_once(__DIR__ . '/classes/update_checker.php');
 
 // Check if site admin or has admin/manager role (for admin-only features).
@@ -200,8 +203,8 @@ if ($issiteadmin) {
     ];
 }
 
-// Card: Manage Company Access (only for site admins in IOMAD mode).
-if ($issiteadmin && $isiomad) {
+// Card: Manage Company Access (site admins and company managers in IOMAD mode).
+if ($isiomad && ($issiteadmin || \local_sm_estratoos_plugin\util::is_potential_token_admin())) {
     $cards[] = [
         'title' => get_string('managecompanyaccess', 'local_sm_estratoos_plugin'),
         'description' => get_string('managecompanyaccessdesc', 'local_sm_estratoos_plugin'),

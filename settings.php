@@ -31,79 +31,82 @@ if ($hassiteconfig) {
     // Add settings page to local plugins.
     $ADMIN->add('localplugins', $settings);
 
-    // Default validity period in days.
-    $settings->add(new admin_setting_configtext(
-        'local_sm_estratoos_plugin/default_validity_days',
-        get_string('defaultvaliditydays', 'local_sm_estratoos_plugin'),
-        get_string('defaultvaliditydays_desc', 'local_sm_estratoos_plugin'),
-        365,
-        PARAM_INT
-    ));
+    $isactivated = (bool) get_config('local_sm_estratoos_plugin', 'is_activated');
 
-    // Default: Restrict to company.
-    $settings->add(new admin_setting_configcheckbox(
-        'local_sm_estratoos_plugin/default_restricttocompany',
-        get_string('defaultrestricttocompany', 'local_sm_estratoos_plugin'),
-        get_string('defaultrestricttocompany_desc', 'local_sm_estratoos_plugin'),
-        1
-    ));
+    // === ACTIVATION STATUS (always visible) ===
+    $statusbadge = $isactivated
+        ? '<span class="badge badge-success bg-success p-2">' . get_string('statusactive', 'local_sm_estratoos_plugin') . '</span>'
+        : '<span class="badge badge-danger bg-danger p-2">' . get_string('statusnotactivated', 'local_sm_estratoos_plugin') . '</span>';
 
-    // Default: Restrict to enrollment.
-    $settings->add(new admin_setting_configcheckbox(
-        'local_sm_estratoos_plugin/default_restricttoenrolment',
-        get_string('defaultrestricttoenrolment', 'local_sm_estratoos_plugin'),
-        get_string('defaultrestricttoenrolment_desc', 'local_sm_estratoos_plugin'),
-        1
-    ));
+    $activationdesc = $statusbadge;
+    if (!$isactivated) {
+        $activateurl = new moodle_url('/local/sm_estratoos_plugin/activate.php');
+        $activationdesc .= ' &mdash; <a href="' . $activateurl->out() . '" class="btn btn-sm btn-primary ml-2">'
+            . get_string('activateplugin', 'local_sm_estratoos_plugin') . '</a>';
+    }
 
-    // Allow individual overrides.
-    $settings->add(new admin_setting_configcheckbox(
-        'local_sm_estratoos_plugin/allow_individual_overrides',
-        get_string('allowindividualoverrides', 'local_sm_estratoos_plugin'),
-        get_string('allowindividualoverrides_desc', 'local_sm_estratoos_plugin'),
-        1
-    ));
-
-    // Auto-cleanup expired tokens.
-    $settings->add(new admin_setting_configcheckbox(
-        'local_sm_estratoos_plugin/cleanup_expired_tokens',
-        get_string('cleanupexpiredtokens', 'local_sm_estratoos_plugin'),
-        get_string('cleanupexpiredtokens_desc', 'local_sm_estratoos_plugin'),
-        1
-    ));
-
-    // --- OAuth2/OIDC Embed Authentication Settings ---
     $settings->add(new admin_setting_heading(
-        'local_sm_estratoos_plugin/oauth2_heading',
-        get_string('oauth2settings', 'local_sm_estratoos_plugin'),
-        get_string('oauth2settings_desc', 'local_sm_estratoos_plugin')
+        'local_sm_estratoos_plugin/activation_heading',
+        get_string('activationstatus', 'local_sm_estratoos_plugin'),
+        $activationdesc
     ));
 
-    // SmartLearning OAuth2 Issuer URL (backend that signs JWT tokens).
-    $settings->add(new admin_setting_configtext(
-        'local_sm_estratoos_plugin/oauth2_issuer_url',
-        get_string('oauth2issuerurl', 'local_sm_estratoos_plugin'),
-        get_string('oauth2issuerurl_desc', 'local_sm_estratoos_plugin'),
-        'https://api-inbox.smartlxp.com',
-        PARAM_URL
-    ));
+    // Only show full settings when activated.
+    if ($isactivated) {
+        // === TOKEN SETTINGS ===
+        $settings->add(new admin_setting_heading(
+            'local_sm_estratoos_plugin/token_heading',
+            get_string('tokensettings', 'local_sm_estratoos_plugin'),
+            ''
+        ));
 
-    // Allowed embed origins (for CSP header - frontend that displays iframes).
-    $settings->add(new admin_setting_configtextarea(
-        'local_sm_estratoos_plugin/oauth2_allowed_origins',
-        get_string('oauth2allowedorigins', 'local_sm_estratoos_plugin'),
-        get_string('oauth2allowedorigins_desc', 'local_sm_estratoos_plugin'),
-        'https://inbox.smartlxp.com'
-    ));
+        // Default validity period in days.
+        $settings->add(new admin_setting_configtext(
+            'local_sm_estratoos_plugin/default_validity_days',
+            get_string('defaultvaliditydays', 'local_sm_estratoos_plugin'),
+            get_string('defaultvaliditydays_desc', 'local_sm_estratoos_plugin'),
+            365,
+            PARAM_INT
+        ));
 
-    // JWKS cache TTL (in seconds).
-    $settings->add(new admin_setting_configtext(
-        'local_sm_estratoos_plugin/oauth2_jwks_cache_ttl',
-        get_string('oauth2jwkscachettl', 'local_sm_estratoos_plugin'),
-        get_string('oauth2jwkscachettl_desc', 'local_sm_estratoos_plugin'),
-        3600,
-        PARAM_INT
-    ));
+        // Default: Restrict to company.
+        $settings->add(new admin_setting_configcheckbox(
+            'local_sm_estratoos_plugin/default_restricttocompany',
+            get_string('defaultrestricttocompany', 'local_sm_estratoos_plugin'),
+            get_string('defaultrestricttocompany_desc', 'local_sm_estratoos_plugin'),
+            1
+        ));
+
+        // Default: Restrict to enrollment.
+        $settings->add(new admin_setting_configcheckbox(
+            'local_sm_estratoos_plugin/default_restricttoenrolment',
+            get_string('defaultrestricttoenrolment', 'local_sm_estratoos_plugin'),
+            get_string('defaultrestricttoenrolment_desc', 'local_sm_estratoos_plugin'),
+            1
+        ));
+
+        // Allow individual overrides.
+        $settings->add(new admin_setting_configcheckbox(
+            'local_sm_estratoos_plugin/allow_individual_overrides',
+            get_string('allowindividualoverrides', 'local_sm_estratoos_plugin'),
+            get_string('allowindividualoverrides_desc', 'local_sm_estratoos_plugin'),
+            1
+        ));
+
+        // Auto-cleanup expired tokens.
+        $settings->add(new admin_setting_configcheckbox(
+            'local_sm_estratoos_plugin/cleanup_expired_tokens',
+            get_string('cleanupexpiredtokens', 'local_sm_estratoos_plugin'),
+            get_string('cleanupexpiredtokens_desc', 'local_sm_estratoos_plugin'),
+            1
+        ));
+
+        // NOTE: Webhook settings (webhook_enabled, webhook_url, instance_id) and
+        // SmartLearning integration settings (oauth2_issuer_url, oauth2_allowed_origins,
+        // oauth2_jwks_cache_ttl) are managed internally by the plugin and SmartLearning.
+        // They are NOT exposed in the admin UI. Default values are set in db/install.php
+        // and can be overridden programmatically via set_config().
+    }
 
     // Add external pages for token management (only visible to site admins).
     $ADMIN->add('localplugins', new admin_externalpage(

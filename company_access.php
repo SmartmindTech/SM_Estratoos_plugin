@@ -17,7 +17,11 @@
 /**
  * Company access management page for SmartMind Estratoos Plugin.
  *
- * Super administrators can control which IOMAD companies have access to the plugin.
+ * Site administrators and IOMAD company managers can activate their companies
+ * by entering an activation code provided by SmartLearning.
+ *
+ * - Site admins see all companies and can activate any of them.
+ * - Company managers see only their managed companies.
  *
  * @package    local_sm_estratoos_plugin
  * @copyright  2025 SmartMind Technologies
@@ -29,12 +33,15 @@ require_once($CFG->libdir . '/adminlib.php');
 
 require_login();
 
-// Only site administrators can access this page.
-\local_sm_estratoos_plugin\util::require_site_admin();
-
 // Check if IOMAD is installed.
 if (!\local_sm_estratoos_plugin\util::is_iomad_installed()) {
     throw new moodle_exception('noiomad', 'local_sm_estratoos_plugin');
+}
+
+// Access: site admins or IOMAD company managers (managertype > 0).
+$issiteadmin = is_siteadmin();
+if (!$issiteadmin && !\local_sm_estratoos_plugin\util::is_potential_token_admin()) {
+    throw new moodle_exception('nopermissions', 'error', '', 'manage company access');
 }
 
 $PAGE->set_url(new moodle_url('/local/sm_estratoos_plugin/company_access.php'));
@@ -48,62 +55,122 @@ $PAGE->navbar->add(get_string('pluginname', 'local_sm_estratoos_plugin'),
     new moodle_url('/local/sm_estratoos_plugin/index.php'));
 $PAGE->navbar->add(get_string('managecompanyaccess', 'local_sm_estratoos_plugin'));
 
-// Handle form submission.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
-    $enabledcompanies = optional_param_array('companies', [], PARAM_INT);
-    $expirydates = optional_param_array('expirydate', [], PARAM_INT);
-
-    // Get all companies and their current status before making changes.
+// Get companies visible to this user.
+if ($issiteadmin) {
+    $companies = \local_sm_estratoos_plugin\util::get_companies_with_access_status();
+} else {
+    // Company managers: only their managed companies.
+    $managedcompanies = \local_sm_estratoos_plugin\util::get_user_managed_companies($USER->id);
     $allcompanies = \local_sm_estratoos_plugin\util::get_companies_with_access_status();
-    $now = time();
+    $companies = [];
+    foreach ($allcompanies as $c) {
+        if (isset($managedcompanies[$c->id])) {
+            $companies[$c->id] = $c;
+        }
+    }
+}
 
-    // Process each company individually to handle the enable/disable + expiry logic correctly.
-    foreach ($allcompanies as $company) {
-        $isChecked = in_array($company->id, $enabledcompanies);
-        $wasEnabled = !empty($company->enabled);
-        $expiryvalue = isset($expirydates[$company->id]) ? (int)$expirydates[$company->id] : 0;
-        $newExpiryDate = $expiryvalue > 0 ? $expiryvalue : null;
-        $oldExpiryDate = $company->expirydate ?? null;
+// Handle form submission (activation code only).
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
+    $activationcodes = optional_param_array('activation_code', [], PARAM_ALPHANUMEXT);
 
-        // Determine if a NEW valid expiry date is being set (today or future).
-        $isNewValidExpiry = !empty($newExpiryDate) && $newExpiryDate >= $now &&
-                           ($oldExpiryDate != $newExpiryDate);
+    $activationmessages = [];
+    foreach ($activationcodes as $cid => $code) {
+        $code = trim($code);
+        if (empty($code)) {
+            continue;
+        }
+        $cid = (int) $cid;
 
-        if ($isChecked) {
-            // User checked the checkbox - enable the company.
-            \local_sm_estratoos_plugin\util::enable_company_access($company->id);
-            // Update expiry date (preserving user's choice).
-            \local_sm_estratoos_plugin\util::set_company_expiry_date_only($company->id, $newExpiryDate);
-        } else {
-            // User unchecked the checkbox - check if we should still enable due to new valid expiry.
-            if ($isNewValidExpiry) {
-                // Setting a new valid expiry date on a disabled company implies enabling it.
-                \local_sm_estratoos_plugin\util::enable_company_access($company->id);
-                \local_sm_estratoos_plugin\util::set_company_expiry_date_only($company->id, $newExpiryDate);
-            } else {
-                // Disable the company and clear expiry date (no point in expiry for disabled company).
-                \local_sm_estratoos_plugin\util::disable_company_access($company->id);
-                \local_sm_estratoos_plugin\util::set_company_expiry_date_only($company->id, null);
+        // Verify user can manage this company.
+        if (!$issiteadmin && !isset($companies[$cid])) {
+            continue;
+        }
+
+        // Skip if company already has this activation code.
+        $existingcode = \local_sm_estratoos_plugin\util::get_company_activation_code($cid);
+        if ($existingcode === $code) {
+            continue;
+        }
+
+        // Validate format.
+        if (!preg_match('/^ACT-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/', $code)) {
+            $activationmessages[] = (object)[
+                'companyid' => $cid,
+                'success' => false,
+                'message' => get_string('activationcodeinvalid', 'local_sm_estratoos_plugin'),
+            ];
+            continue;
+        }
+
+        // Call SmartLearning to activate.
+        $result = \local_sm_estratoos_plugin\webhook::activate_company($cid, $code);
+        if ($result->success) {
+            $start = !empty($result->contract_start) ? gmdate('Y-m-d', $result->contract_start) : '?';
+            $end = !empty($result->contract_end) ? gmdate('Y-m-d', $result->contract_end) : '?';
+            $tokenscreated = isset($result->tokens_created) ? (int) $result->tokens_created : 0;
+            $msg = get_string('companyactivated', 'local_sm_estratoos_plugin',
+                (object)['start' => $start, 'end' => $end]);
+            if ($tokenscreated > 0) {
+                $msg .= ' ' . get_string('tokenscreatedformanagers', 'local_sm_estratoos_plugin',
+                    (object)['count' => $tokenscreated]);
             }
+            $activationmessages[] = (object)[
+                'companyid' => $cid,
+                'success' => true,
+                'message' => $msg,
+            ];
+        } else {
+            $activationmessages[] = (object)[
+                'companyid' => $cid,
+                'success' => false,
+                'message' => get_string('companyactivationfailed', 'local_sm_estratoos_plugin', $result->message),
+            ];
         }
     }
 
-    redirect(
-        $PAGE->url,
-        get_string('companiesaccessupdated', 'local_sm_estratoos_plugin'),
-        null,
-        \core\output\notification::NOTIFY_SUCCESS
-    );
+    // Build redirect message.
+    $redirectmsg = '';
+    $redirecttype = \core\output\notification::NOTIFY_SUCCESS;
+    if (!empty($activationmessages)) {
+        $msgs = [];
+        $hasfailure = false;
+        foreach ($activationmessages as $am) {
+            $msgs[] = $am->message;
+            if (!$am->success) {
+                $hasfailure = true;
+            }
+        }
+        $redirectmsg = implode(' ', $msgs);
+        if ($hasfailure) {
+            $redirecttype = \core\output\notification::NOTIFY_WARNING;
+        }
+    }
+
+    // Refresh company list after activation.
+    redirect($PAGE->url, $redirectmsg ?: null, null, $redirectmsg ? $redirecttype : null);
 }
 
-// Get all companies with their access status.
-$companies = \local_sm_estratoos_plugin\util::get_companies_with_access_status();
-$enabledcount = count(array_filter($companies, function($c) { return $c->enabled; }));
+// Re-fetch companies (in case of redirect from activation).
+if ($issiteadmin) {
+    $companies = \local_sm_estratoos_plugin\util::get_companies_with_access_status();
+} else {
+    $managedcompanies = \local_sm_estratoos_plugin\util::get_user_managed_companies($USER->id);
+    $allcompanies = \local_sm_estratoos_plugin\util::get_companies_with_access_status();
+    $companies = [];
+    foreach ($allcompanies as $c) {
+        if (isset($managedcompanies[$c->id])) {
+            $companies[$c->id] = $c;
+        }
+    }
+}
+
+$activatedcount = count(array_filter($companies, function($c) { return !empty($c->activation_code); }));
 $totalcount = count($companies);
 
 echo $OUTPUT->header();
 
-echo html_writer::tag('p', get_string('managecompanyaccessdesc', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
+echo html_writer::tag('p', get_string('manageractivationinstructions', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
 
 // Back to dashboard link.
 echo html_writer::start_div('mb-3');
@@ -122,42 +189,29 @@ echo html_writer::start_tag('form', [
 ]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
-// Quick select buttons - SAME structure as batch_token_form.php.
-echo html_writer::start_div('company-quick-select mb-2');
-echo html_writer::tag('label', get_string('quickselect', 'local_sm_estratoos_plugin') . ':', ['class' => 'font-weight-bold']);
-echo html_writer::start_div('btn-group ml-2', ['role' => 'group']);
-echo html_writer::tag('button', get_string('selectall'), [
-    'type' => 'button',
-    'class' => 'btn btn-sm btn-outline-secondary',
-    'id' => 'select-all-companies'
-]);
-echo html_writer::tag('button', get_string('selectnone', 'local_sm_estratoos_plugin'), [
-    'type' => 'button',
-    'class' => 'btn btn-sm btn-outline-secondary',
-    'id' => 'deselect-all-companies'
-]);
-echo html_writer::end_div();
-echo html_writer::end_div();
-
-// Counter and Search - SAME layout as batch_token_form.php.
+// Counter and Search.
 echo html_writer::start_div('company-list-header d-flex justify-content-between align-items-center mb-2');
-echo html_writer::tag('span', $enabledcount . ' ' . get_string('companiesselected', 'local_sm_estratoos_plugin'), [
-    'id' => 'selected-count'
-]);
-echo html_writer::empty_tag('input', [
-    'type' => 'text',
-    'id' => 'company-search',
-    'class' => 'form-control form-control-sm',
-    'style' => 'width: 250px;',
-    'placeholder' => get_string('searchcompanies', 'local_sm_estratoos_plugin')
-]);
+echo html_writer::tag('span',
+    get_string('companiesactivatedcount', 'local_sm_estratoos_plugin',
+        (object)['activated' => $activatedcount, 'total' => $totalcount]),
+    ['id' => 'activated-count']
+);
+if ($totalcount > 5) {
+    echo html_writer::empty_tag('input', [
+        'type' => 'text',
+        'id' => 'company-search',
+        'class' => 'form-control form-control-sm',
+        'style' => 'width: 250px;',
+        'placeholder' => get_string('searchcompanies', 'local_sm_estratoos_plugin')
+    ]);
+}
 echo html_writer::end_div();
 
-// Company list wrapper - SAME style as user-list-wrapper in batch_token_form.php.
+// Company list.
 echo html_writer::start_div('', [
     'id' => 'company-list-wrapper',
     'class' => 'border rounded',
-    'style' => 'max-height: 400px; overflow-y: auto; background: #fafafa;'
+    'style' => 'max-height: 600px; overflow-y: auto; background: #fafafa;'
 ]);
 
 if (empty($companies)) {
@@ -167,103 +221,80 @@ if (empty($companies)) {
 } else {
     echo html_writer::start_div('company-items', ['style' => 'padding: 0.5rem;']);
     foreach ($companies as $company) {
-        $id = 'company-' . $company->id;
+        $isactivated = !empty($company->activation_code);
+        $contractexpired = $isactivated && !empty($company->expirydate) && ($company->expirydate + 43200) < time();
 
-        // Company item - SAME structure as user-item in userselection.js.
-        echo html_writer::start_div('company-item d-flex align-items-center py-2 px-2 border-bottom', [
+        // Company item.
+        echo html_writer::start_div('company-item d-flex flex-wrap align-items-center py-3 px-3 border-bottom', [
             'data-name' => strtolower($company->name . ' ' . $company->shortname),
             'style' => 'background: #fff; margin-bottom: 1px;'
         ]);
 
-        // Custom checkbox - SAME structure as batch_token_form.php.
-        echo html_writer::start_div('custom-control custom-checkbox flex-grow-1');
-        echo html_writer::empty_tag('input', [
-            'type' => 'checkbox',
-            'class' => 'custom-control-input company-checkbox',
-            'id' => $id,
-            'name' => 'companies[]',
-            'value' => $company->id,
-            'checked' => $company->enabled ? 'checked' : null
-        ]);
-        echo html_writer::start_tag('label', [
-            'class' => 'custom-control-label',
-            'for' => $id,
-            'style' => 'cursor: pointer;'
-        ]);
+        // Company name and status.
+        echo html_writer::start_div('flex-grow-1');
         echo html_writer::tag('strong', format_string($company->name));
-        echo html_writer::tag('small', ' (' . format_string($company->shortname) . ')', ['class' => 'text-muted ml-2']);
-        // Status badge - show Enabled or Disabled.
-        if ($company->enabled) {
-            echo html_writer::tag('span', get_string('enabled', 'local_sm_estratoos_plugin'), [
-                'class' => 'badge badge-success ml-2 company-status-badge'
+        echo html_writer::tag('small', ' (' . format_string($company->shortname) . ')', ['class' => 'text-muted ml-1']);
+
+        // Status badge.
+        if ($isactivated && !$contractexpired) {
+            echo html_writer::tag('span', get_string('statusactive', 'local_sm_estratoos_plugin'), [
+                'class' => 'badge badge-success ml-2'
             ]);
-        } else {
-            echo html_writer::tag('span', get_string('disabled', 'local_sm_estratoos_plugin'), [
-                'class' => 'badge badge-secondary ml-2 company-status-badge'
-            ]);
-        }
-        // Expired badge (v1.7.29).
-        if (!empty($company->expired)) {
-            echo html_writer::tag('span', get_string('expired', 'local_sm_estratoos_plugin'), [
+        } else if ($contractexpired) {
+            echo html_writer::tag('span', get_string('companycontractexpired', 'local_sm_estratoos_plugin'), [
                 'class' => 'badge badge-danger ml-2'
             ]);
-        }
-        echo html_writer::end_tag('label');
-        echo html_writer::end_div(); // custom-control
-
-        // Expiry date dropdown (v1.7.29 - v1.7.30 improved UI, v1.7.99 timezone fix).
-        // Use userdate() to convert timestamp to user's timezone for consistent display.
-        // The date input value uses 'Y-m-d' format required by HTML5 date inputs.
-        $expiryvalue = !empty($company->expirydate) ? userdate($company->expirydate, '%Y-%m-%d') : '';
-        $expirydisplay = !empty($company->expirydate) ? userdate($company->expirydate, get_string('strftimedate', 'langconfig')) : '';
-        echo html_writer::start_div('ml-auto d-flex align-items-center expiry-container', [
-            'data-companyid' => $company->id
-        ]);
-        // Label for expiry date.
-        echo html_writer::tag('label', get_string('expirydate', 'local_sm_estratoos_plugin') . ':', [
-            'class' => 'mb-0 mr-2 small text-muted',
-            'for' => 'expiry-select-' . $company->id
-        ]);
-        // Dropdown for expiry selection.
-        echo html_writer::start_tag('select', [
-            'class' => 'form-control form-control-sm expiry-dropdown',
-            'id' => 'expiry-select-' . $company->id,
-            'data-companyid' => $company->id,
-            'style' => 'width: auto; min-width: 150px;'
-        ]);
-        // Option: Never.
-        echo html_writer::tag('option', get_string('never', 'local_sm_estratoos_plugin'), [
-            'value' => 'never',
-            'selected' => empty($company->expirydate) ? 'selected' : null
-        ]);
-        // Option: Select date (triggers date picker).
-        echo html_writer::tag('option', get_string('selectdate', 'local_sm_estratoos_plugin'), [
-            'value' => 'select'
-        ]);
-        // Option: Custom date (shown when a date is set).
-        if (!empty($company->expirydate)) {
-            echo html_writer::tag('option', $expirydisplay, [
-                'value' => 'custom',
-                'selected' => 'selected',
-                'data-timestamp' => $company->expirydate
+        } else {
+            echo html_writer::tag('span', get_string('companynotactivated', 'local_sm_estratoos_plugin'), [
+                'class' => 'badge badge-secondary ml-2'
             ]);
         }
-        echo html_writer::end_tag('select');
-        // Hidden date input (shown when "Select date" is chosen).
-        echo html_writer::empty_tag('input', [
-            'type' => 'date',
-            'class' => 'form-control form-control-sm expiry-date-input ml-2 d-none',
-            'id' => 'expiry-date-' . $company->id,
-            'data-companyid' => $company->id,
-            'value' => $expiryvalue
-        ]);
-        // Hidden field for timestamp (sent with form).
-        echo html_writer::empty_tag('input', [
-            'type' => 'hidden',
-            'name' => 'expirydate[' . $company->id . ']',
-            'id' => 'expirydate-hidden-' . $company->id,
-            'value' => $company->expirydate ?? 0
-        ]);
+        echo html_writer::end_div();
+
+        // Activation code section.
+        echo html_writer::start_div('ml-2 d-flex align-items-center');
+        if ($isactivated && !$contractexpired) {
+            // Show masked code and contract dates.
+            $existingcode = $company->activation_code;
+            $maskedcode = substr($existingcode, 0, 9) . '****-****';
+            echo html_writer::empty_tag('input', [
+                'type' => 'text',
+                'class' => 'form-control form-control-sm',
+                'style' => 'width: 190px; font-family: monospace; font-size: 0.8rem; background: #e9ecef;',
+                'value' => $maskedcode,
+                'disabled' => 'disabled',
+            ]);
+            if (!empty($company->contract_start)) {
+                echo html_writer::tag('small',
+                    get_string('contractstart', 'local_sm_estratoos_plugin') . ': ' .
+                    gmdate('j M Y', $company->contract_start),
+                    ['class' => 'text-muted ml-2 text-nowrap']
+                );
+            }
+            if (!empty($company->expirydate)) {
+                echo html_writer::tag('small',
+                    get_string('contractend', 'local_sm_estratoos_plugin') . ': ' .
+                    gmdate('j M Y', $company->expirydate),
+                    ['class' => 'text-muted ml-2 text-nowrap']
+                );
+            }
+        } else {
+            // Activation code input field.
+            echo html_writer::tag('label',
+                get_string('companyactivationcode', 'local_sm_estratoos_plugin') . ':',
+                ['class' => 'mb-0 mr-2 small text-muted text-nowrap']
+            );
+            echo html_writer::empty_tag('input', [
+                'type' => 'text',
+                'class' => 'form-control form-control-sm activation-code-input',
+                'style' => 'width: 190px; font-family: monospace; font-size: 0.8rem;',
+                'name' => 'activation_code[' . $company->id . ']',
+                'placeholder' => 'ACT-XXXX-XXXX-XXXX',
+                'value' => '',
+                'pattern' => 'ACT-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}',
+                'title' => get_string('companyactivationcodehelp', 'local_sm_estratoos_plugin'),
+            ]);
+        }
         echo html_writer::end_div();
 
         echo html_writer::end_div(); // company-item
@@ -273,199 +304,44 @@ if (empty($companies)) {
 
 echo html_writer::end_div(); // company-list-wrapper
 
-// Submit button.
-echo html_writer::start_div('mt-4');
-echo html_writer::tag('button', get_string('savechanges'), [
-    'type' => 'submit',
-    'class' => 'btn btn-primary btn-lg'
-]);
-echo ' ';
-echo html_writer::link(
-    new moodle_url('/local/sm_estratoos_plugin/index.php'),
-    get_string('cancel'),
-    ['class' => 'btn btn-secondary btn-lg']
-);
-echo html_writer::end_div();
+// Submit button (only show if there are non-activated companies).
+$hasunactivated = count(array_filter($companies, function($c) { return empty($c->activation_code); })) > 0;
+if ($hasunactivated) {
+    echo html_writer::start_div('mt-4');
+    echo html_writer::tag('button', get_string('activatebutton', 'local_sm_estratoos_plugin'), [
+        'type' => 'submit',
+        'class' => 'btn btn-primary btn-lg'
+    ]);
+    echo ' ';
+    echo html_writer::link(
+        new moodle_url('/local/sm_estratoos_plugin/index.php'),
+        get_string('cancel'),
+        ['class' => 'btn btn-secondary btn-lg']
+    );
+    echo html_writer::end_div();
+}
 
 echo html_writer::end_tag('form');
 
-// Inline JavaScript for search functionality (more reliable than AMD modules).
-// AMD modules can have caching issues in production mode.
-$enabledtext = get_string('enabled', 'local_sm_estratoos_plugin');
-$disabledtext = get_string('disabled', 'local_sm_estratoos_plugin');
+// Search JavaScript.
 ?>
 <script>
 (function() {
     "use strict";
-
     document.addEventListener("DOMContentLoaded", function() {
         var searchInput = document.getElementById("company-search");
+        if (!searchInput) return;
+
         var companyItems = document.querySelectorAll(".company-item");
-        var checkboxes = document.querySelectorAll(".company-checkbox");
-        var selectAllBtn = document.getElementById("select-all-companies");
-        var deselectAllBtn = document.getElementById("deselect-all-companies");
-        var countDisplay = document.getElementById("selected-count");
-
-        // Update enabled count.
-        function updateCount() {
-            var count = document.querySelectorAll(".company-checkbox:checked").length;
-            if (countDisplay) {
-                countDisplay.textContent = count + " companies selected";
-            }
-        }
-
-        // Update badge for a single checkbox.
-        function updateBadge(checkbox) {
-            var item = checkbox.closest(".company-item");
-            if (!item) return;
-
-            var badge = item.querySelector(".company-status-badge");
-            if (!badge) return;
-
-            if (checkbox.checked) {
-                badge.className = "badge badge-success ml-2 company-status-badge";
-                badge.textContent = "<?php echo $enabledtext; ?>";
-            } else {
-                badge.className = "badge badge-secondary ml-2 company-status-badge";
-                badge.textContent = "<?php echo $disabledtext; ?>";
-            }
-        }
-
-        // Search filter - filter companies as user types.
-        if (searchInput) {
-            searchInput.addEventListener("input", function() {
-                var filter = this.value.toLowerCase().trim();
-
-                companyItems.forEach(function(item) {
-                    var name = item.getAttribute("data-name") || "";
-                    var matches = (filter === "" || name.indexOf(filter) !== -1);
-
-                    if (matches) {
-                        item.classList.remove("d-none");
-                    } else {
-                        item.classList.add("d-none");
-                    }
-                });
-            });
-        }
-
-        // Select all visible companies.
-        if (selectAllBtn) {
-            selectAllBtn.addEventListener("click", function() {
-                companyItems.forEach(function(item) {
-                    if (!item.classList.contains("d-none")) {
-                        var checkbox = item.querySelector(".company-checkbox");
-                        if (checkbox) {
-                            checkbox.checked = true;
-                            updateBadge(checkbox);
-                        }
-                    }
-                });
-                updateCount();
-            });
-        }
-
-        // Deselect all visible companies.
-        if (deselectAllBtn) {
-            deselectAllBtn.addEventListener("click", function() {
-                companyItems.forEach(function(item) {
-                    if (!item.classList.contains("d-none")) {
-                        var checkbox = item.querySelector(".company-checkbox");
-                        if (checkbox) {
-                            checkbox.checked = false;
-                            updateBadge(checkbox);
-                        }
-                    }
-                });
-                updateCount();
-            });
-        }
-
-        // Update count and badge when any checkbox changes.
-        checkboxes.forEach(function(checkbox) {
-            checkbox.addEventListener("change", function() {
-                updateCount();
-                updateBadge(this);
-            });
-        });
-
-        // Handle expiry dropdown changes (v1.7.30 improved UI).
-        var expiryDropdowns = document.querySelectorAll(".expiry-dropdown");
-        expiryDropdowns.forEach(function(dropdown) {
-            dropdown.addEventListener("change", function() {
-                var companyId = this.getAttribute("data-companyid");
-                var dateInput = document.getElementById("expiry-date-" + companyId);
-                var hiddenField = document.getElementById("expirydate-hidden-" + companyId);
-
-                if (this.value === "never") {
-                    // Hide date picker, set timestamp to 0.
-                    if (dateInput) dateInput.classList.add("d-none");
-                    if (hiddenField) hiddenField.value = 0;
-                } else if (this.value === "select") {
-                    // Show date picker.
-                    if (dateInput) {
-                        dateInput.classList.remove("d-none");
-                        dateInput.focus();
-                    }
-                }
-                // If "custom" is selected, keep current value.
-            });
-        });
-
-        // Handle date picker changes - update dropdown with selected date.
-        var dateInputs = document.querySelectorAll(".expiry-date-input");
-        dateInputs.forEach(function(dateInput) {
-            dateInput.addEventListener("change", function() {
-                var companyId = this.getAttribute("data-companyid");
-                var dropdown = document.getElementById("expiry-select-" + companyId);
-                var hiddenField = document.getElementById("expirydate-hidden-" + companyId);
-
-                if (this.value) {
-                    // Convert date to timestamp (end of day, 23:59:59 in LOCAL timezone).
-                    // NOT using "Z" suffix so the browser interprets it in the user's local timezone.
-                    // This ensures the displayed date matches the selected date regardless of timezone.
-                    var timestamp = Math.floor(new Date(this.value + "T23:59:59").getTime() / 1000);
-                    if (hiddenField) hiddenField.value = timestamp;
-
-                    // Format date for display using the original date value (not converted).
-                    // Parse the date string directly to avoid timezone shifts in display.
-                    var parts = this.value.split("-");
-                    var displayDate = new Date(parts[0], parts[1] - 1, parts[2]).toLocaleDateString();
-
-                    // Find or create custom option.
-                    var customOption = dropdown.querySelector('option[value="custom"]');
-                    if (!customOption) {
-                        customOption = document.createElement("option");
-                        customOption.value = "custom";
-                        dropdown.appendChild(customOption);
-                    }
-                    customOption.textContent = displayDate;
-                    customOption.setAttribute("data-timestamp", timestamp);
-                    customOption.selected = true;
-
-                    // Hide date picker.
-                    this.classList.add("d-none");
+        searchInput.addEventListener("input", function() {
+            var filter = this.value.toLowerCase().trim();
+            companyItems.forEach(function(item) {
+                var name = item.getAttribute("data-name") || "";
+                if (filter === "" || name.indexOf(filter) !== -1) {
+                    item.classList.remove("d-none");
                 } else {
-                    // No date selected, revert to Never.
-                    if (hiddenField) hiddenField.value = 0;
-                    dropdown.value = "never";
-                    this.classList.add("d-none");
+                    item.classList.add("d-none");
                 }
-            });
-
-            // Hide date picker when clicking outside.
-            dateInput.addEventListener("blur", function() {
-                var self = this;
-                setTimeout(function() {
-                    if (!self.value) {
-                        var companyId = self.getAttribute("data-companyid");
-                        var dropdown = document.getElementById("expiry-select-" + companyId);
-                        if (dropdown && dropdown.value === "select") {
-                            dropdown.value = "never";
-                        }
-                        self.classList.add("d-none");
-                    }
-                }, 200);
             });
         });
     });

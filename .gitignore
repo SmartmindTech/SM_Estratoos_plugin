@@ -22,6 +22,9 @@ node_modules/
 # Package files (built distributions)
 *.zip
 
+# Environment overrides (local dev only, never distribute)
+.env
+
 # Development/planning files
 starry-fluttering-castle.md
 SM_ESTRATOOS_PLUGIN_OPTIMIZATION_GUIDE.md
@@ -37,3 +40,4 @@ graceful-booping-narwhal.md
 INVESTIGACION_LTI_EMBEDDING.md
 logs.md
 SCORM_STRATEGY.md
+plan.md

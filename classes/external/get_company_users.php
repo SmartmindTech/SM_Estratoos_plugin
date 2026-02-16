@@ -67,11 +67,21 @@ class get_company_users extends external_api {
         ]);
 
         // Check capabilities.
-        $context = \context_system::instance();
+        // Use company category context for IOMAD so company-scoped tokens can call this.
+        $isiomad = \local_sm_estratoos_plugin\util::is_iomad_installed();
+        if ($isiomad && $params['companyid'] > 0) {
+            $company = $DB->get_record('company', ['id' => $params['companyid']], 'id, category');
+            if ($company && $company->category) {
+                $context = \context_coursecat::instance($company->category);
+            } else {
+                $context = \context_system::instance();
+            }
+        } else {
+            $context = \context_system::instance();
+        }
         self::validate_context($context);
 
         // Allow site admins, or company managers for their own companies.
-        $isiomad = \local_sm_estratoos_plugin\util::is_iomad_installed();
         $issiteadmin = is_siteadmin();
 
         if (!$issiteadmin) {

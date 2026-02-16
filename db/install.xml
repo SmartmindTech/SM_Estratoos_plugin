@@ -93,6 +93,8 @@
         <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="1=enabled, 0=disabled"/>
         <FIELD NAME="expirydate" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Expiration timestamp for company access (null = never expires)"/>
         <FIELD NAME="plugin_version" TYPE="char" LENGTH="20" NOTNULL="false" COMMENT="Plugin version for this company (e.g., 1.7.37). Allows independent updates per company."/>
+        <FIELD NAME="activation_code" TYPE="char" LENGTH="20" NOTNULL="false" COMMENT="Activation code used for this company (ACT-XXXX-XXXX-XXXX)"/>
+        <FIELD NAME="contract_start" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Contract start timestamp from activation"/>
         <FIELD NAME="enabledby" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="User who enabled/modified access"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true"/>
@@ -158,6 +160,30 @@
         <INDEX NAME="batchid_idx" UNIQUE="false" FIELDS="batchid"/>
         <INDEX NAME="timecreated_idx" UNIQUE="false" FIELDS="timecreated"/>
         <INDEX NAME="notified_timecreated_idx" UNIQUE="false" FIELDS="notified, timecreated" COMMENT="Optimizes watcher API query"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_sm_estratoos_plugin_events" COMMENT="Webhook activity events queued for dispatch to SmartLearning">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="event_id" TYPE="char" LENGTH="64" NOTNULL="true" COMMENT="Unique event identifier (evt_ prefix)"/>
+        <FIELD NAME="event_type" TYPE="char" LENGTH="50" NOTNULL="true" COMMENT="Event type (e.g., token.created, user.created)"/>
+        <FIELD NAME="event_category" TYPE="char" LENGTH="30" NOTNULL="true" COMMENT="Event category (token, user, company, api, system)"/>
+        <FIELD NAME="actor_userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="User who triggered the event"/>
+        <FIELD NAME="companyid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Company context for the event"/>
+        <FIELD NAME="event_data" TYPE="text" NOTNULL="false" COMMENT="JSON-encoded event payload"/>
+        <FIELD NAME="webhook_status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" COMMENT="Dispatch status: pending, sent, failed"/>
+        <FIELD NAME="webhook_attempts" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" COMMENT="Number of dispatch attempts"/>
+        <FIELD NAME="webhook_last_attempt" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Timestamp of last dispatch attempt"/>
+        <FIELD NAME="webhook_response" TYPE="text" NOTNULL="false" COMMENT="Last response from SmartLearning"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_webhook_status" UNIQUE="false" FIELDS="webhook_status, timecreated"/>
+        <INDEX NAME="idx_event_type" UNIQUE="false" FIELDS="event_type, timecreated"/>
+        <INDEX NAME="idx_event_id" UNIQUE="true" FIELDS="event_id"/>
       </INDEXES>
     </TABLE>
   </TABLES>
