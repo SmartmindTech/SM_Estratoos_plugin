@@ -641,6 +641,12 @@ class user_manager {
 
                 if ($userresult->success) {
                     $result->successcount++;
+
+                    // Enrol in course if courseid was provided.
+                    $courseid = !empty($userdata['courseid']) ? (int)$userdata['courseid'] : 0;
+                    if ($courseid > 0 && $userresult->userid > 0) {
+                        self::enrol_user_in_course($userresult->userid, $courseid);
+                    }
                 } else {
                     $result->failcount++;
                 }
@@ -736,7 +742,7 @@ class user_manager {
             'firstname', 'lastname', 'email', 'username', 'password',
             'document_type', 'document_id',
             'phone_intl_code', 'phone', 'birthdate', 'city',
-            'state_province', 'country', 'timezone',
+            'state_province', 'country', 'timezone', 'courseid',
         ];
 
         // Process data rows (skip header = line 0).
@@ -1371,6 +1377,66 @@ class user_manager {
      * @param int $companyid IOMAD company ID for scoped validation (0 = any).
      * @return object Result with success, total, deleted, failed, results[].
      */
+
+    /**
+     * Enrol a user in a Moodle course using the manual enrolment plugin.
+     *
+     * @param int $userid Moodle user ID.
+     * @param int $courseid Moodle course ID.
+     * @param int $roleid Role ID (default 5 = student).
+     * @return bool True if enrolled successfully.
+     */
+    public static function enrol_user_in_course(int $userid, int $courseid, int $roleid = 5): bool {
+        global $DB, $CFG;
+
+        require_once($CFG->libdir . '/enrollib.php');
+
+        try {
+            $enrolplugin = enrol_get_plugin('manual');
+            if (!$enrolplugin) {
+                return false;
+            }
+
+            // Check if already enrolled.
+            $course = $DB->get_record('course', ['id' => $courseid]);
+            if (!$course || $courseid == SITEID) {
+                return false;
+            }
+
+            $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0]);
+            if (!$user) {
+                return false;
+            }
+
+            if (is_enrolled(\context_course::instance($courseid), $user)) {
+                return true; // Already enrolled.
+            }
+
+            // Get or create manual enrol instance.
+            $instance = $DB->get_record('enrol', [
+                'courseid' => $courseid,
+                'enrol' => 'manual',
+                'status' => ENROL_INSTANCE_ENABLED,
+            ]);
+            if (!$instance) {
+                $instanceid = $enrolplugin->add_default_instance($course);
+                if ($instanceid) {
+                    $instance = $DB->get_record('enrol', ['id' => $instanceid]);
+                }
+            }
+
+            if (!$instance) {
+                return false;
+            }
+
+            $enrolplugin->enrol_user($instance, $userid, $roleid);
+            return true;
+        } catch (\Exception $e) {
+            error_log("SM_ESTRATOOS_PLUGIN: Failed to enrol user $userid in course $courseid: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public static function delete_users_batch(array $userids, int $companyid = 0): object {
         $result = (object)[
             'success' => true,

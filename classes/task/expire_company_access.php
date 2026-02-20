@@ -46,14 +46,21 @@ class expire_company_access extends \core\task\scheduled_task {
     public function execute(): void {
         global $DB;
 
-        // Check if IOMAD is installed.
-        if (!\local_sm_estratoos_plugin\util::is_iomad_installed()) {
-            mtrace('IOMAD not installed, skipping company access expiration check.');
-            return;
-        }
-
         $now = time();
 
+        if (\local_sm_estratoos_plugin\util::is_iomad_installed()) {
+            // IOMAD: check per-company expiry in access table.
+            $this->expire_company_access($DB, $now);
+        } else {
+            // Standard Moodle: check system-level contract expiry in config.
+            $this->expire_system_access($now);
+        }
+    }
+
+    /**
+     * Expire IOMAD company access records.
+     */
+    private function expire_company_access(\moodle_database $DB, int $now): void {
         // Find enabled companies with expired access.
         // Dates are stored at noon UTC; add 12h buffer so the company stays active
         // for the entire expiry day and only expires after midnight UTC.
@@ -83,7 +90,7 @@ class expire_company_access extends \core\task\scheduled_task {
             $companyname = $company ? $company->name : "ID: {$record->companyid}";
             mtrace("Disabled expired company access: {$companyname}");
 
-            // Log company.access_expired event (v2.1.32).
+            // Log company.access_expired event.
             try {
                 \local_sm_estratoos_plugin\webhook::log_event('company.access_expired', 'company', [
                     'companyid' => $record->companyid,
@@ -95,5 +102,41 @@ class expire_company_access extends \core\task\scheduled_task {
         }
 
         mtrace("Expired {$count} company access records.");
+    }
+
+    /**
+     * Expire standard Moodle system-level access when contract_end has passed.
+     */
+    private function expire_system_access(int $now): void {
+        $contractend = get_config('local_sm_estratoos_plugin', 'contract_end');
+
+        if (empty($contractend)) {
+            mtrace('No contract end date configured, skipping.');
+            return;
+        }
+
+        $isactivated = (bool) get_config('local_sm_estratoos_plugin', 'is_activated');
+        if (!$isactivated) {
+            mtrace('Plugin already deactivated, skipping.');
+            return;
+        }
+
+        // Add 12h buffer (same as IOMAD): stay active for the entire expiry day.
+        if (($contractend + 43200) < $now) {
+            set_config('is_activated', '0', 'local_sm_estratoos_plugin');
+            \local_sm_estratoos_plugin\webhook::clear_cache();
+            mtrace('System-level contract expired. Plugin deactivated.');
+
+            // Log event.
+            try {
+                \local_sm_estratoos_plugin\webhook::log_event('system.contract_expired', 'system', [
+                    'contract_end' => $contractend,
+                ]);
+            } catch (\Exception $e) {
+                // Non-fatal.
+            }
+        } else {
+            mtrace('Contract still active.');
+        }
     }
 }

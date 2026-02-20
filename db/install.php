@@ -96,13 +96,11 @@ function xmldb_local_sm_estratoos_plugin_configure_webservices() {
     }
 
     // 4 & 5. Configure roles for web service access.
-    // We need to grant webservice/rest:use to roles so users can use API tokens.
-    // NOTE: We only configure admin/manager roles, NOT teacher/student roles.
-    // Teacher and student should NOT have system-level access.
-    $rolestoconfig = [];
+    // Grant webservice/rest:use and sendmessage to ALL standard roles so any
+    // SmartLearning user can use the REST API and send messages.
+    $rolestoconfig = ['student', 'teacher', 'editingteacher', 'coursecreator', 'guest'];
 
-    // Add admin/manager roles dynamically (multilingual support).
-    // These are the only roles that should have system-level web service access.
+    // Also add admin/manager roles dynamically (multilingual support).
     $adminmanagerroles = $DB->get_records_sql(
         "SELECT id, shortname FROM {role}
          WHERE LOWER(shortname) LIKE '%admin%'
@@ -405,6 +403,12 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         // v2.1.34: Toggle access functions.
         'local_sm_estratoos_plugin_toggle_company_access',
         'local_sm_estratoos_plugin_toggle_access',
+        // v2.1.38: Company courses function.
+        'local_sm_estratoos_plugin_get_company_courses',
+        // v2.1.39: Enrol users to courses.
+        'local_sm_estratoos_plugin_enrol_users_to_courses',
+        // v2.1.40: Get enrolled users with IOMAD validation.
+        'local_sm_estratoos_plugin_get_enrolled_users',
     ];
 
     foreach ($pluginfunctions as $functionname) {

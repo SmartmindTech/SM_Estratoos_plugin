@@ -113,10 +113,12 @@ class create_users_form extends \moodleform {
 
         $mform->addElement('text', 'firstname', get_string('firstname'), ['size' => 40]);
         $mform->setType('firstname', PARAM_TEXT);
+        $mform->addRule('firstname', get_string('required'), 'required', null, 'client');
         $mform->hideIf('firstname', 'creationmethod', 'eq', 'csv');
 
         $mform->addElement('text', 'lastname', get_string('lastname'), ['size' => 40]);
         $mform->setType('lastname', PARAM_TEXT);
+        $mform->addRule('lastname', get_string('required'), 'required', null, 'client');
         $mform->hideIf('lastname', 'creationmethod', 'eq', 'csv');
 
         $mform->addElement('text', 'email', get_string('email'), ['size' => 40]);
@@ -175,9 +177,8 @@ class create_users_form extends \moodleform {
 
         // Birthdate.
         $mform->addElement('date_selector', 'birthdate',
-            get_string('birthdate', 'local_sm_estratoos_plugin') .
-            ' (' . get_string('optional', 'local_sm_estratoos_plugin') . ')',
-            ['optional' => true]);
+            get_string('birthdate', 'local_sm_estratoos_plugin'),
+            ['optional' => false]);
         $mform->hideIf('birthdate', 'creationmethod', 'eq', 'csv');
 
         // Location.
@@ -208,6 +209,13 @@ class create_users_form extends \moodleform {
             ['99' => get_string('serverlocaltime')] + $timezones);
         $mform->setDefault('timezone', '99');
         $mform->hideIf('timezone', 'creationmethod', 'eq', 'csv');
+
+        // Course enrollment (populated via AJAX based on company selection).
+        $mform->addElement('select', 'courseid',
+            get_string('course') . ' (' . get_string('optional', 'local_sm_estratoos_plugin') . ')',
+            [0 => get_string('selectcourse', 'local_sm_estratoos_plugin')]);
+        $mform->setType('courseid', PARAM_INT);
+        $mform->hideIf('courseid', 'creationmethod', 'eq', 'csv');
 
         // --- Section 5: CSV/Excel Upload (shown when creationmethod = csv) ---
         $mform->addElement('filepicker', 'csvfile',

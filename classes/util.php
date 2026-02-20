@@ -546,6 +546,62 @@ class util {
     }
 
     /**
+     * Get all site-level managers for standard Moodle (non-IOMAD).
+     *
+     * Returns users with admin/manager roles at system or category context level,
+     * plus site admins. Used during system-level activation to auto-create tokens.
+     *
+     * @return array Array of user records (id, username, email, firstname, lastname).
+     */
+    public static function get_site_managers(): array {
+        global $DB, $CFG;
+
+        try {
+            $managers = [];
+
+            // 1. Get site admins.
+            $adminids = explode(',', $CFG->siteadmins);
+            foreach ($adminids as $adminid) {
+                $adminid = (int) trim($adminid);
+                if ($adminid > 0) {
+                    $user = $DB->get_record('user', [
+                        'id' => $adminid, 'deleted' => 0, 'suspended' => 0,
+                    ], 'id, username, email, firstname, lastname');
+                    if ($user) {
+                        $managers[$user->id] = $user;
+                    }
+                }
+            }
+
+            // 2. Get users with admin/manager roles at system or category context.
+            $sql = "SELECT DISTINCT u.id, u.username, u.email, u.firstname, u.lastname
+                    FROM {role_assignments} ra
+                    JOIN {role} r ON r.id = ra.roleid
+                    JOIN {context} ctx ON ctx.id = ra.contextid
+                    JOIN {user} u ON u.id = ra.userid AND u.deleted = 0 AND u.suspended = 0
+                    WHERE ctx.contextlevel IN (:systemlevel, :categorylevel)
+                      AND (
+                          LOWER(r.shortname) LIKE '%admin%'
+                          OR LOWER(r.shortname) LIKE '%manager%'
+                          OR LOWER(r.shortname) LIKE '%administrador%'
+                          OR LOWER(r.shortname) LIKE '%gerente%'
+                          OR LOWER(r.shortname) LIKE '%gestor%'
+                      )";
+            $rolemanagers = $DB->get_records_sql($sql, [
+                'systemlevel' => CONTEXT_SYSTEM,
+                'categorylevel' => CONTEXT_COURSECAT,
+            ]);
+            foreach ($rolemanagers as $rm) {
+                $managers[$rm->id] = $rm;
+            }
+
+            return $managers;
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
      * Check if user is a potential token admin (IOMAD manager for any company,
      * regardless of company enabled status).
      *

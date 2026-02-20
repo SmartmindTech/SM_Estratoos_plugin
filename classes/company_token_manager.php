@@ -232,6 +232,60 @@ class company_token_manager {
     }
 
     /**
+     * Create tokens for all site managers in standard Moodle (non-IOMAD).
+     *
+     * Called after system-level activation to auto-provision manager tokens.
+     * Skips managers who already have an active token for the same service.
+     *
+     * @param int $serviceid The external service ID (0 = default plugin service).
+     * @param int $validuntil Token expiry timestamp (0 = never expires).
+     * @return array ['created' => int, 'skipped' => int, 'errors' => int]
+     */
+    public static function create_tokens_for_site_managers(int $serviceid = 0,
+            int $validuntil = 0): array {
+        global $DB;
+
+        if (!$serviceid) {
+            $service = $DB->get_record('external_services', ['shortname' => 'sm_estratoos_plugin']);
+            $serviceid = $service ? (int) $service->id : 0;
+        }
+        if (!$serviceid) {
+            return ['created' => 0, 'skipped' => 0, 'errors' => 0];
+        }
+
+        $managers = util::get_site_managers();
+
+        $created = 0;
+        $skipped = 0;
+        $errors = 0;
+
+        foreach ($managers as $manager) {
+            // Check if manager already has a token for this service.
+            $existing = $DB->get_record_sql(
+                "SELECT et.id FROM {external_tokens} et
+                 JOIN {local_sm_estratoos_plugin} lp ON lp.tokenid = et.id
+                 WHERE et.userid = :userid AND et.externalserviceid = :serviceid",
+                ['userid' => $manager->id, 'serviceid' => $serviceid]
+            );
+            if ($existing) {
+                $skipped++;
+                continue;
+            }
+
+            try {
+                self::create_token($manager->id, 0, $serviceid, [
+                    'validuntil' => $validuntil,
+                ]);
+                $created++;
+            } catch (\Exception $e) {
+                $errors++;
+            }
+        }
+
+        return ['created' => $created, 'skipped' => $skipped, 'errors' => $errors];
+    }
+
+    /**
      * Create a system-wide admin token (no company restrictions).
      *
      * @param int $userid The user ID (typically the admin).
@@ -560,7 +614,10 @@ class company_token_manager {
 
             $active = $DB->get_field_sql($sql, ['token' => $token]);
 
-            // If token not found in our table, it's not a plugin token - consider it active.
+            // If token not found in our plugin table, it's either:
+            // - A non-plugin Moodle token (should work normally)
+            // - A token from an older plugin version (will be caught by per-company check
+            //   in webservice_hooks::pre_process)
             if ($active === false) {
                 return true;
             }

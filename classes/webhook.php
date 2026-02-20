@@ -84,6 +84,14 @@ class webhook {
 
         $result = (object)['success' => false, 'error' => '', 'message' => ''];
 
+        // System-level activation is only for standard Moodle (non-IOMAD).
+        // IOMAD uses per-company activation via activate_company().
+        if (util::is_iomad_installed()) {
+            $result->error = 'iomad_detected';
+            $result->message = 'System-level activation is not available for IOMAD. Use per-company activation instead.';
+            return $result;
+        }
+
         $secret = get_config('local_sm_estratoos_plugin', self::CONFIG_SECRET);
         if (empty($secret)) {
             $secret = self::generate_secret();
@@ -116,10 +124,18 @@ class webhook {
         ];
 
         $url = self::get_api_url() . self::ACTIVATE_PATH;
+        $jsonpayload = json_encode($payload);
+        $signature = self::sign_payload($jsonpayload, $secret);
+
+        $instanceid = get_config('local_sm_estratoos_plugin', self::CONFIG_INSTANCE_ID);
 
         $curl = new \curl(['ignoresecurity' => (bool) util::get_env_config('curl_ignore_security', '0')]);
-        $curl->setHeader(['Content-Type: application/json']);
-        $response = $curl->post($url, json_encode($payload));
+        $curl->setHeader([
+            'Content-Type: application/json',
+            'X-Webhook-Instance-Id: ' . ($instanceid ?: 'pending'),
+            'X-Webhook-Signature: ' . $signature,
+        ]);
+        $response = $curl->post($url, $jsonpayload);
         $httpcode = $curl->get_info()['http_code'] ?? 0;
 
         if ($httpcode === 200) {
@@ -148,16 +164,64 @@ class webhook {
 
                 $result->success = true;
                 $result->instance_id = $data->instance_id;
-                $result->status = $data->status ?? 'enabled';
+                $result->status = !empty($data->success) ? 'enabled' : ($data->status ?? 'unknown');
                 $result->message = $data->message ?? 'Plugin activated successfully.';
 
+                // Store contract dates at noon UTC (same as per-company activation).
+                $contractstart = null;
+                $contractend = null;
+                if (!empty($data->contract_start)) {
+                    $contractstart = strtotime($data->contract_start . 'T12:00:00+00:00');
+                }
+                if (!empty($data->contract_end)) {
+                    $contractend = strtotime($data->contract_end . 'T12:00:00+00:00');
+                }
+                set_config('contract_start', $contractstart ?: '', 'local_sm_estratoos_plugin');
+                set_config('contract_end', $contractend ?: '', 'local_sm_estratoos_plugin');
+                $result->contract_start = $contractstart;
+                $result->contract_end = $contractend;
+
+                // Token validity: use contract_end if set, otherwise never expire.
+                $tokenvaliduntil = $contractend ?: 0;
+
+                // Update service token expiry to match contract end date.
+                $serviceuser = $DB->get_record('user', ['username' => 'smartlearning_service', 'deleted' => 0], 'id');
+                if ($serviceuser) {
+                    $servicetokens = $DB->get_records('external_tokens', [
+                        'userid' => $serviceuser->id,
+                        'externalserviceid' => self::get_plugin_service_id(),
+                        'tokentype' => EXTERNAL_TOKEN_PERMANENT,
+                    ]);
+                    foreach ($servicetokens as $tok) {
+                        $DB->set_field('external_tokens', 'validuntil', $tokenvaliduntil, ['id' => $tok->id]);
+                    }
+                }
+
+                // Reactivate any previously suspended plugin tokens (re-activation case).
+                $plugintokens = $DB->get_records('local_sm_estratoos_plugin', ['companyid' => 0, 'active' => 0]);
+                foreach ($plugintokens as $pt) {
+                    $DB->set_field('local_sm_estratoos_plugin', 'active', 1, ['id' => $pt->id]);
+                }
+
+                // Auto-create tokens for all site managers.
+                try {
+                    $tokenresult = company_token_manager::create_tokens_for_site_managers(
+                        0, $tokenvaliduntil
+                    );
+                    $result->tokens_created = $tokenresult['created'];
+                    $result->tokens_skipped = $tokenresult['skipped'];
+                } catch (\Exception $e) {
+                    $result->tokens_created = 0;
+                    $result->tokens_skipped = 0;
+                }
+
                 // Create superadmin Moodle users if SmartLearning provided the list.
+                $serviceid = self::get_plugin_service_id();
                 if (!empty($data->superadmins) && is_array($data->superadmins)) {
                     $superadminresults = [];
-                    $serviceid = self::get_plugin_service_id();
                     foreach ($data->superadmins as $sa) {
                         try {
-                            $saresult = self::create_superadmin_user($sa, 0, $serviceid);
+                            $saresult = self::create_superadmin_user($sa, 0, $serviceid, $tokenvaliduntil);
                             $superadminresults[] = $saresult;
                         } catch (\Exception $e) {
                             debugging('Failed to create superadmin: ' . $e->getMessage(), DEBUG_DEVELOPER);
@@ -176,6 +240,7 @@ class webhook {
                             debugging('Immediate dispatch failed, cron will retry: ' . $e->getMessage(), DEBUG_DEVELOPER);
                         }
                     }
+                    $result->superadmins_created = count($superadminresults);
                 }
             } else {
                 $result->error = 'invalid_response';
@@ -201,6 +266,14 @@ class webhook {
         global $CFG, $DB, $SITE;
 
         $result = (object)['success' => false, 'error' => '', 'message' => ''];
+
+        // Company-level activation is only for IOMAD installations.
+        // Standard Moodle uses system-level activation via activate().
+        if (!util::is_iomad_installed()) {
+            $result->error = 'not_iomad';
+            $result->message = 'Company-level activation is only available for IOMAD installations.';
+            return $result;
+        }
 
         $company = $DB->get_record('company', ['id' => $companyid], 'id, name, shortname');
         if (!$company) {

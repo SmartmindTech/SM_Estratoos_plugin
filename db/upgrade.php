@@ -1846,6 +1846,96 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026021637, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.38: Grant webservice/rest:use and sendmessage to ALL standard roles.
+    // Previously only admin/manager roles had these capabilities. Now student, teacher,
+    // editingteacher, coursecreator, and guest also get them so any SmartLearning user
+    // can use the REST API and send messages.
+    if ($oldversion < 2026021838) {
+        require_once(__DIR__ . '/install.php');
+
+        // Re-run configure_webservices which now grants capabilities to all roles.
+        xmldb_local_sm_estratoos_plugin_configure_webservices();
+
+        // Rebuild service functions.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026021838, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v2.1.39: Register enrol_users_to_courses and get_company_courses functions.
+    if ($oldversion < 2026021839) {
+        require_once(__DIR__ . '/install.php');
+
+        // Rebuild service functions to register new external functions.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026021839, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v2.1.40: Register get_enrolled_users function.
+    if ($oldversion < 2026021840) {
+        require_once(__DIR__ . '/install.php');
+
+        // Rebuild service functions to register the new external function.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026021840, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v2.1.41: Per-company access check added in webservice_hooks.php.
+    // Companies that were never activated (no record in local_sm_estratoos_plugin_access)
+    // are now blocked at the API level. No global is_activated reset needed.
+    if ($oldversion < 2026022041) {
+        require_once(__DIR__ . '/install.php');
+
+        // Rebuild service functions to register any new external functions.
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026022041, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v2.1.42: Restore is_activated for environments affected by v2.1.41.
+    // The v2.1.41 step previously reset is_activated to 0 (now removed above).
+    // If any company was properly activated, restore the global flag.
+    if ($oldversion < 2026022042) {
+        $hasactivated = $DB->record_exists('local_sm_estratoos_plugin_access', ['enabled' => 1]);
+        if ($hasactivated) {
+            set_config('is_activated', '1', 'local_sm_estratoos_plugin');
+        }
+
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026022042, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v2.1.43: Enforce separate activation models.
+    // Standard Moodle: system-level activation only (is_activated flag).
+    // IOMAD: per-company activation only (access table).
+    // No code change needed in upgrade — enforced in webhook.php and webservice_hooks.php.
+    if ($oldversion < 2026022043) {
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026022043, 'local', 'sm_estratoos_plugin');
+    }
+
+    // v2.1.44: System activation now includes contract dates, service token expiry,
+    // and auto-creates tokens for site managers (same as per-company activation).
+    if ($oldversion < 2026022044) {
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026022044, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

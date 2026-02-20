@@ -526,3 +526,10 @@ $string['sm_estratoos_plugin:deleteusers'] = 'Excluir usuários via API';
 $string['userdeleted'] = 'Usuário excluído com sucesso.';
 $string['userdeleteerror'] = 'Erro ao excluir usuário: {$a}';
 $string['usersdeleted'] = '{$a->deleted} de {$a->total} usuários excluídos com sucesso.';
+// Matrícula em cursos (v2.1.39).
+$string['selectcourse'] = 'Selecione um curso...';
+$string['enrolsuccess'] = 'Usuário matriculado no curso com sucesso.';
+$string['enrolfailed'] = 'Falha ao matricular o usuário no curso.';
+$string['enrolpluginnotinstalled'] = 'O plugin de matrícula manual não está instalado.';
+// Controle de acesso (v2.1.41).
+$string['companyaccessdisabled'] = 'O acesso da empresa está desabilitado. Por favor, ative a empresa com um código de ativação válido.';

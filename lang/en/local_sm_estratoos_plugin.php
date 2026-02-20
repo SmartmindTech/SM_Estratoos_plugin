@@ -535,3 +535,10 @@ $string['task_dispatch_webhooks'] = 'Dispatch webhook events to SmartLearning';
 $string['userdeleted'] = 'User deleted successfully.';
 $string['userdeleteerror'] = 'Failed to delete user: {$a}';
 $string['usersdeleted'] = '{$a->deleted} of {$a->total} users deleted successfully.';
+// Course enrolment (v2.1.39).
+$string['selectcourse'] = 'Select a course...';
+$string['enrolsuccess'] = 'User enrolled in course successfully.';
+$string['enrolfailed'] = 'Failed to enrol user in course.';
+$string['enrolpluginnotinstalled'] = 'Manual enrolment plugin is not installed.';
+// Access control (v2.1.41).
+$string['companyaccessdisabled'] = 'Company access is disabled. Please activate the company with a valid activation code.';

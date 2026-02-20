@@ -72,14 +72,19 @@ class webservice_hooks {
      * @throws \moodle_exception If the token is suspended.
      */
     public static function pre_process($functionname, $params) {
-        // Check plugin activation (v2.1.32).
+        // Check plugin activation.
         // Allow health_check and get_plugin_status through for monitoring.
         $activationexempt = [
             'local_sm_estratoos_plugin_health_check',
             'local_sm_estratoos_plugin_get_plugin_status',
         ];
-        if (!in_array($functionname, $activationexempt) && !\local_sm_estratoos_plugin\webhook::is_activated()) {
-            throw new \moodle_exception('pluginnotactivated', 'local_sm_estratoos_plugin');
+        if (!in_array($functionname, $activationexempt)) {
+            // Standard Moodle: system-level activation is the gate.
+            // IOMAD: per-company check below is the gate (no global activation needed).
+            if (!\local_sm_estratoos_plugin\util::is_iomad_installed()
+                    && !\local_sm_estratoos_plugin\webhook::is_activated()) {
+                throw new \moodle_exception('pluginnotactivated', 'local_sm_estratoos_plugin');
+            }
         }
 
         // Store params in the global so post_process() can access them.
@@ -96,6 +101,17 @@ class webservice_hooks {
         if ($token) {
             if (!\local_sm_estratoos_plugin\company_token_manager::is_token_active($token)) {
                 throw new \moodle_exception('tokensuspended', 'local_sm_estratoos_plugin');
+            }
+
+            // Check per-company access (v2.1.41).
+            // Even if a token is individually active, the company itself must be enabled
+            // in the access table. This prevents API access for companies that were
+            // never activated or were explicitly disabled.
+            $companyid = \local_sm_estratoos_plugin\company_token_manager::get_token_company($token);
+            if ($companyid) {
+                if (!self::is_company_enabled($companyid)) {
+                    throw new \moodle_exception('companyaccessdisabled', 'local_sm_estratoos_plugin');
+                }
             }
         }
 
@@ -315,5 +331,24 @@ class webservice_hooks {
             default:
                 return $result;
         }
+    }
+
+    /**
+     * Check if a company is enabled in the access table.
+     *
+     * @param int $companyid The company ID.
+     * @return bool True if the company has an access record with enabled = 1.
+     */
+    private static function is_company_enabled(int $companyid): bool {
+        global $DB;
+
+        $record = $DB->get_record('local_sm_estratoos_plugin_access', ['companyid' => $companyid]);
+
+        // If no access record exists, the company was never activated — block access.
+        if (!$record) {
+            return false;
+        }
+
+        return (bool) $record->enabled;
     }
 }

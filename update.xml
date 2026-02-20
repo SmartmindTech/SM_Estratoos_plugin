@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2026021637</version>
+        <version>2026022045</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.37</release>
+        <release>2.1.45</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,44 +29,30 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.37/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.45/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.37</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.45</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.37 - Activation Flow, Webhook Events, Token Expiry, Service User</h3>
+            <h3>Version 2.1.45 - Activation Flow Alignment</h3>
 
-            <h4>New Features</h4>
+            <h4>Changes</h4>
             <ul>
-                <li>Company activation/deactivation via SmartLearning API with activation codes</li>
-                <li>Webhook event system: batched dispatch of token, user, and company events to SmartLearning</li>
-                <li>Dedicated <code>smartlearning_service</code> user with scoped role for API callbacks</li>
-                <li>Superadmin user provisioning during company activation</li>
-                <li>Token expiry based on contract end date instead of default validity days</li>
-                <li>Duplicate token cleanup on re-activation (prevents token accumulation)</li>
-                <li>Delete users API: single and batch soft-delete with token revocation</li>
-                <li>Toggle company access and toggle access API functions</li>
-                <li>Company access status endpoint for SmartLearning queries</li>
-                <li>Activity log page with event type filtering and company scoping</li>
-                <li>Dispatch webhooks scheduled task for reliable event delivery</li>
-            </ul>
-
-            <h4>Improvements</h4>
-            <ul>
-                <li>Context-aware validation for company-scoped tokens (category context instead of system)</li>
-                <li>Actor user ID tracking for webhook events and user metadata</li>
-                <li>Manager type support during user creation (company manager role assignment)</li>
-                <li>System-level role assignment for created users (webservice/rest:use capability)</li>
-                <li>Plugin release version sent during activation</li>
+                <li><strong>Explicit status field:</strong> Plugin now correctly maps SmartLearning's <code>success: true</code> response to <code>enabled</code> status instead of relying on a fallback.</li>
+                <li><strong>Activation flow documentation:</strong> Updated response field descriptions and HMAC verification details to match actual implementation.</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
-                <li>v2.1.31: Document ID fields (DNI/NIE/Passport), token watcher API</li>
-                <li>v2.1.30: User creation APIs, batch creation, watcher endpoint, RSA encryption</li>
+                <li>v2.1.44: System activation: contract dates, service token expiry, manager tokens</li>
+                <li>v2.1.43: Activation model separation (standard vs IOMAD)</li>
+                <li>v2.1.42: Per-company API access check, restore activation after v2.1.41</li>
+                <li>v2.1.40: Get enrolled users API with IOMAD validation</li>
+                <li>v2.1.39: Enrol users to courses API, company courses API</li>
+                <li>v2.1.37: Activation flow, webhook events, token expiry, service user</li>
             </ul>
             ]]>
         </releasenotes>

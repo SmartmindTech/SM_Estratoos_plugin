@@ -755,6 +755,53 @@ $functions = [
     ],
 
     // =========================================================================
+    // COMPANY COURSE FUNCTIONS (v2.1.38)
+    // =========================================================================
+
+    // Get courses belonging to a company.
+    'local_sm_estratoos_plugin_get_company_courses' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_company_courses',
+        'methodname' => 'execute',
+        'description' => 'Get courses belonging to a company. Returns visible courses in the company\'s category tree. ' .
+                        'For non-IOMAD (companyid=0) returns all visible courses. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
+    // =========================================================================
+    // ENROLMENT FUNCTIONS (v2.1.39)
+    // =========================================================================
+
+    // Enrol users into courses with specified roles.
+    'local_sm_estratoos_plugin_enrol_users_to_courses' => [
+        'classname' => 'local_sm_estratoos_plugin\external\enrol_users_to_courses',
+        'methodname' => 'execute',
+        'description' => 'Enrol users into courses with specified roles. Uses manual enrolment plugin. ' .
+                        'Validates company ownership of courses for IOMAD instances. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'local/sm_estratoos_plugin:createusers',
+        'loginrequired' => true,
+    ],
+
+    // Get enrolled users for a course (with IOMAD validation).
+    'local_sm_estratoos_plugin_get_enrolled_users' => [
+        'classname' => 'local_sm_estratoos_plugin\external\get_enrolled_users',
+        'methodname' => 'execute',
+        'description' => 'Get users enrolled in a course with role information. ' .
+                        'Validates company ownership for IOMAD instances. ' .
+                        '[SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'moodle/course:viewparticipants',
+        'loginrequired' => true,
+    ],
+
+    // =========================================================================
     // ACCESS CONTROL FUNCTIONS (v2.1.35)
     // Called by SmartLearning when a superadmin enables/disables a Moodle instance.
     // =========================================================================

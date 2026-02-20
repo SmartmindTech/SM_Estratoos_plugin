@@ -24,6 +24,7 @@
 
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
+require_once($CFG->libdir . '/enrollib.php');
 require_once($CFG->dirroot . '/local/sm_estratoos_plugin/classes/form/create_users_form.php');
 
 require_login();
@@ -93,6 +94,30 @@ if ($mform->is_cancelled()) {
 
             $result = \local_sm_estratoos_plugin\user_manager::create_user($userdata, 'dashboard');
             $results = [$result];
+
+            // Enrol in course if specified and user was created successfully.
+            if ($result->success && !empty($data->courseid) && (int)$data->courseid > 0) {
+                $enrolplugin = enrol_get_plugin('manual');
+                if ($enrolplugin) {
+                    $enrolinstance = $DB->get_record('enrol', [
+                        'courseid' => (int)$data->courseid,
+                        'enrol' => 'manual',
+                        'status' => ENROL_INSTANCE_ENABLED,
+                    ]);
+                    if (!$enrolinstance) {
+                        $course = $DB->get_record('course', ['id' => (int)$data->courseid]);
+                        if ($course) {
+                            $instanceid = $enrolplugin->add_default_instance($course);
+                            if ($instanceid) {
+                                $enrolinstance = $DB->get_record('enrol', ['id' => $instanceid]);
+                            }
+                        }
+                    }
+                    if ($enrolinstance) {
+                        $enrolplugin->enrol_user($enrolinstance, $result->userid, 5);
+                    }
+                }
+            }
 
         } else if ($data->creationmethod === 'csv') {
             // CSV/Excel batch creation.
@@ -280,4 +305,8 @@ if ($mform->is_cancelled()) {
 echo $OUTPUT->header();
 echo html_writer::tag('p', get_string('createusersdesc', 'local_sm_estratoos_plugin'), ['class' => 'lead']);
 $mform->display();
+
+// Load AMD module for AJAX course loading.
+$PAGE->requires->js_call_amd('local_sm_estratoos_plugin/courseloader', 'init');
+
 echo $OUTPUT->footer();
