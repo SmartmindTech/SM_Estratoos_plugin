@@ -38,7 +38,7 @@ class webhook {
     const CONFIG_ENABLED = 'webhook_enabled';
 
     // Default SmartLearning URLs.
-    const DEFAULT_API_URL = 'https://api.smartlearning.com';
+    const DEFAULT_API_URL = 'https://api-inbox.smartlxp.com';
     const ACTIVATE_PATH = '/api/moodle/activate';
     const ACTIVATE_COMPANY_PATH = '/api/moodle/activate-company';
     const STATUS_PATH = '/api/moodle/status';

@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2026022045</version>
+        <version>2026022346</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.45</release>
+        <release>2.1.46</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,28 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.45/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.46/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.45</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.46</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.45 - Activation Flow Alignment</h3>
+            <h3>Version 2.1.46 - API URL Update</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li><strong>Explicit status field:</strong> Plugin now correctly maps SmartLearning's <code>success: true</code> response to <code>enabled</code> status instead of relying on a fallback.</li>
-                <li><strong>Activation flow documentation:</strong> Updated response field descriptions and HMAC verification details to match actual implementation.</li>
+                <li><strong>Default API URL:</strong> Updated default backend URL from <code>api.smartlearning.com</code> to <code>api-inbox.smartlxp.com</code>.</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.45: Activation flow alignment, HMAC verification, new APIs</li>
                 <li>v2.1.44: System activation: contract dates, service token expiry, manager tokens</li>
                 <li>v2.1.43: Activation model separation (standard vs IOMAD)</li>
                 <li>v2.1.42: Per-company API access check, restore activation after v2.1.41</li>
                 <li>v2.1.40: Get enrolled users API with IOMAD validation</li>
-                <li>v2.1.39: Enrol users to courses API, company courses API</li>
                 <li>v2.1.37: Activation flow, webhook events, token expiry, service user</li>
             </ul>
             ]]>
