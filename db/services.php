@@ -529,6 +529,21 @@ $functions = [
         'loginrequired' => true,
     ],
 
+    // Generate a report from a list of variables. Returns JSON with headers and rows.
+    // Variables are passed by the backend (which stores them as templates in its own DB).
+    // The plugin queries Moodle data based on the variables and returns structured results.
+    'local_sm_estratoos_plugin_generate_report' => [
+        'classname' => 'local_sm_estratoos_plugin\\external\\generate_report',
+        'methodname' => 'execute',
+        'description' => 'Generate a report from variable names (user, course, enrollment, completion, grade, activity). '
+                       . 'Returns JSON with headers and row data. Supports pagination and filters. '
+                       . 'Company-scoped in IOMAD. Max 10000 rows. [SM Estratoos API Function]',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => '',
+        'loginrequired' => true,
+    ],
+
     // Delta sync - changes since timestamp.
     'local_sm_estratoos_plugin_get_changes_since' => [
         'classname' => 'local_sm_estratoos_plugin\external\get_changes_since',

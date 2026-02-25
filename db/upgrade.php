@@ -1936,6 +1936,17 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026022044, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.47: Report generation API — dynamic variable-based reports.
+    // New classes: generate_report.php, reporting/report_engine.php, reporting/variable_catalog.php.
+    // No new DB tables — queries existing Moodle tables.
+    if ($oldversion < 2026022547) {
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026022547, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

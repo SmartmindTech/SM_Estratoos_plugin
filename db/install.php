@@ -409,6 +409,8 @@ function xmldb_local_sm_estratoos_plugin_add_to_mobile_service() {
         'local_sm_estratoos_plugin_enrol_users_to_courses',
         // v2.1.40: Get enrolled users with IOMAD validation.
         'local_sm_estratoos_plugin_get_enrolled_users',
+        // v2.1.47: Report generation from variable catalog.
+        'local_sm_estratoos_plugin_generate_report',
     ];
 
     foreach ($pluginfunctions as $functionname) {
