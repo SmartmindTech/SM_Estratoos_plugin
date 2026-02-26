@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2026022548</version>
+        <version>2026022649</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.48</release>
+        <release>2.1.49</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,29 +29,29 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.48/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.49/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.48</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.49</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.48 - get_companies: Company-scoped token support</h3>
+            <h3>Version 2.1.49 - get_companies: Fix empty result for company-scoped tokens</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li><strong>get_companies API:</strong> Now works with any authenticated token, not just site admins. Company managers see their managed companies; admins see all.</li>
+                <li><strong>get_companies API:</strong> Company-scoped tokens now return their associated company directly, instead of requiring manager role. Admins see all companies, managers see managed companies, company tokens see their own company.</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.48: get_companies: allow company-scoped tokens (not admin-only)</li>
                 <li>v2.1.47: Report generation API (variable-based dynamic reports)</li>
                 <li>v2.1.46: Updated default API URL to api-inbox.smartlxp.com</li>
                 <li>v2.1.45: Activation flow alignment, HMAC verification, new APIs</li>
                 <li>v2.1.44: System activation: contract dates, service token expiry, manager tokens</li>
                 <li>v2.1.43: Activation model separation (standard vs IOMAD)</li>
-                <li>v2.1.42: Per-company API access check, restore activation after v2.1.41</li>
             </ul>
             ]]>
         </releasenotes>

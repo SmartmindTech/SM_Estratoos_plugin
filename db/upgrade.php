@@ -1957,6 +1957,12 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026022548, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.49: get_companies returns token's company directly for company-scoped tokens.
+    if ($oldversion < 2026022649) {
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026022649, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

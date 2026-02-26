@@ -77,8 +77,12 @@ class get_companies extends external_api {
         if (is_siteadmin()) {
             // Site admins see all companies.
             $companies = $DB->get_records('company', [], 'name ASC', 'id, name, shortname, category');
+        } else if ($usercompanyid) {
+            // Company-scoped token: return the token's company directly.
+            $company = $DB->get_record('company', ['id' => $usercompanyid], 'id, name, shortname, category');
+            $companies = $company ? [$company->id => $company] : [];
         } else {
-            // Non-admins see only their managed companies.
+            // Non-admin without company token: return their managed companies.
             $companies = util::get_user_managed_companies();
         }
 
