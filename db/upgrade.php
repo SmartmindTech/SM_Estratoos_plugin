@@ -1947,6 +1947,16 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026022547, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.48: get_companies now supports company-scoped tokens (not admin-only).
+    // No DB changes — only code-level permission changes in get_companies.php and services.php.
+    if ($oldversion < 2026022548) {
+        require_once(__DIR__ . '/install.php');
+        xmldb_local_sm_estratoos_plugin_add_to_mobile_service();
+
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026022548, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 
