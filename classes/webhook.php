@@ -162,6 +162,13 @@ class webhook {
                     'activation_code_prefix' => substr($activationcode, 0, 8) . '****',
                 ]);
 
+                // Queue bulk data sync so SmartLearning can populate its local DB.
+                try {
+                    self::queue_bulk_sync(0);
+                } catch (\Exception $e) {
+                    debugging('Bulk sync queue failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+                }
+
                 $result->success = true;
                 $result->instance_id = $data->instance_id;
                 $result->status = !empty($data->success) ? 'enabled' : ($data->status ?? 'unknown');
@@ -396,6 +403,13 @@ class webhook {
                     'contract_start' => $contractstart,
                     'contract_end' => $contractend,
                 ], $userid, $companyid);
+
+                // Queue bulk data sync for this company.
+                try {
+                    self::queue_bulk_sync($companyid);
+                } catch (\Exception $e) {
+                    debugging('Bulk sync queue failed for company ' . $companyid . ': ' . $e->getMessage(), DEBUG_DEVELOPER);
+                }
 
                 $result->success = true;
                 $result->contract_start = $contractstart;
@@ -797,6 +811,50 @@ class webhook {
             "webhook_status = 'failed' AND webhook_attempts >= :maxretry",
             ['maxretry' => self::MAX_RETRY_ATTEMPTS]
         );
+    }
+
+    /**
+     * Queue a full bulk sync of all company data as paginated webhook events.
+     * Called after activation to populate SmartLearning's local database.
+     *
+     * @param int $companyid IOMAD company ID (0 for standard Moodle = all data).
+     */
+    public static function queue_bulk_sync(int $companyid = 0): void {
+        $types = [
+            'bulk.users' => 'get_all_users',
+            'bulk.courses' => 'get_all_courses',
+            'bulk.enrollments' => 'get_all_enrollments',
+            'bulk.grades' => 'get_all_grades',
+            'bulk.completion' => 'get_all_completions',
+            'bulk.calendar' => 'get_all_calendar_events',
+        ];
+
+        $perpage = 100;
+
+        foreach ($types as $eventtype => $method) {
+            try {
+                // Get first page to determine total pages.
+                $result = webhook_data::$method($companyid, 0, $perpage);
+                $totalpages = $result['total_pages'];
+
+                if ($totalpages === 0) {
+                    continue;
+                }
+
+                // Log each page as a separate event.
+                for ($page = 0; $page < $totalpages; $page++) {
+                    if ($page === 0) {
+                        $pagedata = $result; // Reuse first page.
+                    } else {
+                        $pagedata = webhook_data::$method($companyid, $page, $perpage);
+                    }
+
+                    self::log_event($eventtype, 'bulk', $pagedata, 0, $companyid);
+                }
+            } catch (\Exception $e) {
+                debugging("queue_bulk_sync failed for {$eventtype}: " . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+        }
     }
 
     /**

@@ -423,31 +423,43 @@ class observer {
     // =========================================================================
 
     /**
-     * User enrolled in course - invalidate caches.
+     * User enrolled in course - invalidate caches + webhook sync.
      *
      * @param \core\event\user_enrolment_created $event
      */
     public static function user_enrolment_created(\core\event\user_enrolment_created $event): void {
         $userid = $event->relateduserid;
+        $courseid = $event->courseid;
         cache_helper::invalidate_user_dashboard($userid);
-        cache_helper::invalidate_course_progress($event->courseid);
+        cache_helper::invalidate_course_progress($courseid);
         cache_helper::invalidate_health_summary($userid);
+
+        // Webhook sync — skip if enrollment was created by the service user (SmartLearning already has it).
+        if (!self::is_service_user_action()) {
+            self::log_webhook_for_user_and_course('enrollment.created', 'enrollment',
+                webhook_data::package_enrollment($userid, $courseid), $userid, $courseid);
+        }
     }
 
     /**
-     * User unenrolled from course - invalidate caches.
+     * User unenrolled from course - invalidate caches + webhook sync.
      *
      * @param \core\event\user_enrolment_deleted $event
      */
     public static function user_enrolment_deleted(\core\event\user_enrolment_deleted $event): void {
         $userid = $event->relateduserid;
+        $courseid = $event->courseid;
         cache_helper::invalidate_user_dashboard($userid);
-        cache_helper::invalidate_course_progress($event->courseid);
+        cache_helper::invalidate_course_progress($courseid);
         cache_helper::invalidate_health_summary($userid);
+
+        // Webhook sync.
+        self::log_webhook_for_user_and_course('enrollment.deleted', 'enrollment',
+            ['userid' => $userid, 'courseid' => $courseid], $userid, $courseid);
     }
 
     /**
-     * Course module completion updated.
+     * Course module completion updated - cache + progress + webhook sync.
      *
      * @param \core\event\course_module_completion_updated $event
      */
@@ -467,45 +479,79 @@ class observer {
             $progress['event'] = 'completion_updated';
             self::send_progress_event($progress);
         }
+
+        // Webhook sync.
+        self::log_webhook_for_user_and_course('completion.updated', 'completion',
+            webhook_data::package_completion($userid, $cmid, $courseid), $userid, $courseid);
     }
 
     /**
-     * Course updated - invalidate caches.
+     * Course updated - invalidate caches + webhook sync.
      *
      * @param \core\event\course_updated $event
      */
     public static function course_updated(\core\event\course_updated $event): void {
-        cache_helper::invalidate_course_progress($event->courseid);
+        $courseid = $event->courseid;
+        cache_helper::invalidate_course_progress($courseid);
+
+        // Webhook sync.
+        $companyids = webhook_data::resolve_company_ids_for_course($courseid);
+        $data = webhook_data::package_course($courseid);
+        foreach ($companyids as $cid) {
+            webhook::log_event('course.updated', 'course', $data, 0, $cid);
+        }
     }
 
     /**
-     * User created - invalidate company users cache.
+     * User created - invalidate caches + webhook sync.
      *
      * @param \core\event\user_created $event
      */
     public static function user_created(\core\event\user_created $event): void {
         cache_helper::invalidate_company_users();
         cache_helper::invalidate_health_summary();
+
+        // Webhook sync — skip if user was created by the plugin (SmartLearning already has the data).
+        $userid = $event->relateduserid;
+        if (!self::is_plugin_initiated_user($userid)) {
+            $companyids = webhook_data::resolve_company_ids_for_user($userid);
+            $data = webhook_data::package_user($userid);
+            foreach ($companyids as $cid) {
+                webhook::log_event('user.created', 'user', $data, $userid, $cid);
+            }
+        }
     }
 
     /**
-     * User updated - invalidate caches.
+     * User updated - invalidate caches + webhook sync.
      *
      * @param \core\event\user_updated $event
      */
     public static function user_updated(\core\event\user_updated $event): void {
+        $userid = $event->relateduserid;
         cache_helper::invalidate_company_users();
-        cache_helper::invalidate_user_dashboard($event->relateduserid);
+        cache_helper::invalidate_user_dashboard($userid);
+
+        // Webhook sync.
+        $companyids = webhook_data::resolve_company_ids_for_user($userid);
+        $data = webhook_data::package_user($userid);
+        foreach ($companyids as $cid) {
+            webhook::log_event('user.updated', 'user', $data, $userid, $cid);
+        }
     }
 
     /**
-     * User deleted - invalidate caches.
+     * User deleted - invalidate caches + webhook sync.
      *
      * @param \core\event\user_deleted $event
      */
     public static function user_deleted(\core\event\user_deleted $event): void {
         cache_helper::invalidate_company_users();
         cache_helper::invalidate_health_summary();
+
+        // Webhook sync — send to all companies (user record may already be gone from company_users).
+        $userid = $event->relateduserid;
+        webhook::log_event('user.deleted', 'user', ['userid' => $userid], $userid, 0);
     }
 
     /**
@@ -542,7 +588,7 @@ class observer {
     // =========================================================================
 
     /**
-     * Quiz attempt submitted - send progress event.
+     * Quiz attempt submitted - send progress event + webhook grade sync.
      *
      * @param \mod_quiz\event\attempt_submitted $event
      */
@@ -550,12 +596,17 @@ class observer {
         $data = $event->get_data();
         $cmid = $data['contextinstanceid'];
         $userid = $data['userid'];
+        $courseid = $event->courseid;
 
         $progress = self::get_progress_data($cmid, $userid);
         if (!empty($progress)) {
             $progress['event'] = 'quiz_submitted';
             self::send_progress_event($progress);
         }
+
+        // Webhook sync — grade update.
+        self::log_webhook_for_user_and_course('grade.updated', 'grade',
+            webhook_data::package_grade($userid, $courseid, $cmid), $userid, $courseid);
     }
 
     /**
@@ -645,7 +696,7 @@ class observer {
     }
 
     /**
-     * Assignment graded - send progress event.
+     * Assignment graded - send progress event + webhook grade sync.
      *
      * @param \mod_assign\event\submission_graded $event
      */
@@ -653,11 +704,175 @@ class observer {
         $data = $event->get_data();
         $cmid = $data['contextinstanceid'];
         $userid = $data['relateduserid'];
+        $courseid = $event->courseid;
 
         $progress = self::get_progress_data($cmid, $userid);
         if (!empty($progress)) {
             $progress['event'] = 'submission_graded';
             self::send_progress_event($progress);
+        }
+
+        // Webhook sync — grade update.
+        self::log_webhook_for_user_and_course('grade.updated', 'grade',
+            webhook_data::package_grade($userid, $courseid, $cmid), $userid, $courseid);
+    }
+
+    // =========================================================================
+    // Webhook Data Sync Observers (new events)
+    // =========================================================================
+
+    /**
+     * Course created - webhook sync.
+     *
+     * @param \core\event\course_created $event
+     */
+    public static function course_created(\core\event\course_created $event): void {
+        $courseid = $event->courseid;
+        $companyids = webhook_data::resolve_company_ids_for_course($courseid);
+        $data = webhook_data::package_course($courseid);
+        foreach ($companyids as $cid) {
+            webhook::log_event('course.created', 'course', $data, 0, $cid);
+        }
+    }
+
+    /**
+     * Course deleted - webhook sync.
+     *
+     * @param \core\event\course_deleted $event
+     */
+    public static function course_deleted(\core\event\course_deleted $event): void {
+        $courseid = $event->courseid;
+        // Course is already deleted — we can't resolve companies, send to all (companyid=0).
+        webhook::log_event('course.deleted', 'course', ['courseid' => $courseid], 0, 0);
+    }
+
+    /**
+     * User graded (core grade event) - webhook sync.
+     *
+     * @param \core\event\user_graded $event
+     */
+    public static function user_graded(\core\event\user_graded $event): void {
+        global $DB;
+
+        $data = $event->get_data();
+        $userid = $event->relateduserid;
+        $courseid = $event->courseid;
+
+        // Resolve cmid from grade_items.
+        $gradeitemid = $data['other']['itemid'] ?? 0;
+        if (!$gradeitemid) {
+            return;
+        }
+
+        $gradeitem = $DB->get_record('grade_items', ['id' => $gradeitemid], 'itemmodule, iteminstance, itemtype');
+        if (!$gradeitem || $gradeitem->itemtype !== 'mod') {
+            return; // Only sync module grades, not course totals.
+        }
+
+        $cm = $DB->get_record_sql(
+            "SELECT cm.id FROM {course_modules} cm
+             JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+             WHERE cm.course = :courseid AND cm.instance = :instance",
+            ['modname' => $gradeitem->itemmodule, 'courseid' => $courseid, 'instance' => $gradeitem->iteminstance]
+        );
+
+        if (!$cm) {
+            return;
+        }
+
+        self::log_webhook_for_user_and_course('grade.updated', 'grade',
+            webhook_data::package_grade($userid, $courseid, (int) $cm->id), $userid, $courseid);
+    }
+
+    /**
+     * Calendar event created - webhook sync.
+     *
+     * @param \core\event\calendar_event_created $event
+     */
+    public static function calendar_event_created(\core\event\calendar_event_created $event): void {
+        $eventid = $event->objectid;
+        $companyids = webhook_data::resolve_company_ids_for_event($eventid);
+        $data = webhook_data::package_calendar_event($eventid);
+        foreach ($companyids as $cid) {
+            webhook::log_event('calendar.created', 'calendar', $data, 0, $cid);
+        }
+    }
+
+    /**
+     * Calendar event updated - webhook sync.
+     *
+     * @param \core\event\calendar_event_updated $event
+     */
+    public static function calendar_event_updated(\core\event\calendar_event_updated $event): void {
+        $eventid = $event->objectid;
+        $companyids = webhook_data::resolve_company_ids_for_event($eventid);
+        $data = webhook_data::package_calendar_event($eventid);
+        foreach ($companyids as $cid) {
+            webhook::log_event('calendar.updated', 'calendar', $data, 0, $cid);
+        }
+    }
+
+    /**
+     * Calendar event deleted - webhook sync.
+     *
+     * @param \core\event\calendar_event_deleted $event
+     */
+    public static function calendar_event_deleted(\core\event\calendar_event_deleted $event): void {
+        $eventid = $event->objectid;
+        // Event already deleted — can't resolve companies, send to all.
+        webhook::log_event('calendar.deleted', 'calendar', ['eventid' => $eventid], 0, 0);
+    }
+
+    // =========================================================================
+    // Webhook Deduplication Helpers
+    // =========================================================================
+
+    /**
+     * Check if a user was created by the plugin (SmartLearning already has the data).
+     *
+     * @param int $userid User ID.
+     * @return bool True if user exists in plugin-created users table.
+     */
+    private static function is_plugin_initiated_user(int $userid): bool {
+        global $DB;
+        try {
+            return $DB->record_exists('local_sm_estratoos_plugin_users', ['userid' => $userid]);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the current action was performed by the SmartLearning service user.
+     *
+     * @return bool True if the acting user is the service user.
+     */
+    private static function is_service_user_action(): bool {
+        global $USER;
+        return isset($USER->username) && $USER->username === 'smartlearning_service';
+    }
+
+    /**
+     * Log a webhook event for a user+course context, resolving company IDs.
+     * Uses the intersection of user and course companies for IOMAD.
+     *
+     * @param string $eventtype Event type.
+     * @param string $category Event category.
+     * @param array $data Event data payload.
+     * @param int $userid User ID.
+     * @param int $courseid Course ID.
+     */
+    private static function log_webhook_for_user_and_course(string $eventtype, string $category,
+                                                             array $data, int $userid, int $courseid): void {
+        if (!util::is_iomad_installed()) {
+            webhook::log_event($eventtype, $category, $data, $userid, 0);
+            return;
+        }
+
+        // For IOMAD, use user's companies (the user is the primary context).
+        $companyids = webhook_data::resolve_company_ids_for_user($userid);
+        foreach ($companyids as $cid) {
+            webhook::log_event($eventtype, $category, $data, $userid, $cid);
         }
     }
 }

@@ -1963,6 +1963,17 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026022649, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.51: Real-time webhook data sync — push Moodle data changes to SmartLearning.
+    // New file: classes/webhook_data.php (data packaging for webhook sync).
+    // Extended: observer.php (webhook logging in existing + 6 new observers).
+    // Extended: webhook.php (queue_bulk_sync for activation-time full data push).
+    // Extended: db/events.php (6 new event observers).
+    // No new DB tables — uses existing local_sm_estratoos_plugin_events.
+    if ($oldversion < 2026022651) {
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026022651, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

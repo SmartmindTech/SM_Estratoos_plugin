@@ -139,6 +139,11 @@ function local_sm_estratoos_plugin_before_footer() {
     $isscormplayer = strpos($pagepath, '/mod/scorm/player.php') !== false;
 
     if ($isscormplayer) {
+        // Skip tracking injection when loaded inside graphic_layer_plugin embed.
+        if (!empty($_GET['sl_embed'])) {
+            return;
+        }
+
         // Inject embed CSS if in SmartLearning embed mode (cookie set by embed.php).
         if (!empty($_COOKIE['sm_estratoos_embed'])) {
             echo \local_sm_estratoos_plugin\scorm\embed_assets::get_css_js();

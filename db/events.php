@@ -118,4 +118,38 @@ $observers = [
         'eventname' => '\mod_assign\event\submission_graded',
         'callback' => '\local_sm_estratoos_plugin\observer::assign_submission_graded',
     ],
+
+    // =========================================================================
+    // Webhook Data Sync Events (push data changes to SmartLearning)
+    // =========================================================================
+
+    // Course lifecycle events.
+    [
+        'eventname' => '\core\event\course_created',
+        'callback' => '\local_sm_estratoos_plugin\observer::course_created',
+    ],
+    [
+        'eventname' => '\core\event\course_deleted',
+        'callback' => '\local_sm_estratoos_plugin\observer::course_deleted',
+    ],
+
+    // Grade events.
+    [
+        'eventname' => '\core\event\user_graded',
+        'callback' => '\local_sm_estratoos_plugin\observer::user_graded',
+    ],
+
+    // Calendar events.
+    [
+        'eventname' => '\core\event\calendar_event_created',
+        'callback' => '\local_sm_estratoos_plugin\observer::calendar_event_created',
+    ],
+    [
+        'eventname' => '\core\event\calendar_event_updated',
+        'callback' => '\local_sm_estratoos_plugin\observer::calendar_event_updated',
+    ],
+    [
+        'eventname' => '\core\event\calendar_event_deleted',
+        'callback' => '\local_sm_estratoos_plugin\observer::calendar_event_deleted',
+    ],
 ];

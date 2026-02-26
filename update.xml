@@ -17,10 +17,10 @@
         <component>local_sm_estratoos_plugin</component>
 
         <!-- Version number (must match $plugin->version in version.php) -->
-        <version>2026022650</version>
+        <version>2026022651</version>
 
         <!-- Human-readable release version -->
-        <release>2.1.50</release>
+        <release>2.1.51</release>
 
         <!-- Minimum required Moodle version -->
         <requires>2022112800</requires>
@@ -29,30 +29,32 @@
         <maturity>200</maturity>
 
         <!-- URL to download the plugin ZIP file (use GitHub releases) -->
-        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.50/sm_estratoos_plugin.zip</download>
+        <download>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/download/v2.1.51/sm_estratoos_plugin.zip</download>
 
         <!-- Optional: URL for more information about this update -->
-        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.50</url>
+        <url>https://github.com/SmartmindTech/SM_Estratoos_plugin/releases/tag/v2.1.51</url>
 
         <!-- Release notes (keep it brief) -->
         <releasenotes>
             <![CDATA[
-            <h3>Version 2.1.50 - get_companies: return user membership companies for chat filters</h3>
+            <h3>Version 2.1.51 - Real-time Webhook Data Sync</h3>
 
             <h4>Changes</h4>
             <ul>
-                <li><strong>get_companies API:</strong> Non-admin users now see all companies they belong to (any role), not just managed ones. New <code>util::get_user_companies()</code> method queries company_users without the managertype filter. Enables teachers to use company filters in the chat system.</li>
+                <li><strong>Real-time data sync:</strong> Plugin now pushes Moodle data changes (users, courses, enrollments, grades, completions, calendar events) to SmartLearning via webhooks in real-time.</li>
+                <li><strong>Bulk sync on activation:</strong> Full data push (paginated, 100 records/page) triggered on system/company activation.</li>
+                <li><strong>New event observers:</strong> course_created, course_deleted, user_graded, calendar_event_created/updated/deleted.</li>
+                <li><strong>Deduplication:</strong> Plugin-initiated actions (user creation, enrollment via API) skip webhook to avoid duplicates.</li>
             </ul>
 
             <h4>Previous Versions</h4>
             <ul>
+                <li>v2.1.50: get_companies: return all user companies for chat filters</li>
                 <li>v2.1.49: get_companies: return token's company for company-scoped tokens</li>
                 <li>v2.1.48: get_companies: allow company-scoped tokens (not admin-only)</li>
                 <li>v2.1.47: Report generation API (variable-based dynamic reports)</li>
                 <li>v2.1.46: Updated default API URL to api-inbox.smartlxp.com</li>
                 <li>v2.1.45: Activation flow alignment, HMAC verification, new APIs</li>
-                <li>v2.1.44: System activation: contract dates, service token expiry, manager tokens</li>
-                <li>v2.1.43: Activation model separation (standard vs IOMAD)</li>
             </ul>
             ]]>
         </releasenotes>
