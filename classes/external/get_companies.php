@@ -25,6 +25,7 @@ use external_function_parameters;
 use external_value;
 use external_single_structure;
 use external_multiple_structure;
+use local_sm_estratoos_plugin\util;
 
 /**
  * External function for getting list of companies.
@@ -52,27 +53,43 @@ class get_companies extends external_api {
     public static function execute(): array {
         global $DB;
 
-        // Validate context.
-        $context = \context_system::instance();
-        self::validate_context($context);
-        require_capability('local/sm_estratoos_plugin:viewreports', $context);
-
-        // Only site admins can use this API.
-        if (!is_siteadmin()) {
-            throw new \moodle_exception('accessdenied', 'local_sm_estratoos_plugin');
+        // Validate context based on token type.
+        $usercompanyid = util::get_company_id_from_token();
+        if ($usercompanyid && util::is_iomad_installed()) {
+            // IOMAD company token: use company's category context.
+            $company = $DB->get_record('company', ['id' => $usercompanyid], '*', MUST_EXIST);
+            $context = \context_coursecat::instance($company->category);
+        } else if (is_siteadmin()) {
+            // Site admin: use system context.
+            $context = \context_system::instance();
+        } else {
+            // Non-IOMAD normal user: use top-level category context.
+            $topcategory = $DB->get_record('course_categories', ['parent' => 0], 'id', IGNORE_MULTIPLE);
+            if ($topcategory) {
+                $context = \context_coursecat::instance($topcategory->id);
+            } else {
+                $context = \context_system::instance();
+            }
         }
+        self::validate_context($context);
 
-        // Get companies.
-        $companies = $DB->get_records('company', [], 'name ASC', 'id, name, shortname, category');
+        // Get companies based on user permissions.
+        if (is_siteadmin()) {
+            // Site admins see all companies.
+            $companies = $DB->get_records('company', [], 'name ASC', 'id, name, shortname, category');
+        } else {
+            // Non-admins see only their managed companies.
+            $companies = util::get_user_managed_companies();
+        }
 
         // Format results.
         $result = [];
         foreach ($companies as $company) {
             $result[] = [
-                'id' => $company->id,
+                'id' => (int)$company->id,
                 'name' => $company->name,
                 'shortname' => $company->shortname,
-                'categoryid' => $company->category,
+                'categoryid' => (int)$company->category,
             ];
         }
 

@@ -82,10 +82,10 @@ $functions = [
     'local_sm_estratoos_plugin_get_companies' => [
         'classname' => 'local_sm_estratoos_plugin\external\get_companies',
         'methodname' => 'execute',
-        'description' => 'Get list of all SmartMind companies. Useful for building company selection dropdowns.',
+        'description' => 'Get list of companies visible to the current user. Admins see all, managers see their managed companies.',
         'type' => 'read',
         'ajax' => true,
-        'capabilities' => 'local/sm_estratoos_plugin:viewreports',
+        'capabilities' => '',
         'loginrequired' => true,
     ],
 
