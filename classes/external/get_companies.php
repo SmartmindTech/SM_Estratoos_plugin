@@ -82,8 +82,8 @@ class get_companies extends external_api {
             $company = $DB->get_record('company', ['id' => $usercompanyid], 'id, name, shortname, category');
             $companies = $company ? [$company->id => $company] : [];
         } else {
-            // Non-admin without company token: return their managed companies.
-            $companies = util::get_user_managed_companies();
+            // Non-admin without company token: return companies the user belongs to.
+            $companies = util::get_user_companies();
         }
 
         // Format results.

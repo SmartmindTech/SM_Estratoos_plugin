@@ -496,6 +496,46 @@ class util {
     }
 
     /**
+     * Get companies that the user belongs to (any role, including non-managers).
+     *
+     * Unlike get_user_managed_companies() which requires managertype > 0,
+     * this returns all companies where the user has a company_users record.
+     * Used by the chat filter so teachers can see their company.
+     *
+     * @param int|null $userid User ID (defaults to current user).
+     * @return array Array of company records.
+     */
+    public static function get_user_companies(int $userid = null): array {
+        global $DB, $USER;
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        // Site admins can see all companies.
+        if (is_siteadmin($userid)) {
+            return self::get_companies();
+        }
+
+        // Check if IOMAD is installed.
+        if (!self::is_iomad_installed()) {
+            return [];
+        }
+
+        // Get all companies where user is a member (any managertype).
+        try {
+            $sql = "SELECT c.id, c.name, c.shortname, c.category
+                    FROM {company} c
+                    JOIN {company_users} cu ON cu.companyid = c.id
+                    WHERE cu.userid = :userid
+                    ORDER BY c.name";
+            return $DB->get_records_sql($sql, ['userid' => $userid]);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
      * Check if user can manage a specific company.
      *
      * @param int $companyid Company ID.
