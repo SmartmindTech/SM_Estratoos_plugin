@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_sm_estratoos_plugin';
-$plugin->version = 2026022651;  // YYYYMMDDXX format.
+$plugin->version = 2026022652;  // YYYYMMDDXX format.
 $plugin->requires = 2022112800; // Moodle 4.1+
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '2.1.51';  // Real-time webhook data sync (push Moodle changes to SmartLearning).
+$plugin->release = '2.1.52';  // Backend async bulk webhook processing support.
 
 // GitHub update server - allows automatic update notifications.
 // Point to the raw update.xml file in the GitHub repository.

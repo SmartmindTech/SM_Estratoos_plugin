@@ -1974,6 +1974,13 @@ function xmldb_local_sm_estratoos_plugin_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026022651, 'local', 'sm_estratoos_plugin');
     }
 
+    // v2.1.52: Increase webhook dispatch batch size for bulk sync support.
+    // dispatch_webhooks.php now sends up to 10000 events per cron run (loop until empty).
+    if ($oldversion < 2026022652) {
+        purge_all_caches();
+        upgrade_plugin_savepoint(true, 2026022652, 'local', 'sm_estratoos_plugin');
+    }
+
     // Set flag to redirect to plugin dashboard after upgrade completes.
     set_config('redirect_to_dashboard', time(), 'local_sm_estratoos_plugin');
 

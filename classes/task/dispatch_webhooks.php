@@ -56,7 +56,12 @@ class dispatch_webhooks extends \core\task\scheduled_task {
             return;
         }
 
-        $dispatched = \local_sm_estratoos_plugin\webhook::dispatch_pending(50);
-        mtrace("SM Estratoos: Dispatched {$dispatched} webhook events.");
+        // Dispatch all pending events in one go (backend accepts up to 10000 per batch).
+        $total = 0;
+        do {
+            $sent = \local_sm_estratoos_plugin\webhook::dispatch_pending(10000);
+            $total += $sent;
+        } while ($sent > 0);
+        mtrace("SM Estratoos: Dispatched {$total} webhook events.");
     }
 }
